@@ -20,7 +20,17 @@ const NOMES_ZONAS = ['LA CUENCA','EL PÁRAMO','LA HONDONADA','EL SECARRAL','LA V
 function _slug(s){ return s.toUpperCase().replace(/[^A-ZÁÉÍÓÚÑ]/g,'_'); }
 function _snap(v){ return Math.round(v/16)*16; }
 
-function genMap(){
+/* (v0.39) xeración SEMENTADA: co mesmo seed, o mesmo mapa en calquera máquina.
+   É o que permite mapas procedurais no PvP (o host publica só o número). */
+function genMap(seed){
+  if(seed){
+    const _mr = Math.random;
+    Math.random = seededRand(seed >>> 0);
+    try{ return _genMapImpl(); } finally { Math.random = _mr; }
+  }
+  return _genMapImpl();
+}
+function _genMapImpl(){
   const arq = Math.random() < 0.55 ? 'CUENCA' : 'LLANURA';
   const W = 1792 + Math.floor(Math.random()*9)*64;   /* 1792–2304 */
   const H = 1024 + Math.floor(Math.random()*5)*64;   /* 1024–1280 */

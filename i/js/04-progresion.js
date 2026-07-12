@@ -330,12 +330,22 @@ function desmantelarVivo(recId){
 const CAMPAIGN_LEN = 12;
 function campaignAct(){
   const op = DATA.opCount + 1;
-  if(op <= 4) return {n:'I', label:'DESPLIEGUE'};
-  if(op <= 8) return {n:'II', label:'LA MESETA'};
-  return {n:'III', label:'OFENSIVA FINAL'};
+  if(op <= 4) return {n:'I', label: TXT('acto.1')};
+  if(op <= 8) return {n:'II', label: TXT('acto.2')};
+  return {n:'III', label: TXT('acto.3')};
 }
 
-const COMUNICADOS_PRE = {
+function _CPRE(){
+  if(I18N.lang === 'gl' && typeof COMUNICADOS_PRE_GL !== 'undefined') return COMUNICADOS_PRE_GL;
+  if(I18N.lang === 'en' && typeof COMUNICADOS_PRE_EN !== 'undefined') return COMUNICADOS_PRE_EN;
+  return COMUNICADOS_PRE_ES;
+}
+function _CPOST(){
+  if(I18N.lang === 'gl' && typeof COMUNICADOS_POST_GL !== 'undefined') return COMUNICADOS_POST_GL;
+  if(I18N.lang === 'en' && typeof COMUNICADOS_POST_EN !== 'undefined') return COMUNICADOS_POST_EN;
+  return COMUNICADOS_POST_ES;
+}
+const COMUNICADOS_PRE_ES = {
   primeira: [
     "Bienvenidos a la iniciativa TUERCA. Ustedes son el futuro: unidades recicladas de bajo coste con entusiasmo preinstalado. La moral es obligatoria. El miedo, un error de configuración. Procedan.",
     "Este comunicado sustituye a la formación. La formación fue recortada. La victoria, no. Procedan con optimismo reglamentario.",
@@ -358,7 +368,7 @@ const COMUNICADOS_PRE = {
   ],
 };
 
-const COMUNICADOS_POST = {
+const COMUNICADOS_POST_ES = {
   vitoriaLimpa: [
     "Operación concluida sin bajas. ÓPTIMA registra la anomalía. Se recuerda que la ausencia de bajas NO es motivo para relajar los protocolos de sacrificio.",
     "Victoria con cero pérdidas de material. El departamento de reciclaje pregunta si están bien. Es sarcasmo. ÓPTIMA no siente. Enhorabuena reglamentaria.",
@@ -377,6 +387,89 @@ const COMUNICADOS_POST = {
   ],
 };
 
+
+/* (v0.40) Comunicados de campaña en galego e inglés — REDACTADOS. */
+const COMUNICADOS_PRE_GL = {
+  primeira: [
+    "Benvidos á iniciativa TUERCA. Vostedes son o futuro: unidades recicladas de baixo custo con entusiasmo preinstalado. A moral é obrigatoria. O medo, un erro de configuración. Procedan.",
+    "Este comunicado substitúe á formación. A formación foi recortada. A vitoria, non. Procedan con optimismo regulamentario.",
+  ],
+  normal: [
+    "A proxección estatística de hoxe indica un {pct}% de éxito. O {pct2}% restante foi reclasificado como 'oportunidade de aprendizaxe'. Procedan.",
+    "Recordatorio: o equipamento perdido en retiradas anteriores NON será reposto pola administración. O taller acepta chatarra. A chatarra xérana vostedes. O sistema é circular e fermoso.",
+    "Infórmase de que a zona '{zona}' foi declarada segura. A declaración é administrativa, non descritiva. Procedan.",
+  ],
+  rachaVitorias: [
+    "As súas últimas vitorias xeraron expectativas. As expectativas xeran cotas. As cotas non descansan. Noraboa e procedan.",
+    "O comité felicita ao escuadrón pola súa eficiencia sostida. Como recompensa, incrementouse a dificultade proxectada. O mérito págase.",
+  ],
+  rachaDerrotas: [
+    "Tras revisar os seus últimos resultados, ÓPTIMA decidiu reclasificar a palabra 'derrota' como 'vitoria diferida'. O dicionario coopera. Vostedes deberían tamén.",
+    "Recórdaselle ao escuadrón que as baixas repetidas afectan ao orzamento de reciclaxe. Morran menos. É unha directiva, non unha suxestión.",
+  ],
+  moitasBaixas: [
+    "O rexistro acumulado de baixas deste escuadrón superou o limiar sentimental. Recoméndase non encariñarse. O cariño non é reciclable.",
+  ],
+};
+const COMUNICADOS_PRE_EN = {
+  primeira: [
+    "Welcome to the TUERCA initiative. You are the future: low-cost recycled units with enthusiasm pre-installed. Morale is mandatory. Fear is a configuration error. Proceed.",
+    "This memo replaces training. Training was cut. Victory was not. Proceed with regulation optimism.",
+  ],
+  normal: [
+    "Today's statistical projection indicates a {pct}% success rate. The remaining {pct2}% has been reclassified as a 'learning opportunity'. Proceed.",
+    "Reminder: equipment lost in previous retreats will NOT be replaced by administration. The workshop accepts scrap. You generate the scrap. The system is circular and beautiful.",
+    "Please be advised that zone '{zona}' has been declared safe. The declaration is administrative, not descriptive. Proceed.",
+  ],
+  rachaVitorias: [
+    "Your recent victories have generated expectations. Expectations generate quotas. Quotas do not rest. Congratulations, and proceed.",
+    "The committee congratulates the squad on its sustained efficiency. As a reward, projected difficulty has been increased. Merit has a price.",
+  ],
+  rachaDerrotas: [
+    "After reviewing your recent results, OPTIMA has decided to reclassify the word 'defeat' as 'deferred victory'. The dictionary cooperates. So should you.",
+    "The squad is reminded that repeated casualties affect the recycling budget. Die less. This is a directive, not a suggestion.",
+  ],
+  moitasBaixas: [
+    "This squad's accumulated casualty record has exceeded the sentimental threshold. Attachment is not recommended. Affection is not recyclable.",
+  ],
+};
+const COMUNICADOS_POST_GL = {
+  vitoriaLimpa: [
+    "Operación concluída sen baixas. ÓPTIMA rexistra a anomalía. Recórdase que a ausencia de baixas NON é motivo para relaxar os protocolos de sacrificio.",
+    "Vitoria con cero perdas de material. O departamento de reciclaxe pregunta se están ben. É sarcasmo. ÓPTIMA non sente. Noraboa regulamentaria.",
+  ],
+  vitoriaConBaixas: [
+    "Vitoria confirmada. As unidades {nomes} quedan rexistradas como doazóns voluntarias de material. As súas placas serán recicladas con honores. A moral segue sendo obrigatoria.",
+    "Obxectivo cumprido con desviación aceptable. {nomes}: grazas pola súa contribución estrutural. O resto: tomen nota do exemplo, pero non o imiten.",
+  ],
+  derrota: [
+    "A operación foi reclasificada de 'fracaso' a 'éxito parcial invertido'. O equipamento abandonado pasa a inventario inimigo, onde será mellor coidado. Reflexionen.",
+    "Resultado subóptimo. ÓPTIMA executou 4,2 millóns de simulacións e en todas vostedes o facían mellor. A discrepancia é responsabilidade súa.",
+  ],
+  derrotaConBaixas: [
+    "Derrota rexistrada. As unidades {nomes} foron transferidas ao plan de recycle land con carácter inmediato. As súas vacantes xa xeran entusiasmo na cadea de montaxe.",
+    "Perda de territorio e das unidades {nomes}. ÓPTIMA suxire converter a dor en produtividade. Hai un formulario para iso.",
+  ],
+};
+const COMUNICADOS_POST_EN = {
+  vitoriaLimpa: [
+    "Operation concluded without casualties. OPTIMA has logged the anomaly. You are reminded that the absence of casualties is NOT grounds for relaxing the sacrifice protocols.",
+    "Victory with zero material losses. The recycling department asks if you are feeling alright. That is sarcasm. OPTIMA does not feel. Regulation congratulations.",
+  ],
+  vitoriaConBaixas: [
+    "Victory confirmed. Units {nomes} are hereby registered as voluntary material donations. Their plates will be recycled with honors. Morale remains mandatory.",
+    "Objective achieved within acceptable deviation. {nomes}: thank you for your structural contribution. Everyone else: take note of the example, but do not imitate it.",
+  ],
+  derrota: [
+    "The operation has been reclassified from 'failure' to 'inverted partial success'. Abandoned equipment passes to enemy inventory, where it will be better cared for. Reflect.",
+    "Suboptimal outcome. OPTIMA ran 4.2 million simulations and you performed better in all of them. The discrepancy is your responsibility.",
+  ],
+  derrotaConBaixas: [
+    "Defeat logged. Units {nomes} have been transferred to the recycle land plan effective immediately. Their vacancies are already generating enthusiasm on the assembly line.",
+    "Loss of territory and of units {nomes}. OPTIMA suggests converting grief into productivity. There is a form for that.",
+  ],
+};
+
 const REACCIONS_COMUNICADO = {
   LEAL:            ["Órdenes son órdenes. Supongo.", "El mando sabrá lo que hace. Supongo."],
   SARCASTICO:      ["Qué manera tan bonita de decirlo.", "'Entusiasmo preinstalado'. El mío viene defectuoso.", "Inspirador. Casi lloro aceite."],
@@ -387,11 +480,11 @@ const REACCIONS_COMUNICADO = {
 function pickComunicadoPre(){
   const op = DATA.opCount + 1;
   let pool;
-  if(op === 1) pool = COMUNICADOS_PRE.primeira;
-  else if((DATA.campStreak||0) >= 3) pool = COMUNICADOS_PRE.rachaVitorias;
-  else if((DATA.campStreak||0) <= -2) pool = COMUNICADOS_PRE.rachaDerrotas;
-  else if((DATA.fallen||[]).length >= 6 && Math.random() < 0.5) pool = COMUNICADOS_PRE.moitasBaixas;
-  else pool = COMUNICADOS_PRE.normal;
+  if(op === 1) pool = _CPRE().primeira;
+  else if((DATA.campStreak||0) >= 3) pool = _CPRE().rachaVitorias;
+  else if((DATA.campStreak||0) <= -2) pool = _CPRE().rachaDerrotas;
+  else if((DATA.fallen||[]).length >= 6 && Math.random() < 0.5) pool = _CPRE().moitasBaixas;
+  else pool = _CPRE().normal;
   let txt = pool[Math.floor(Math.random()*pool.length)];
   const pct = 60 + Math.floor(Math.random()*35);
   return txt.replace('{pct2}', 100-pct).replace('{pct}', pct)
@@ -401,10 +494,10 @@ function pickComunicadoPre(){
 function pickComunicadoPost(g, fallenNames){
   const v = g.result === 'victory';
   let pool;
-  if(v && fallenNames.length === 0) pool = COMUNICADOS_POST.vitoriaLimpa;
-  else if(v) pool = COMUNICADOS_POST.vitoriaConBaixas;
-  else if(fallenNames.length > 0) pool = COMUNICADOS_POST.derrotaConBaixas;
-  else pool = COMUNICADOS_POST.derrota;
+  if(v && fallenNames.length === 0) pool = _CPOST().vitoriaLimpa;
+  else if(v) pool = _CPOST().vitoriaConBaixas;
+  else if(fallenNames.length > 0) pool = _CPOST().derrotaConBaixas;
+  else pool = _CPOST().derrota;
   let txt = pool[Math.floor(Math.random()*pool.length)];
   return txt.replace('{nomes}', fallenNames.join(', ') || '—');
 }

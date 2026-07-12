@@ -593,6 +593,17 @@ function loop(){
     ctx.fillRect(0, 0, cv.width, cv.height);
     ctx.restore();
   }
+  /* (v0.39) PvP: os comandantes teñen nome — nas esquinas do mapa */
+  if(g.modo === 'pvp' && window._pvpNomes){
+    ctx.save();
+    ctx.font = 'bold 11px Courier New';
+    ctx.fillStyle = '#6ea8ff';
+    ctx.fillText('■ ' + window._pvpNomes.azul, 10, 16);
+    const _tv = '■ ' + window._pvpNomes.vermello;
+    ctx.fillStyle = '#ff7a5a';
+    ctx.fillText(_tv, cv.width - ctx.measureText(_tv).width - 10, 16);
+    ctx.restore();
+  }
   drawMinimap(g);
   /* (v0.13) Flash de alarma: bordo vermello pulsante 3s tras dano ao HQ azul */
   if(g.hq[PT].lastDamageT && g.t - g.hq[PT].lastDamageT < 60*3){
@@ -633,7 +644,7 @@ cv.addEventListener('mousedown', e=>{
   }
   /* (v0.22) Modo colocación de muro (encargo ao Engineer) */
   if(game.wallPlacing){
-    if(e.button === 2){ game.wallPlacing = null; radio('Encargo de muro cancelado.', '#888'); return; }
+    if(e.button === 2){ game.wallPlacing = null; radio(TXT('r.muroCancelado'), '#888'); return; }
     if(e.button === 0){
       const p = canvasPos(e);
       const eng = game.units.find(u => u.id === game.wallPlacing && !u.dead && !u.inside);
@@ -648,9 +659,9 @@ cv.addEventListener('mousedown', e=>{
           orderMove(eng, p.x + 14, p.y);
         }
         game.wallPlacing = null;
-        radio(`⌂ ${eng.name} vai levantar un muro.`, '#c8a86a', {x:p.x, y:p.y});
+        radio(TXT('r.vaiMuro', {n:eng.name}), '#c8a86a', {x:p.x, y:p.y});
       } else {
-        radio('⌂ Posición inválida para o muro (territorio propio, chan libre).', '#ff8');
+        radio(TXT('r.muroInvalido'), '#ff8');
       }
       return;
     }
@@ -663,10 +674,10 @@ cv.addEventListener('mousedown', e=>{
     if(validTurretSpot(p.x, p.y, game)){
       if(_pvpG){
         window._pvp.net.push(`salas/${window._pvp.sala}/orden`, {tipo:'torreta', x:Math.round(p.x), y:Math.round(p.y), ts:Date.now()}).catch(()=>{});
-        radio('⌂ Torreta solicitada nesa posición.', '#c8a86a');
+        radio(TXT('r.torretaSolicitada'), '#c8a86a');
       } else placeTurret(p.x, p.y, game);
     } else {
-      radio('⌂ Posición inválida: só en territorio propio (HQ ou sectores teus), en chan libre.', '#ff8');
+      radio(TXT('r.torretaInvalida'), '#ff8');
     }
     return;
   }
@@ -722,13 +733,13 @@ cv.addEventListener('mouseup', e=>{
         orderMove(u, turretHit.x, turretHit.y);
         if(window._pvp && window._pvp.rol === 'guest') window._pvp.net.push(`salas/${window._pvp.sala}/orden`, {tipo:'entrar', id:u.id, kind:'torreta', tid:turretHit.id, ts:Date.now()}).catch(()=>{});
         if(typeof sfx==='function') sfx('order_confirm');
-        radio(`${u.name} → ocupar torreta.`, '#7fb0ff');
+        radio(TXT('r.irTorreta', {n:u.name}), '#7fb0ff');
       } else if(turretHit.team===PT && turretHit.occupant){
         g.units.forEach(u=>u.sel=false);
         g.turrets.forEach(t=>t.sel=false);
         if(g.vehicles) g.vehicles.forEach(v=>v.sel=false);
         turretHit.sel = true;
-        radio(`Torreta seleccionada (${turretHit.occupant.name} dentro). Tecla E para sair.`, '#7fb0ff');
+        radio(TXT('r.torretaSel', {n:turretHit.occupant.name}), '#7fb0ff');
       }
       lastClickUnit = null;
     } else if(vehicleHit){
@@ -740,14 +751,14 @@ cv.addEventListener('mouseup', e=>{
         orderMove(u, vehicleHit.x, vehicleHit.y);
         if(window._pvp && window._pvp.rol === 'guest') window._pvp.net.push(`salas/${window._pvp.sala}/orden`, {tipo:'entrar', id:u.id, kind:'jeep', tid:vehicleHit.id, ts:Date.now()}).catch(()=>{});
         if(typeof sfx==='function') sfx('order_confirm');
-        radio(`${u.name} → ocupar jeep.`, '#7fb0ff');
+        radio(TXT('r.irJeep', {n:u.name}), '#7fb0ff');
       } else if(vehicleHit.team===PT && vehicleHit.occupant){
         /* Jeep amigo ocupado: seleccionalo */
         g.units.forEach(u=>u.sel=false);
         g.turrets.forEach(t=>t.sel=false);
         g.vehicles.forEach(v=>v.sel=false);
         vehicleHit.sel = true;
-        radio(`Jeep seleccionado (${vehicleHit.occupant.name} dentro). Clic no chan para mover, E para baixar.`, '#7fb0ff');
+        radio(TXT('r.jeepSel', {n:vehicleHit.occupant.name}), '#7fb0ff');
       }
       lastClickUnit = null;
     } else {
@@ -840,7 +851,7 @@ document.addEventListener('keydown', e=>{
   if(e.key==='f' || e.key==='F'){
     formacionAtiva = !formacionAtiva;
     if(typeof sfx==='function') sfx('order_confirm');
-    radio(`Formación ${formacionAtiva?'ACTIVADA — HEAVY adiante, GRUNT flancos, ENGINEER atrás':'DESACTIVADA — control manual'}.`, '#7fb0ff');
+    radio((formacionAtiva ? TXT('r.formacionOn') : TXT('r.formacionOff')) + '.', '#7fb0ff');
   }
 });
 
@@ -854,7 +865,7 @@ function ejectFromTurret(){
     const alvo = tu || veh;
     if(alvo){
       window._pvp.net.push(`salas/${window._pvp.sala}/orden`, {tipo:'sair', tid:alvo.id, ts:Date.now()}).catch(()=>{});
-      radio('Baixando…', '#7fb0ff');
+      radio(TXT('r.baixando'), '#7fb0ff');
     }
     return;
   }
@@ -868,7 +879,7 @@ function ejectFromTurret(){
     tu.occupant = null;
     tu.sel = false;
     u.sel = true;
-    radio(`${u.name} saíu da torreta.`, '#ffd24a');
+    radio(TXT('r.saiuTorreta', {n:u.name}), '#ffd24a');
     if(typeof sfx==='function') sfx('order_confirm');
     return;
   }
@@ -883,7 +894,7 @@ function ejectFromTurret(){
     veh.sel = false;
     veh.tx = veh.x; veh.ty = veh.y;  /* parar movemento */
     u.sel = true;
-    radio(`${u.name} saíu do jeep.`, '#ffd24a');
+    radio(TXT('r.saiuJeep', {n:u.name}), '#ffd24a');
     if(typeof sfx==='function') sfx('order_confirm');
   }
 }

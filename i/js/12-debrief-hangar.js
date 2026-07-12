@@ -5,8 +5,20 @@ async function endBattle(g){
   stopMusic();
   if(g.finished) return; g.finished=true;
   if(g.modo === 'pvp' && window._pvp){
-    if(window._pvp.rol === 'host') pvpPublicarFin(g);   /* (v0.31) informe ao rival */
-    setTimeout(pvpLimpar, 2000);   /* (v0.37) deixar flushar o fin e limpar TODO para o seguinte duelo */
+    const _rolFin = window._pvp.rol, _salaFin = window._pvp.sala, _netFin = window._pvp.net;
+    if(_rolFin === 'host') pvpPublicarFin(g);   /* (v0.31) informe ao rival */
+    setTimeout(pvpDesmontarBatalla, 2000);   /* (v0.39) morre a batalla; a SERIE segue */
+    if(_rolFin === 'host'){
+      /* (v0.39) o host abre a ENTREBATALLAS: sala limpa, rolda+1, listo/deploy a cero */
+      const _n2 = (window._pvpN || 1) + 1;
+      setTimeout(() => {
+        if(!_lobby || _lobby.sala !== _salaFin) return;   /* saíu da serie */
+        _netFin.update(`salas/${_salaFin}`, {estado: 'entrebatallas', n: _n2, mapa: null,
+          snap: null, orden: null, fin: null,
+          'host/listo': false, 'guest/listo': false,
+          'host/deploy': null, 'guest/deploy': null}).catch(()=>{});
+      }, 5000);
+    }
   }
   game=null;
   DATA.opCount++;
@@ -55,7 +67,7 @@ async function endBattle(g){
     }
     /* despedida de VOLT segundo o resultado */
     if(DATA.opCount >= 2){
-      const vl = g.result === 'victory' ? VOLT_LINES.derrotado : VOLT_LINES.vencedor;
+      const vl = g.result === 'victory' ? (VOLT_LINES_ML[I18N.lang] || VOLT_LINES_ML.es).derrotado : (VOLT_LINES_ML[I18N.lang] || VOLT_LINES_ML.es).vencedor;
       lines.push(`<div style="margin:8px 0; font-style:italic; color:#ff7a5a;">VOLT: «${vl[Math.floor(Math.random()*vl.length)]}»</div>`);
     }
   }
@@ -112,7 +124,7 @@ async function endBattle(g){
   {
     const fallenNames = lostRemains.map(r => r.unit.name);
     const com = pickComunicadoPost(g, fallenNames);
-    lines.push(`<div style="border:1px solid #8a6200; padding:10px 14px; margin-bottom:12px; color:#e8c060;"><b style="color:#ffb000;">▣ COMUNICADO DE ÓPTIMA v0.9β</b><br>${com}</div>`);
+    lines.push(`<div style="border:1px solid #8a6200; padding:10px 14px; margin-bottom:12px; color:#e8c060;"><b style="color:#ffb000;">▣ ${TXT('br.comunicadoDe')}</b><br>${com}</div>`);
     const reactor = survivors.find(u => u.personalidad);
     if(reactor){
       const est = estadoConfianza(reactor);
@@ -398,15 +410,32 @@ async function endBattle(g){
     DATA.fallen.push(`${u.id} '${u.name}' — ${ops} ops, ${kl} bajas. Caído en ${placeLabel(r.place)}, Operación ${DATA.opCount} (${reason}).`);
     /* (v0.26) ÚLTIMA TRANSMISIÓN: os veteranos non marchan calados */
     if(ops >= 3){
-      const ULTIMAS = {
-        ESTOICO:  ['Sin novedad en el frente.', 'Posición mantenida. Corto.'],
-        IRONICO:  ['Decidme que al menos fue épico.', 'Apuntad esto en mi expediente: lo avisé.'],
-        LEAL:     ['Ha sido un honor, jefe.', 'Terminad lo que empezamos.'],
-        NERVIOSO: ['¿Oís eso? ...ah.', 'No... no era mi turno...'],
-        CINICO:   ['Cobradle esto a ÓPTIMA.', 'Al final tenía razón yo. Qué asco.'],
+      const ULTIMAS_ML = {
+        es: {
+          ESTOICO:  ['Sin novedad en el frente.', 'Posición mantenida. Corto.'],
+          IRONICO:  ['Decidme que al menos fue épico.', 'Apuntad esto en mi expediente: lo avisé.'],
+          LEAL:     ['Ha sido un honor, jefe.', 'Terminad lo que empezamos.'],
+          NERVIOSO: ['¿Oís eso? ...ah.', 'No... no era mi turno...'],
+          CINICO:   ['Cobradle esto a ÓPTIMA.', 'Al final tenía razón yo. Qué asco.'],
+        },
+        gl: {
+          ESTOICO:  ['Sen novidade na fronte.', 'Posición mantida. Corto.'],
+          IRONICO:  ['Dicídeme que polo menos foi épico.', 'Apuntade isto no meu expediente: aviseino.'],
+          LEAL:     ['Foi unha honra, xefe.', 'Rematade o que empezamos.'],
+          NERVIOSO: ['¿Oídes iso? ...ah.', 'Non... non era a miña quenda...'],
+          CINICO:   ['Cobrádelle isto a ÓPTIMA.', 'Ao final tiña razón eu. Que noxo.'],
+        },
+        en: {
+          ESTOICO:  ['Nothing to report at the front.', 'Position held. Out.'],
+          IRONICO:  ['Tell me it was at least epic.', 'Put this in my file: I called it.'],
+          LEAL:     ['It has been an honor, chief.', 'Finish what we started.'],
+          NERVIOSO: ['Do you hear that? ...ah.', 'No... it wasn\u2019t my turn...'],
+          CINICO:   ['Bill this one to OPTIMA.', 'Turns out I was right. Disgusting.'],
+        },
       };
+      const ULTIMAS = ULTIMAS_ML[I18N.lang] || ULTIMAS_ML.es;
       const pool = ULTIMAS[u.personalidad] || ULTIMAS.ESTOICO;
-      lines.push(`<div style="margin-left:24px; font-style:italic; color:#8a97a8;" class="small">📻 Última transmisión de ${u.name}: «${pool[Math.floor(Math.random()*pool.length)]}»</div>`);
+      lines.push(`<div style="margin-left:24px; font-style:italic; color:#8a97a8;" class="small">📻 ${TXT('deb.ultima', {nome: u.name})} «${pool[Math.floor(Math.random()*pool.length)]}»</div>`);
     }
     lines.push(`<div class="bad">✝ ${u.id} '${u.name}' — caído en ${placeLabel(r.place)}. ${reason.charAt(0).toUpperCase()+reason.slice(1)}.</div>`);
     /* (v0.11) Mensaxe do sistema baixo o caído (neutral, sen pool novo) */
@@ -734,7 +763,7 @@ function showBriefing(units, onDone){
   $('debrief').style.display = 'none';
   $('battle').style.display = 'none';
   $('briefing').style.display = 'block';
-  $('brTitle').textContent = `// Briefing — Operación ${DATA.opCount + 1}`;
+  $('brTitle').textContent = TXT('br.titulo', {n: DATA.opCount + 1});
   renderBriefingFrame();
 }
 
@@ -745,17 +774,17 @@ function renderBriefingFrame(){
   if(idx === -1){
     const act = campaignAct();
     const op = DATA.opCount + 1;
-    $('brName').textContent = 'ÓPTIMA v0.9β — Unidad Central de Optimización y Entusiasmo';
+    $('brName').textContent = TXT('br.optima');
     $('brName').style.color = '#ffb000';
-    $('brMeta').textContent = `COMUNICADO ${op}-${act.n} · ACTO ${act.n}: ${act.label} · Operación ${op} de ${CAMPAIGN_LEN}`;
+    $('brMeta').textContent = TXT('br.meta', {op, actN: act.n, acto: act.label, len: CAMPAIGN_LEN});
     const f = $('brFrase');
     f.textContent = pickComunicadoPre();
     f.style.color = '#e8c060';
     f.style.borderLeftColor = '#ffb000';
     f.style.fontStyle = 'normal';
-    $('brProgress').textContent = '( MANDO CENTRAL )';
+    $('brProgress').textContent = TXT('br.mando');
     sfxT('voice_blip', 200, 'OPTIMA');
-    $('brNext').textContent = units.length ? 'SEGUINTE ►' : 'EMPEZAR ►';
+    $('brNext').textContent = units.length ? TXT('br.seguinte') : TXT('br.empezar');
     const cnv = $('brPortrait'), c2 = cnv.getContext('2d');
     c2.fillStyle = '#0a0a0a'; c2.fillRect(0,0,96,96);
     c2.strokeStyle = '#ffb000'; c2.lineWidth = 2;
@@ -799,7 +828,7 @@ function renderBriefingFrame(){
   fraseEl.style.borderLeftColor = col;
   $('brProgress').textContent = `( ${idx + 1} / ${units.length} )`;
   /* Botón cambia de texto na última */
-  $('brNext').textContent = (idx === units.length - 1) ? 'EMPEZAR ►' : 'SEGUINTE ►';
+  $('brNext').textContent = (idx === units.length - 1) ? TXT('br.empezar') : TXT('br.seguinte');
   /* Retrato */
   paintPortrait('brPortrait', u);
 }
@@ -1010,7 +1039,7 @@ function cheatDeath(u, g){
   if(u.team === PT && u.sinergia === 'CORAZON_DOBLE' && !u._corazonUsado && u.hp <= 0 && !u.dead){
     u._corazonUsado = true;
     u.hp = 1;
-    radio(`⟲ ${u.name}: o CORAZÓN DOBRE aguantou o golpe!`, '#ff9a3c', {x:u.x, y:u.y});
+    radio(TXT('r.corazonDobre', {n:u.name}), '#ff9a3c', {x:u.x, y:u.y});
     sfx('loot_pick');
     return true;
   }
@@ -1239,23 +1268,60 @@ function entregarReconstruccion(lines){
    A CANTINA (v0.27) — entre operacións, o escuadrón vive.
    Rumores, brindes polos caídos, queixas... e a rolda.
    ============================================================ */
-const CANTINA_CHARLAS = [
-  [{f:{p:'CINICO'}, t:'¿Sabéis que ÓPTIMA cobra el whisky sintético como "fluido de mantenimiento"?'},
-   {f:{}, t:'Mientras lo sirva, que lo llame como quiera.'}],
-  [{f:{p:'NERVIOSO'}, t:'Dicen que en el sector norte hay muros que... devuelven cosas.'},
-   {f:{p:'ESTOICO'}, t:'Bebe.'},
-   {f:{p:'NERVIOSO'}, t:'Ya. Sí. Mejor.'}],
-  [{f:{p:'IRONICO'}, t:'Propongo un brindis: por VOLT, que al menos se aprende nuestros nombres.'},
-   {f:{p:'LEAL'}, t:'Eso no tiene gracia.'},
-   {f:{p:'IRONICO'}, t:'Por eso brindo.'}],
-  [{f:{recoveries:true}, t:'Este vaso lo sujeto con dedos que no recuerdo comprar.'},
-   {f:{}, t:'Funcionan. Brinda.'}],
-  [{f:{cls:'ENGINEER'}, t:'Hoy he contado los tornillos del techo. Cuarenta y dos.'},
-   {f:{p:'CINICO'}, t:'Fascinante vida la tuya.'},
-   {f:{cls:'ENGINEER'}, t:'Más que la tuya: yo sé cuántos tornillos me sujetan.'}],
-  [{f:{e:'DESCONFIADO'}, t:'¿Alguien ha visto el contrato? Yo nunca firmé nada.'},
-   {f:{e:'LEAL'}, t:'Nadie firmó. Nos fabricaron firmados.'}],
-];
+/* (v0.40 F3) A cantina en tres voces. */
+const CANTINA_CHARLAS_ML = {
+  es: [
+    [{f:{p:'CINICO'}, t:'¿Sabéis que ÓPTIMA cobra el whisky sintético como "fluido de mantenimiento"?'},
+     {f:{}, t:'Mientras lo sirva, que lo llame como quiera.'}],
+    [{f:{p:'NERVIOSO'}, t:'Dicen que en el sector norte hay muros que... devuelven cosas.'},
+     {f:{p:'ESTOICO'}, t:'Bebe.'},
+     {f:{p:'NERVIOSO'}, t:'Ya. Sí. Mejor.'}],
+    [{f:{p:'IRONICO'}, t:'Propongo un brindis: por VOLT, que al menos se aprende nuestros nombres.'},
+     {f:{p:'LEAL'}, t:'Eso no tiene gracia.'},
+     {f:{p:'IRONICO'}, t:'Por eso brindo.'}],
+    [{f:{recoveries:true}, t:'Este vaso lo sujeto con dedos que no recuerdo comprar.'},
+     {f:{}, t:'Funcionan. Brinda.'}],
+    [{f:{cls:'ENGINEER'}, t:'Hoy he contado los tornillos del techo. Cuarenta y dos.'},
+     {f:{p:'CINICO'}, t:'Fascinante vida la tuya.'},
+     {f:{cls:'ENGINEER'}, t:'Más que la tuya: yo sé cuántos tornillos me sujetan.'}],
+    [{f:{e:'DESCONFIADO'}, t:'¿Alguien ha visto el contrato? Yo nunca firmé nada.'},
+     {f:{e:'LEAL'}, t:'Nadie firmó. Nos fabricaron firmados.'}],
+  ],
+  gl: [
+    [{f:{p:'CINICO'}, t:'¿Sabedes que ÓPTIMA cobra o whisky sintético como "fluído de mantemento"?'},
+     {f:{}, t:'Mentres o sirva, que lle chame como queira.'}],
+    [{f:{p:'NERVIOSO'}, t:'Din que no sector norte hai muros que... devolven cousas.'},
+     {f:{p:'ESTOICO'}, t:'Bebe.'},
+     {f:{p:'NERVIOSO'}, t:'Xa. Si. Mellor.'}],
+    [{f:{p:'IRONICO'}, t:'Propoño un brinde: por VOLT, que polo menos aprende os nosos nomes.'},
+     {f:{p:'LEAL'}, t:'Iso non ten gracia.'},
+     {f:{p:'IRONICO'}, t:'Por iso brindo.'}],
+    [{f:{recoveries:true}, t:'Este vaso suxéitoo con dedos que non lembro mercar.'},
+     {f:{}, t:'Funcionan. Brinda.'}],
+    [{f:{cls:'ENGINEER'}, t:'Hoxe contei os parafusos do teito. Corenta e dous.'},
+     {f:{p:'CINICO'}, t:'Fascinante vida a túa.'},
+     {f:{cls:'ENGINEER'}, t:'Máis cá túa: eu sei cantos parafusos me suxeitan.'}],
+    [{f:{e:'DESCONFIADO'}, t:'¿Alguén viu o contrato? Eu nunca asinei nada.'},
+     {f:{e:'LEAL'}, t:'Ninguén asinou. Fabricáronnos asinados.'}],
+  ],
+  en: [
+    [{f:{p:'CINICO'}, t:'Did you know OPTIMA bills the synthetic whisky as "maintenance fluid"?'},
+     {f:{}, t:'As long as they pour it, they can call it whatever they like.'}],
+    [{f:{p:'NERVIOSO'}, t:'They say the north sector has walls that... give things back.'},
+     {f:{p:'ESTOICO'}, t:'Drink.'},
+     {f:{p:'NERVIOSO'}, t:'Right. Yes. Better.'}],
+    [{f:{p:'IRONICO'}, t:'A toast: to VOLT, who at least learns our names.'},
+     {f:{p:'LEAL'}, t:'That\u2019s not funny.'},
+     {f:{p:'IRONICO'}, t:'That\u2019s why I\u2019m toasting.'}],
+    [{f:{recoveries:true}, t:'I\u2019m holding this glass with fingers I don\u2019t remember buying.'},
+     {f:{}, t:'They work. Toast.'}],
+    [{f:{cls:'ENGINEER'}, t:'Today I counted the screws in the ceiling. Forty-two.'},
+     {f:{p:'CINICO'}, t:'Fascinating life you lead.'},
+     {f:{cls:'ENGINEER'}, t:'More than yours: I know how many screws are holding me together.'}],
+    [{f:{e:'DESCONFIADO'}, t:'Has anyone seen the contract? I never signed anything.'},
+     {f:{e:'LEAL'}, t:'Nobody signed. We were manufactured pre-signed.'}],
+  ],
+};
 
 function showCantina(){
   const roster = (DATA.units || []).filter(r => r.personalidad || (r.personalidad = pickPersonalidad(r.cls)));
@@ -1303,7 +1369,8 @@ function showCantina(){
       atraso += 2600;
     }
   }
-  const charlas = [...CANTINA_CHARLAS, ...CHACHARA].sort(() => Math.random() - 0.5);
+  const _cc = CANTINA_CHARLAS_ML[I18N.lang] || CANTINA_CHARLAS_ML.es;
+  const charlas = [..._cc, ...chacharaPool()].sort(() => Math.random() - 0.5);
   let emitidas = 0;
   for(const inter of charlas){
     if(emitidas >= 2) break;
@@ -1584,10 +1651,10 @@ $('btnStart').onclick=()=>{
   showBriefing(deployed, () => {
     $('hangar').style.display='none';
     $('battle').style.display='block';
-    $('radio').innerHTML='<div class="line small">— Canal de radio abierto —</div>';
+    $('radio').innerHTML=`<div class="line small">— ${TXT('r.canal')} —</div>`;
     panelInterrupt = null;
     game = newBattle(deployed);
-    radio(`OPERACIÓN ${DATA.opCount+1} INICIADA${CURRENT_MAP && CURRENT_MAP.NAME ? ' — ' + CURRENT_MAP.NAME : ''}. Objetivo: HQ ${PT===0?'rojo':'azul'}.`, '#7fdc7f');
+    radio(TXT('r.opIniciada', {n:DATA.opCount+1, m:(CURRENT_MAP && CURRENT_MAP.NAME ? ' — ' + CURRENT_MAP.NAME : ''), obx: TXT(PT===0?'r.hqVermello':'r.hqAzul')}), '#7fdc7f');
     sfx('radio_open');
     setTimeout(()=>{
       sfx('radio_static', 0.6);

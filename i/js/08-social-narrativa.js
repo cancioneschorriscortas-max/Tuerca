@@ -71,11 +71,11 @@ function tickSubquests(g){
       } while((inWater(cx, cy) || inWall(g, cx, cy)) && tent < 40);
       addSubquest(g, {
         tipo: 'TECNOLOXIA', x: cx, y: cy,
-        titulo: '◈ Tecnoloxía descoñecida',
-        desc: 'Achega un ENGINEER para analizala',
+        titulo: TXT('sq.tec'),
+        desc: TXT('sq.tecDesc'),
         progress: 0, progressMax: 180,
       });
-      hqSay('Tecnología no identificada detectada en el sector central. Se requiere INGENIERO.');
+      hqSay(TXT('hq.tecnoloxia'));
     }
   }
 
@@ -100,11 +100,11 @@ function tickSubquests(g){
         }
         addSubquest(g, {
           tipo: 'MURO_RESTOS', x: w.x, y: w.y, wallRef: w, peza,
-          titulo: peza ? `⚙ Restos no muro: ${PEZA_LABEL[peza.tipo]} de ${peza.deNome}` : '◈ Restos incrustados nun muro',
-          desc: 'Tomba o muro e recolle o que garda',
+          titulo: peza ? TXT('sq.muroPeza', {peza:PEZA_LABEL[peza.tipo], de:peza.deNome}) : TXT('sq.muro'),
+          desc: TXT('sq.muroDesc'),
           bounty: peza ? 0 : 6,
         });
-        hqSay('Ecos estructurales anómalos: restos aliados incrustados en un muro. Demolición requerida.');
+        hqSay(TXT('hq.muroRestos'));
       }
     }
   }
@@ -126,7 +126,7 @@ function tickSubquests(g){
         else if(!(g.pezasRecuperadas || []).includes(q.pezaId)){
           /* nin portador nin drop nin recuperada → oxidou/perdida */
           q.failed = true; q._doneT = g.t;
-          hqSay('Señal de material propio perdida.');
+          hqSay(TXT('hq.sinalPerdida'));
         }
       }
       if((g.pezasRecuperadas || []).includes(q.pezaId)){
@@ -142,10 +142,10 @@ function tickSubquests(g){
         g.scrap = g.scrap || [];
         if(q.peza){
           q._drop = {x: q.x, y: q.y - 4, amount: 0, peza: q.peza, timer: 90 * 60, collected: false};
-          radio(`⚙ ${PEZA_LABEL[q.peza.tipo].toUpperCase()} DE ${q.peza.deNome} entre os cascallos!`, '#ff9a3c', {x: q.x, y: q.y});
+          radio(TXT('r.pezaCascallos', {peza:PEZA_LABEL[q.peza.tipo].toUpperCase(), de:q.peza.deNome}), '#ff9a3c', {x: q.x, y: q.y});
         } else {
           q._drop = {x: q.x, y: q.y - 4, amount: 18, timer: 90 * 60, collected: false};
-          radio('◈ Caché de chatarra entre os cascallos.', '#c8a86a', {x: q.x, y: q.y});
+          radio(TXT('r.cacheCascallos'), '#c8a86a', {x: q.x, y: q.y});
         }
         g.scrap.push(q._drop);
       }
@@ -159,7 +159,7 @@ function tickSubquests(g){
           completarSubquest(g, q, quen);
         } else if(q._drop.collected && q._drop.timer <= 0){
           q.failed = true; q._doneT = g.t;
-          hqSay('Restos oxidados. Recuperación fallida.');
+          hqSay(TXT('hq.oxidados'));
         }
       }
     }
@@ -182,7 +182,7 @@ function tickSubquests(g){
           if(eq.id === 'servo_alleo'){ eng.spd *= 1.08; eng.dmg = Math.round(eng.dmg * 1.08); if(eng._dmgBase) eng._dmgBase *= 1.08; }
           const rec = DATA.units.find(r => r.id === eng.id);
           if(rec){ rec.equipment = rec.equipment || []; rec.equipment.push(eq.id); }
-          radio(`◈ ${eng.name} analizou a tecnoloxía: ${eq.nome} — ${eq.desc}. Non se fabrica: só se ROUBA.`, '#b48aff', {x:q.x, y:q.y});
+          radio(TXT('r.analizou', {n:eng.name, eq:eq.nome, d:eq.desc}), '#b48aff', {x:q.x, y:q.y});
           completarSubquest(g, q, eng);
         }
       } else if(q.progress > 0){
@@ -201,9 +201,9 @@ function completarSubquest(g, q, unidade){
   }
   if(unidade){
     unidade.confianza = Math.min(100, (unidade.confianza || 50) + 2);
-    radio(`◈ ${unidade.name}: misión secundaria cumprida.`, '#b48aff', {x:unidade.x, y:unidade.y});
+    radio(TXT('r.sqCumprida', {n:unidade.name}), '#b48aff', {x:unidade.x, y:unidade.y});
   }
-  hqSay(`Objetivo secundario completado.${q.bounty ? ` Prima: ${q.bounty} de chatarra.` : ''}`);
+  hqSay(TXT('hq.sqDone') + (q.bounty ? TXT('hq.sqPrima', {n: q.bounty}) : ''));
   sfx('loot_pick');
 }
 
@@ -227,24 +227,60 @@ function hqSay(text, delayMs = 0){
    Os SEUS veteranos tamén teñen nome — e ti podes matalos.
    ============================================================ */
 const VOLT_NOMES = ['KILO','VATIO','DINAMO','FUSIBLE','TENAZA','CROMO','BUJIA','DIODO','PERNO','LASTRE'];
-const VOLT_LINES = {
-  intro: ["Aquí VOLT. Otra vez vosotros. Acabemos rápido.",
-          "VOLT en frecuencia. He leído vuestro expediente. Mediocre.",
-          "Mismo barro, mismos errores. Adelante."],
-  taunt: ["Uno menos. Los contamos por vosotros.",
-          "¿Ese tenía nombre? Ya no importa.",
-          "Chatarra vuestra, campo mío."],
-  grumble: ["Material reemplazable. Seguid gastando munición.",
-            "Cada baja mía la pagaréis dos veces."],
-  rage: ["{name}... Esa me la vais a pagar.",
-         "{name} tenía historial. Ahora tenéis mi atención."],
-  derrotado: ["Retirada táctica. Esto no acaba aquí.",
-              "Quedaos el campo. Yo me quedo la lección."],
-  vencedor: ["Informad a ÓPTIMA: VOLT no negocia.",
-             "Recoged lo que os deje. Si os dejo algo."],
+/* (v0.40 F3) VOLT en tres voces — REDACTADO, non traducido. */
+const VOLT_LINES_ML = {
+  es: {
+    intro: ["Aquí VOLT. Otra vez vosotros. Acabemos rápido.",
+            "VOLT en frecuencia. He leído vuestro expediente. Mediocre.",
+            "Mismo barro, mismos errores. Adelante."],
+    taunt: ["Uno menos. Los contamos por vosotros.",
+            "¿Ese tenía nombre? Ya no importa.",
+            "Chatarra vuestra, campo mío."],
+    grumble: ["Material reemplazable. Seguid gastando munición.",
+              "Cada baja mía la pagaréis dos veces."],
+    rage: ["{name}... Esa me la vais a pagar.",
+           "{name} tenía historial. Ahora tenéis mi atención."],
+    derrotado: ["Retirada táctica. Esto no acaba aquí.",
+                "Quedaos el campo. Yo me quedo la lección."],
+    vencedor: ["Informad a ÓPTIMA: VOLT no negocia.",
+               "Recoged lo que os deje. Si os dejo algo."],
+  },
+  gl: {
+    intro: ["Aquí VOLT. Outra vez vós. Rematemos axiña.",
+            "VOLT en frecuencia. Lin o voso expediente. Mediocre.",
+            "Mesmo barro, mesmos erros. Adiante."],
+    taunt: ["Un menos. Contámolos por vós.",
+            "¿Ese tiña nome? Xa non importa.",
+            "Chatarra vosa, campo meu."],
+    grumble: ["Material substituíble. Seguide gastando munición.",
+              "Cada baixa miña pagarédela dúas veces."],
+    rage: ["{name}... Esa vasma pagar.",
+           "{name} tiña historial. Agora tedes a miña atención."],
+    derrotado: ["Retirada táctica. Isto non remata aquí.",
+                "Quedade co campo. Eu quedo coa lección."],
+    vencedor: ["Informade a ÓPTIMA: VOLT non negocia.",
+               "Recollede o que vos deixe. Se vos deixo algo."],
+  },
+  en: {
+    intro: ["VOLT here. You again. Let's make this quick.",
+            "VOLT on frequency. I've read your file. Mediocre.",
+            "Same mud, same mistakes. Proceed."],
+    taunt: ["One less. We keep count for you.",
+            "Did that one have a name? Not anymore.",
+            "Your scrap, my field."],
+    grumble: ["Replaceable materiel. Keep wasting ammunition.",
+              "Every loss of mine, you'll pay for twice."],
+    rage: ["{name}... You will answer for that one.",
+           "{name} had a record. Now you have my attention."],
+    derrotado: ["Tactical withdrawal. This isn't over.",
+                "Keep the field. I keep the lesson."],
+    vencedor: ["Inform OPTIMA: VOLT does not negotiate.",
+               "Collect what I leave you. If I leave you anything."],
+  },
 };
 function voltSay(pool, ctx = {}){
-  const arr = VOLT_LINES[pool];
+  const VL = VOLT_LINES_ML[I18N.lang] || VOLT_LINES_ML.es;
+  const arr = VL[pool];
   let t = arr[Math.floor(Math.random() * arr.length)];
   t = t.replace('{name}', ctx.name || '');
   radio(`VOLT: «${t}»`, '#ff7a5a');
@@ -300,7 +336,7 @@ function avisoEscudo(g, hqIdx, atacanteTeam){
   if(atacanteTeam !== 0) return;
   if(!g._escudoAvisado){
     g._escudoAvisado = true;
-    hqSay('HQ enemigo bajo ESCUDO DE SUMINISTRO. Solo cae si controlas MÁS sectores que él.');
+    hqSay(TXT('hq.escudo'));
   }
 }
 
@@ -309,12 +345,26 @@ function avisoEscudo(g, hqIdx, atacanteTeam){
    hostís a AMBOS bandos, nunca aos HQs. Quedan ata que os maten.
    Veñen por chasis. A xustificación é sempre absurda.
    ============================================================ */
-const REQUISAS_OPTIMA = [
-  'AVISO DE REQUISA: la División de Reciclaje Preventivo recolectará chasis operativos para la nueva línea de inodoros institucionales. La resistencia computa como donación voluntaria.',
-  'Sus unidades han sido preseleccionadas para el programa de repuestos corporativos. Enhorabuena. La brigada de requisa no negocia.',
-  'ÓPTIMA requisa material rodante para la fabricación de percheros ejecutivos. Todo chasis es susceptible. Mantengan la calma reglamentaria.',
-  'Recordatorio: el inventario de ÓPTIMA incluye a ÓPTIMA, a ustedes, y al enemigo. La brigada procede a actualizar existencias.',
-];
+const REQUISAS_OPTIMA_ML = {
+  es: [
+    'AVISO DE REQUISA: la División de Reciclaje Preventivo recolectará chasis operativos para la nueva línea de inodoros institucionales. La resistencia computa como donación voluntaria.',
+    'Sus unidades han sido preseleccionadas para el programa de repuestos corporativos. Enhorabuena. La brigada de requisa no negocia.',
+    'ÓPTIMA requisa material rodante para la fabricación de percheros ejecutivos. Todo chasis es susceptible. Mantengan la calma reglamentaria.',
+    'Recordatorio: el inventario de ÓPTIMA incluye a ÓPTIMA, a ustedes, y al enemigo. La brigada procede a actualizar existencias.',
+  ],
+  gl: [
+    'AVISO DE REQUISA: a División de Reciclaxe Preventiva recollerá chasis operativos para a nova liña de inodoros institucionais. A resistencia computa como doazón voluntaria.',
+    'As súas unidades foron preseleccionadas para o programa de repostos corporativos. Noraboa. A brigada de requisa non negocia.',
+    'ÓPTIMA requisa material rodante para a fabricación de perchas executivas. Todo chasis é susceptible. Manteñan a calma regulamentaria.',
+    'Recordatorio: o inventario de ÓPTIMA inclúe a ÓPTIMA, a vostedes, e ao inimigo. A brigada procede a actualizar existencias.',
+  ],
+  en: [
+    'REQUISITION NOTICE: the Preventive Recycling Division will collect operational chassis for the new line of institutional toilets. Resistance is booked as voluntary donation.',
+    'Your units have been shortlisted for the corporate spare-parts program. Congratulations. The requisition brigade does not negotiate.',
+    'OPTIMA is requisitioning rolling stock for the manufacture of executive coat racks. All chassis are eligible. Maintain regulation calm.',
+    'Reminder: OPTIMA\u2019s inventory includes OPTIMA, yourselves, and the enemy. The brigade is proceeding to update stock levels.',
+  ],
+};
 function spawnGreys(g){
   const n = 4 + Math.floor(Math.random() * 3);   /* 4-6 */
   const dende = Math.random() < 0.5 ? 'norte' : 'sur';
@@ -330,10 +380,11 @@ function spawnGreys(g){
     g.units.push(u);
     orderMove(u, W/2 + (Math.random()*200-100), H/2 + (Math.random()*160-80));
   }
-  hqSay('Señales no identificadas. Múltiples. Origen: administración central.');
+  hqSay(TXT('hq.grises'));
   sfx('radio_static');
   setTimeout(() => {
-    radio(`▣ ÓPTIMA: ${REQUISAS_OPTIMA[Math.floor(Math.random()*REQUISAS_OPTIMA.length)]}`, '#e8c060');
+    const _rq = REQUISAS_OPTIMA_ML[I18N.lang] || REQUISAS_OPTIMA_ML.es;
+    radio(`▣ ÓPTIMA: ${_rq[Math.floor(Math.random()*_rq.length)]}`, '#e8c060');
     sfxT('voice_blip', 200, 'OPTIMA');
   }, 2500);
 }
@@ -350,14 +401,14 @@ function tickHQ(g){
       caido._hqMourned = true;
       g._hq.lastMournT = g.t;
       const nome = caido.name;
-      setTimeout(() => hqSay(`Operador ${nome}... sin respuesta.`), 2000);
+      setTimeout(() => hqSay(TXT('hq.senResposta', {nome})), 2000);
     }
   }
 
   /* Produción baixo mínimos */
   if(!g._hq.prodLow && g._hq.peak >= 5 && vivos.length < g._hq.peak * 0.4){
     g._hq.prodLow = true;
-    hqSay('Producción por debajo del 40%. Prioridad: supervivencia.');
+    hqSay(TXT('hq.prodBaixa'));
   }
 
   /* Sectores: superioridade / colapso */
@@ -365,26 +416,26 @@ function tickHQ(g){
     const meus = g.sectors.filter(s => s.owner === PT).length;
     if(!g._hq.supIndustrial && meus === g.sectors.length){
       g._hq.supIndustrial = true;
-      hqSay('Superioridad industrial confirmada.');
+      hqSay(TXT('hq.superioridade'));
     }
     if(!g._hq.redPerdida && g.sectors.every(s => s.owner === ET)){
       g._hq.redPerdida = true;
-      hqSay('Red de sectores comprometida. Reevaluando.');
+      hqSay(TXT('hq.sectoresPerdidos'));
     }
   }
 
   /* Integridade do HQ */
   if(!g._hq.dano50 && g.hq[PT].hp < g.hq[PT].max * 0.5){
     g._hq.dano50 = true;
-    hqSay('Integridad estructural al cincuenta por ciento. Se requiere presencia.');
+    hqSay(TXT('hq.hq50'));
   }
 
   /* Radar: enlace gañado/perdido */
   if(g.radar){
     if(g._hq.radarPrev === undefined) g._hq.radarPrev = g.radar.owner;
     if(g.radar.owner !== g._hq.radarPrev){
-      if(g.radar.owner === PT) hqSay('Enlace de radar establecido. Cobertura ampliada.');
-      else if(g._hq.radarPrev === 0) hqSay('Enlace de radar perdido.');
+      if(g.radar.owner === PT) hqSay(TXT('hq.radarOn'));
+      else if(g._hq.radarPrev === 0) hqSay(TXT('hq.radarOff'));
       g._hq.radarPrev = g.radar.owner;
     }
   }
@@ -855,6 +906,229 @@ const FRASES = {
   },
 };
 
+/* (v0.40 F3b) FRASES en inglés — a voz interactiva do escuadrón, REESCRITA.
+   Fallback por táboa: se unha lingua non ten táboa, úsase a castelá enteira. */
+const FRASES_EN = {
+  GRUNT: {
+    LEAL: {
+      LEAL:           { briefing:["At your orders, chief. Wherever you say.", "Right here, buddy.", "Whatever you need."],
+                        selection:["Say it.", "Orders.", "Here."],
+                        critical:["Holding on, chief. Holding on.","Still standing."] },
+      SARCASTICO:     { briefing:["Bit tired today, chief."],
+                        selection:["Fine, chief."],
+                        critical:["This isn't like the other times, chief."] },
+      DESCONFIADO:    { briefing:["Something changed. Don't know what."],
+                        selection:["Hold on, chief."],
+                        critical:["Support! Please!"] },
+      AUTOPRESERVACION:{briefing:["I don't know who you are anymore."],
+                        refusing_briefing:["Not today, chief. Not today."],
+                        selection:["..."] },
+    },
+    NERVIOSO: {
+      LEAL:           { briefing:["Everything under control, chief? Tell me it is.","It's going to be fine, right?"],
+                        selection:["Here. Listening.","Yes?"],
+                        critical:["I'm all alone out here! Help!","I need support!"] },
+      SARCASTICO:     { briefing:["Hope somebody actually covers me this time.","Off to the front again."],
+                        selection:["Okay, okay.","Yes..."],
+                        critical:["I knew it! I knew this would happen!","They left me alone again!"] },
+      DESCONFIADO:    { briefing:["This smells bad, chief. Really bad.","I don't like it, I don't like it."],
+                        selection:["Wait. Are you sure?","Really?"],
+                        critical:["They left me! They left me again!","I don't want to die here!"] },
+      AUTOPRESERVACION:{briefing:["No, no. Not today. Send the HEAVY."],
+                        refusing_briefing:["I'm not meat. I'm not disposable. I'm not going out today.","Send someone else. Not me. Not anymore."],
+                        selection:["..."] },
+    },
+    IRONICO: {
+      LEAL:           { briefing:["Me again. Alright then.","My turn, I suppose."],
+                        selection:["Go ahead, chief.","Here. The usual guy."],
+                        critical:["It was a matter of time."] },
+      SARCASTICO:     { briefing:["Of course, send the grunt. That's what we're for.","Me at the front again. What a surprise."],
+                        selection:["Yes. Me again."],
+                        critical:["Unbelievable. My turn again."] },
+      DESCONFIADO:    { briefing:["To the front again, buddy? Shocking."],
+                        selection:["What do you need now?"],
+                        critical:["Now THIS is new. And not in a good way."] },
+      AUTOPRESERVACION:{briefing:["I'll pass today. Seriously."],
+                        refusing_briefing:["Sure, send the grunt. That's what we're for. But not today, buddy."],
+                        critical:["This one's on you. I'm done.","..."] },
+    },
+    ESTOICO: {
+      LEAL:           { briefing:["Ready, chief.","Moving."],
+                        selection:["Say it."],
+                        critical:["Holding."] },
+      SARCASTICO:     { briefing:["Let's go then."],
+                        selection:["Yes."],
+                        critical:["This is getting complicated."] },
+      DESCONFIADO:    { briefing:["What's the plan, chief?"],
+                        selection:["Awaiting instructions."],
+                        critical:["I need support."] },
+      AUTOPRESERVACION:{briefing:["Don't talk to me today, chief."],
+                        refusing_briefing:["Not today, chief. Send someone else."],
+                        selection:["..."] },
+    },
+    CINICO: {
+      LEAL:           { briefing:["Good. Maybe this time it won't be a disaster."],
+                        selection:["I hear you."],
+                        critical:["Still here. For now."] },
+      SARCASTICO:     { briefing:["Fourth run. I know the way by now.","Again. The usual."],
+                        selection:["Tell me."],
+                        critical:["To be expected."] },
+      DESCONFIADO:    { briefing:["The plan has holes. As always, buddy."],
+                        selection:["If you insist."],
+                        critical:["I called it, didn't I?"] },
+      AUTOPRESERVACION:{briefing:["I've seen enough, chief."],
+                        refusing_briefing:["Three ops saving your hide. Today you save it yourself.","No. Not me."],
+                        selection:["..."] },
+    },
+  },
+  HEAVY: {
+    LEAL: {
+      LEAL:           { briefing:["We're on it, chief.","Nothing touches you while I'm here.","Wherever it's needed."],
+                        selection:["Talk to me.","Speak.","Here."],
+                        critical:["Holding, don't worry.","Easy, I'm still up."] },
+      SARCASTICO:     { briefing:["Out there again? Damn it, fine."],
+                        selection:["Fine, fine."],
+                        critical:["This is getting ugly, chief!"] },
+      DESCONFIADO:    { briefing:["Are you serious about this plan?"],
+                        selection:["Let's see."],
+                        critical:["Support, damn it! They're on me!"] },
+      AUTOPRESERVACION:{briefing:["Screw you. Seriously."],
+                        refusing_briefing:["After last time, I'm not going out. Send your damn mother."],
+                        critical:["You son of a bitch, you let me die again!","..."] },
+    },
+    IRONICO: {
+      LEAL:           { briefing:["Time for the show again.","Lead on, chief. I'm sharp today."],
+                        selection:["Let's hear it."],
+                        critical:["This is getting complicated, damn it."] },
+      SARCASTICO:     { briefing:["Magnificent. A garbage plan and me up front. As always.","Another masterpiece, huh?"],
+                        selection:["Fine, shoot. Irony aside."],
+                        critical:["Holy hell! What a surprise!","Damn, damn, damn!"] },
+      DESCONFIADO:    { briefing:["If this goes like Op 4, I quit.","This looks like the other times. Bad."],
+                        selection:["Out with it. Let's see."],
+                        critical:["I told you no. I TOLD YOU."] },
+      AUTOPRESERVACION:{briefing:["Today I'm in charge. You watch."],
+                        refusing_briefing:["I'm staying in the turret. Screw you."],
+                        critical:["Your plan, your problem. I mind my own.","..."] },
+    },
+    ESTOICO: {
+      LEAL:           { briefing:["Ready.","Moving."],
+                        selection:["Yes."],
+                        critical:["Enduring."] },
+      SARCASTICO:     { briefing:["Damn, another one."],
+                        selection:["Go on."],
+                        critical:["This is ugly."] },
+      DESCONFIADO:    { briefing:["Are we sure about this?"],
+                        selection:["Speak."],
+                        critical:["I need support, damn it."] },
+      AUTOPRESERVACION:{briefing:["Not today."],
+                        refusing_briefing:["Don't come at me with a plan. Not today.","I'll pass today."],
+                        selection:["..."] },
+    },
+    NERVIOSO: {
+      LEAL:           { briefing:["All under control? Really?"],
+                        selection:["Here, damn it. Listening."],
+                        critical:["Support, for God's sake, support!"] },
+      SARCASTICO:     { briefing:["I hope you have an actual plan this time."],
+                        selection:["Fine, damn it."],
+                        critical:["I said it! Damn it, I said it!"] },
+      DESCONFIADO:    { briefing:["This doesn't smell right. At all."],
+                        selection:["You sure, chief?"],
+                        critical:["I'm going to die out here! Get me out!"] },
+      AUTOPRESERVACION:{briefing:["No! Hell no!"],
+                        refusing_briefing:["I refuse! To hell with all of it, I refuse!"],
+                        selection:["..."] },
+    },
+    CINICO: {
+      LEAL:           { briefing:["Fine. This might even work."],
+                        selection:["I'm listening."],
+                        critical:["It was a matter of time."] },
+      SARCASTICO:     { briefing:["We've done this before. We know how it ends, damn it."],
+                        selection:["Tell me."],
+                        critical:["Well, look at that. Shocking."] },
+      DESCONFIADO:    { briefing:["Your plan looks like garbage. As always."],
+                        selection:["If you insist."],
+                        critical:["I told you, damn it. I told you."] },
+      AUTOPRESERVACION:{briefing:["I've seen enough."],
+                        refusing_briefing:["You're not moving me today. Send your damn mother."],
+                        selection:["..."] },
+    },
+  },
+  ENGINEER: {
+    IRONICO: {
+      LEAL:           { briefing:["Interesting decision. It will work.","Proceeding. With good expectations, this time."],
+                        selection:["Say it.","Yes."],
+                        critical:["This exceeds the projected margin."] },
+      SARCASTICO:     { briefing:["I understand your plan. Partially.","Another incursion. Fine."],
+                        selection:["Go on."],
+                        critical:["Curious place to die."] },
+      DESCONFIADO:    { briefing:["I'll trust you, against my better judgment.","Your plan presents certain... peculiarities."],
+                        selection:["If you insist."],
+                        critical:["This was foreseeable. It was."] },
+      AUTOPRESERVACION:{briefing:["Of course. You decided. Proceeding.","I understand your plan follows a logic that escapes me."],
+                        refusing_briefing:["Today I'll attend to administrative tasks. Your plan doesn't require me.","I've computed my odds. Today I decline to participate."],
+                        selection:["..."],
+                        critical:["I'm sorry for you. Not for me."] },
+    },
+    ESTOICO: {
+      LEAL:           { briefing:["Ready.","Moving."],
+                        selection:["Yes."],
+                        critical:["Enduring."] },
+      SARCASTICO:     { briefing:["Proceeding."],
+                        selection:["Go on."],
+                        critical:["Not ideal."] },
+      DESCONFIADO:    { briefing:["Go ahead."],
+                        selection:["Yes."],
+                        critical:["Under fire."] },
+      AUTOPRESERVACION:{briefing:["Not today."],
+                        refusing_briefing:["I decline this operation.","Today I remain at base."],
+                        selection:["..."] },
+    },
+    CINICO: {
+      LEAL:           { briefing:["Fine. Maybe this time it won't be catastrophic."],
+                        selection:["I hear you."],
+                        critical:["It was a matter of time."] },
+      SARCASTICO:     { briefing:["This op won't go as planned either. Proceeding.","Familiar. Proceeding."],
+                        selection:["Go on."],
+                        critical:["As expected."] },
+      DESCONFIADO:    { briefing:["Your plan follows a logic that escapes me, as usual."],
+                        selection:["If you insist."],
+                        critical:["Predictable."] },
+      AUTOPRESERVACION:{briefing:["I've run the numbers and prefer not to participate."],
+                        refusing_briefing:["I've computed my odds. Today I decline to participate.","My calculations do not endorse your plan. I remain at base."],
+                        selection:["..."] },
+    },
+    LEAL: {
+      LEAL:           { briefing:["With you, always.","Whatever you need."],
+                        selection:["Here."],
+                        critical:["Holding on, don't worry."] },
+      SARCASTICO:     { briefing:["Bit tired today."],
+                        selection:["Fine."],
+                        critical:["This isn't like the other times."] },
+      DESCONFIADO:    { briefing:["Something changed. Don't know what."],
+                        selection:["Go ahead."],
+                        critical:["I need help."] },
+      AUTOPRESERVACION:{briefing:["I don't know who you are anymore."],
+                        refusing_briefing:["I can't today. Seriously."],
+                        selection:["..."] },
+    },
+    NERVIOSO: {
+      LEAL:           { briefing:["Everything under control? I trust you."],
+                        selection:["Yes, here."],
+                        critical:["I need support, please!"] },
+      SARCASTICO:     { briefing:["I hope it's different this time."],
+                        selection:["Fine."],
+                        critical:["I said it, I said it!"] },
+      DESCONFIADO:    { briefing:["This smells bad. You know it, right?"],
+                        selection:["Are you sure?"],
+                        critical:["I'm going to die here!"] },
+      AUTOPRESERVACION:{briefing:["I can't anymore."],
+                        refusing_briefing:["My calculations say no. I remain at base."],
+                        selection:["..."] },
+    },
+  },
+};
+
+
 /* (v0.11) Fallback xenérico por clase × estado para end_op_alive/critical.
    Úsase cando o pool específico (clase × personalidade × estado) non ten frase.
    Mantén o ton da clase aínda que se perda matiz da personalidade. */
@@ -966,7 +1240,9 @@ function pickFrase(u, contexto, opts){
   const pers = u.personalidad;
   const est = estadoConfianza(u);
   let result = null;
-  const cls_table = FRASES[cls];
+  /* (v0.40 F3b) inglés reescrito; outras linguas caen á táboa castelá */
+  const _FR = (I18N.lang === 'en' && typeof FRASES_EN !== 'undefined') ? FRASES_EN : FRASES;
+  const cls_table = _FR[cls] || FRASES[cls];
   if(cls_table){
     const pers_table = cls_table[pers];
     if(pers_table){

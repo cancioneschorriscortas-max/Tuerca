@@ -14,6 +14,73 @@ function pvpLog(msg){
   if(window._pvpTrace.length > 40) window._pvpTrace.shift();
   console.log('[PVP]', msg);
 }
+/* (v0.39) Desmontaxe SÓ da batalla: morren os listeners de snap/orden/fin
+   e o estado de combate, pero a SALA e o LOBBY seguen vivos — a serie continúa. */
+function pvpDesmontarBatalla(){
+  pvpLog('desmontaxe de batalla (a serie segue)');
+  const P = window._pvp;
+  if(P && P.unsub) P.unsub.forEach(f => { try{ f && f(); }catch(e){} });
+  if(window._pvpVixia){ clearTimeout(window._pvpVixia); window._pvpVixia = null; }
+  window._pvp = null;
+}
+
+/* (v0.39) PANEL DE REVANCHA — entre batallas: elixe escuadrón, LISTO, conta atrás */
+function showPvpRevancha(datos, rol){
+  let el = document.getElementById('pvpRevancha');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'pvpRevancha';
+    el.style.cssText = 'position:fixed; top:10px; left:50%; transform:translateX(-50%); z-index:250;' +
+      'background:#101418; border:2px solid #ffd24a; padding:10px 16px; font-family:Courier New,monospace;' +
+      'color:#cfe0ff; box-shadow:0 0 18px rgba(255,210,74,0.25); text-align:center; min-width:430px;';
+    document.body.appendChild(el);
+  }
+  const n = datos.n || 2;
+  const rival = rol === 'host' ? (datos.guest && datos.guest.nome) : (datos.host && datos.host.nome);
+  const eu = datos[rol] || {};
+  const rivalFoi = rol === 'host' ? !datos.guest : !datos.host;
+  /* conta atrás única por rolda */
+  if(window._pvpRevN !== n){
+    window._pvpRevN = n;
+    window._pvpRevDeadline = Date.now() + 90000;
+    window._pvpRevAuto = false;
+    if(window._pvpRevInt) clearInterval(window._pvpRevInt);
+    window._pvpRevInt = setInterval(() => {
+      const s = Math.max(0, Math.ceil((window._pvpRevDeadline - Date.now()) / 1000));
+      const sp = document.getElementById('pvpRevSeg');
+      if(sp) sp.textContent = s;
+      if(s <= 0 && !window._pvpRevAuto){
+        window._pvpRevAuto = true;
+        if(_lobby) _lobby.listo();
+        const b = document.getElementById('pvpRevListo');
+        if(b){ b.disabled = true; b.textContent = TXT('serie.tempo'); }
+      }
+    }, 500);
+  }
+  if(rivalFoi){
+    el.innerHTML = `<b style="color:#ff7a5a;">${TXT('serie.marchou')}</b><br>
+      <button id="pvpRevPechar" style="margin-top:8px;">${TXT('serie.pechar')}</button>`;
+    document.getElementById('pvpRevPechar').onclick = () => { pvpLimpar(); hidePvpRevancha(); radio(TXT('serie.pechada'), '#888'); };
+    return;
+  }
+  const seg = Math.max(0, Math.ceil((window._pvpRevDeadline - Date.now()) / 1000));
+  el.innerHTML = `<b style="color:#ffd24a;">${TXT('serie.vs', {rival: rival || '?'})}</b> — ${TXT('serie.proxima', {n})}<br>
+    <span class="small">${TXT('serie.elixe', {s: `<b id="pvpRevSeg">${seg}</b>`})}</span><br>
+    <button id="pvpRevListo" style="margin-top:8px;" ${eu.listo ? 'disabled' : ''}>${eu.listo ? TXT('serie.agardando') : TXT('serie.listo')}</button>
+    <button id="pvpRevSair" style="margin-top:8px; color:#ff8a70;">${TXT('serie.sair')}</button>`;
+  document.getElementById('pvpRevListo').onclick = function(){
+    this.disabled = true; this.textContent = TXT('serie.agardando');
+    if(_lobby) _lobby.listo();
+  };
+  document.getElementById('pvpRevSair').onclick = () => { pvpLimpar(); hidePvpRevancha(); radio(TXT('serie.saiches'), '#888'); };
+}
+function hidePvpRevancha(){
+  if(window._pvpRevInt){ clearInterval(window._pvpRevInt); window._pvpRevInt = null; }
+  window._pvpRevN = null;
+  const el = document.getElementById('pvpRevancha');
+  if(el) el.remove();
+}
+
 /* (v0.37) LIMPEZA TOTAL tras cada duelo — sen isto, o estado global pegado
    (window._pvp, listeners, vixía) impedía crear unha SEGUNDA sala sen recargar */
 function pvpLimpar(){
@@ -24,6 +91,12 @@ function pvpLimpar(){
   window._pvp = null;
   window._pvpRivalFoi = false;
   window._pvpDeployFeito = null;
+  try{ hidePvpRevancha(); }catch(e){}
+  /* (v0.40) restaurar o idioma do xogador ao pechar a serie */
+  if(window._langAntesPvp){
+    try{ setLang(window._langAntesPvp, {persist: false}); }catch(e){}
+    window._langAntesPvp = null;
+  }
   if(_lobby){ try{ _lobby.sair(); }catch(e){} _lobby = null; }
 }
 
@@ -255,7 +328,7 @@ function pvpAplicarSnap(g){
 function pvpAbandono(){
   if(!game || !window._pvp || window._pvp.finFeito) return;
   window._pvp.finFeito = true;
-  radio('⚑ O RIVAL ABANDONOU O CAMPO. Vitoria por retirada (sen botín de guerra).', '#ffd24a');
+  radio(TXT('pvp.abandonou'), '#ffd24a');
   const g = game;
   g.over = true;
   g.result = 'victory';
@@ -324,15 +397,15 @@ function _pvpEnvolver(){
   queueUnit = function(team, cls){
     if(window._pvp && window._pvp.rol === 'guest' && team === PT){
       if(cls === 'TORRETA'){
-        if((DATA.chatarra||0) < TURRET_BUILD.cost){ radio(`Chatarra insuficiente para TORRETA (necesitas ${TURRET_BUILD.cost}⚙).`, '#ff8'); return; }
+        if((DATA.chatarra||0) < TURRET_BUILD.cost){ radio(TXT('r.senChatarraTorreta', {c:TURRET_BUILD.cost}), '#ff8'); return; }
         DATA.chatarra -= TURRET_BUILD.cost; saveData(DATA);
       }
       if(cls === 'TANQUE'){
-        if((DATA.chatarra||0) < TANK_DEF.cost){ radio(`Chatarra insuficiente para TANQUE (necesitas ${TANK_DEF.cost}⚙).`, '#ff8'); return; }
+        if((DATA.chatarra||0) < TANK_DEF.cost){ radio(TXT('r.senChatarraTanque', {c:TANK_DEF.cost}), '#ff8'); return; }
         DATA.chatarra -= TANK_DEF.cost; saveData(DATA);
       }
       window._pvp.net.push(`salas/${window._pvp.sala}/orden`, {tipo:'prod', cls, ts: Date.now()}).catch(()=>{});
-      radio(`Fábrica: ${cls} solicitado.`, '#7fdc7f');
+      radio(TXT('pvp.fabrica', {c:cls}), '#7fdc7f');
       return;
     }
     return _qu(team, cls);
@@ -363,11 +436,28 @@ function pvpParseLista(dep){
 function pvpArrancar(datos, rol){
   const net = _lobby && _lobby.sala ? window._pvpNet : null;
   if(!net) return;
+  /* (v0.39) SERIE: clave por ROLDA (sala#n) — cada batalla rearma os candados */
+  const clave = _lobby.sala + '#' + (datos.n || 1);
+  window._pvpN = datos.n || 1;
+  if(datos.host || datos.guest){
+    window._pvpNomes = {azul: (datos.host && datos.host.nome) || 'AZUL',
+                        vermello: (datos.guest && datos.guest.nome) || 'VERMELLO'};
+    window._pvpRivalNome = rol === 'host'
+      ? ((datos.guest && datos.guest.nome) || window._pvpRivalNome)
+      : ((datos.host && datos.host.nome) || window._pvpRivalNome);
+  }
+  /* (v0.39) ENTRE BATALLAS: panel de revancha; nada máis mentres se elixe */
+  if(datos.estado === 'entrebatallas'){
+    if(window._pvp) pvpDesmontarBatalla();
+    showPvpRevancha(datos, rol);
+    return;
+  }
+  if(datos.estado === 'listo' || datos.estado === 'batalla') hidePvpRevancha();
   /* 1) publicar o meu despregue — unha vez por sala. Os veteranos son OPCIONAIS:
      sen eles despregas cos novatos de oficio, como na campaña. Se a serialización
      falla por calquera cousa, publícase igual o sobre e vas con novatos. */
-  if(window._pvpDeployFeito !== _lobby.sala){
-    window._pvpDeployFeito = _lobby.sala;
+  if((datos.estado === 'listo' || datos.estado === 'batalla') && window._pvpDeployFeito !== clave){
+    window._pvpDeployFeito = clave;   /* (v0.39) o sobre publícase EN LISTO: le a selección final do hangar */
     pvpLog('publicando despregue na sala ' + _lobby.sala);
     let lista = null;
     try{
@@ -388,10 +478,12 @@ function pvpArrancar(datos, rol){
   /* 2) host: cos dous sobres, promove xa; sen o do rival, VIXÍA DE 6s que forza
      o arranque igualmente (o rival vai con novatos). Imposible quedar en DESPREGANDO. */
   if(rol === 'host' && datos.estado === 'listo'){
-    if(dHost && dGuest && window._pvpPromovido !== _lobby.sala){
-      window._pvpPromovido = _lobby.sala;   /* (v0.37) promover UNHA vez por sala */
-      pvpLog('estado → batalla (host promove)');
-      net.update(`salas/${_lobby.sala}`, {estado: 'batalla'}).catch(()=>{});
+    if(dHost && dGuest && window._pvpPromovido !== clave){
+      window._pvpPromovido = clave;   /* (v0.39) promover unha vez por ROLDA */
+      pvpLog('estado → batalla (host promove, rolda ' + (datos.n || 1) + ')');
+      const seed = (datos.n || 1) >= 2 ? (1 + Math.floor(Math.random() * 899999999)) : 0;
+      window._pvpMapaSeed = seed;
+      net.update(`salas/${_lobby.sala}`, {estado: 'batalla', mapa: {seed}}).catch(()=>{});
       pvpIniciarBatalla('host', pvpParseLista(dHost), pvpParseLista(dGuest));
     } else if(!window._pvpVixia){
       window._pvpVixia = setTimeout(async () => {
@@ -400,8 +492,10 @@ function pvpArrancar(datos, rol){
         let d = null;
         try{ d = await net.once(`salas/${_lobby.sala}`); }catch(e){}
         if(!d || window._pvp) return;
-        radio('⚑ Despregue do rival sen chegar en 6s — FORZANDO o arranque (irá con novatos).', '#ff9a3c');
-        net.update(`salas/${_lobby.sala}`, {estado: 'batalla'}).catch(()=>{});
+        radio(TXT('pvp.forzando'), '#ff9a3c');
+        const seed2 = (d.n || 1) >= 2 ? (1 + Math.floor(Math.random() * 899999999)) : 0;
+        window._pvpMapaSeed = seed2;
+        net.update(`salas/${_lobby.sala}`, {estado: 'batalla', mapa: {seed: seed2}}).catch(()=>{});
         pvpIniciarBatalla('host',
           pvpParseLista(d.host && d.host.deploy),
           pvpParseLista(d.guest && d.guest.deploy));
@@ -410,11 +504,18 @@ function pvpArrancar(datos, rol){
   }
   /* 3) convidado: co estado batalla arranca SEMPRE, con ou sen sobre propio */
   if(rol === 'guest' && datos.estado === 'batalla'){
+    window._pvpMapaSeed = (datos.mapa && datos.mapa.seed) || 0;   /* (v0.39) o mesmo mapa có host */
     pvpIniciarBatalla('guest', pvpParseLista(dGuest), null);
   }
 }
 function pvpIniciarBatalla(rol, meus, rivais){
   if(window._pvp) return;   /* xa arrancada */
+  /* (v0.40) PvP EN INGLÉS por defecto: os DOUS lados ven o mesmo idioma
+     (radio cruzada coherente). Restáurase o do xogador en pvpLimpar. */
+  if(!window._langAntesPvp && typeof setLang === 'function' && I18N.lang !== 'en'){
+    window._langAntesPvp = I18N.lang;
+    setLang('en', {persist: false});
+  }
   setPlayerTeam(rol === 'host' ? 0 : 1);
   const net = window._pvpNet;
   window._pvp = {rol, net, sala: _lobby.sala, snapPend: null, ordenPend: null,
@@ -425,7 +526,7 @@ function pvpIniciarBatalla(rol, meus, rivais){
   $('bioModal').style.display = 'none';
   $('hangar').style.display = 'none';
   $('battle').style.display = 'block';
-  $('radio').innerHTML = '<div class="line small">— Canal de radio abierto —</div>';
+  $('radio').innerHTML = `<div class="line small">— ${TXT('r.canal')} —</div>`;
   panelInterrupt = null;
   DATA.pendingUpgraded = [];
   window._pvpArranque = true;
@@ -453,7 +554,7 @@ function pvpIniciarBatalla(rol, meus, rivais){
       catch(e){ console.error('[fin parse]', e); }
     }));
   }
-  radio(`⚔ DUELO INICIADO — ${rol === 'host' ? 'defendes o AZUL' : 'defendes o VERMELLO'}. Obxectivo: o HQ rival.`, '#ffd24a');
+  radio(TXT('pvp.inicio', {lado: TXT(rol === 'host' ? 'pvp.azul' : 'pvp.vermello')}), '#ffd24a');
   sfx('radio_open');
   setTimeout(() => { sfx('radio_static', 0.6); playSysVoice('op_start'); }, 100);
   updateSidePanel(game);
@@ -601,7 +702,7 @@ function pintarSala(datos, rol){
   /* (v0.33) o host detecta a marcha do rival en plena batalla */
   if(window._pvp && window._pvp.rol === 'host' && !datos.guest && !window._pvpRivalFoi){
     window._pvpRivalFoi = true;
-    radio('⚠ O RIVAL DESCONECTOU. As súas unidades quedan sen comandante — remata a operación cando queiras.', '#ff9a3c');
+    radio(TXT('pvp.desconectou'), '#ff9a3c');
   }
   cont.innerHTML = `
     <div style="border:1px solid #555; padding:10px 14px;">
@@ -650,7 +751,7 @@ function setPlayerTeam(t){ PT = t ? 1 : 0; ET = 1 - PT; }
 
 /* (v0.36.1) VERSIÓN ÚNICA + OVERLAY DE ERROS: calquera excepción sen capturar
    píntase en pantalla coa versión — adeus a depurar builds rancias ás cegas. */
-const TUERCA_V = 'v0.38';
+const TUERCA_V = 'v0.40';
 function _tuercaOverlay(msg){
   try{
     let o = document.getElementById('tuercaErr');

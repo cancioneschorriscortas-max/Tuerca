@@ -20,7 +20,7 @@ function tickTurrets(g){
           /* Transferir selección á estructura */
           if(u.sel){ u.sel = false; tu.sel = true; }
           if(u.team===PT){
-            radio(`${u.name} ocupou a torreta.`, '#7fdc7f');
+            radio(TXT('r.ocupouTorreta', {n:u.name}), '#7fdc7f');
             if(typeof sfx==='function') sfx('order_confirm');
           }
         } else if(tu.occupant && tu.occupant.team !== u.team){
@@ -166,7 +166,7 @@ function tickVehicles(g){
           /* Transferir selección á estructura para que o xogador vexa o panel do jeep */
           if(u.sel){ u.sel = false; v.sel = true; }
           if(u.team === PT){
-            radio(`${u.name} ocupou o jeep.`, '#7fdc7f');
+            radio(TXT('r.ocupouJeep', {n:u.name}), '#7fdc7f');
             if(typeof sfx==='function') sfx('order_confirm');
           }
         } else if(v.occupant && v.occupant.team !== u.team){

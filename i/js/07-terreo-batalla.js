@@ -319,7 +319,11 @@ function newBattle(deployed){
   const _crisol = !!window._modoCrisol;
   window._modoCrisol = false;
   /* (v0.9) Escoller mapa segundo a operación */
-  const mapDef = window._pvpArranque ? MAP1 : ((DATA.opCount >= 2) ? genMap() : ((DATA.opCount >= 1) ? MAP2 : MAP1));   /* (v0.31) PvP: mapa fixo e simétrico */
+  /* (v0.39) PvP: batalla 1 en MAP1 (simétrico coñecido); revanchas con mapa
+     procedural SEMENTADO (o host publica o seed, os dous xeran o mesmo). */
+  const mapDef = window._pvpArranque
+    ? (window._pvpMapaSeed ? genMap(window._pvpMapaSeed) : MAP1)
+    : ((DATA.opCount >= 2) ? genMap() : ((DATA.opCount >= 1) ? MAP2 : MAP1));
   applyMap(mapDef);
 
   /* Construir el mapa de celdas y cachear el dibujo estático */
@@ -354,7 +358,7 @@ function newBattle(deployed){
   deployed.forEach((vu,i)=>{
     const u = mkUnit(PT, vu.cls, PT===0 ? HQ[0].x + HQ[0].w + 30 : HQ[1].x - 30, HQ[PT].y - 28 + i*40, vu);
     g.units.push(u);
-    radio(`${vu.id} '${vu.name}' desplegado. Operación nº${vu.ops+1}.`, '#7fdc7f');
+    radio(TXT('r.desplegado', {id:vu.id, n:vu.name, op:vu.ops+1}), '#7fdc7f');
   });
   const _pdx = PT===0 ? (d)=>HQ[0].x + HQ[0].w + d : (d)=>HQ[1].x - d;
   g.units.push(mkUnit(PT,'GRUNT',    _pdx(30), HQ[PT].y + HQ[PT].h + 20, null));
@@ -474,10 +478,10 @@ function newBattle(deployed){
     g._wave = 0;
     g._waveClearT = g.t;
     setTimeout(() => {
-      radio('▣ ÓPTIMA: Bienvenidos al PROGRAMA DE VALIDACIÓN DE DURABILIDAD. Sus unidades generarán datos de rendimiento. Los datos duelen.', '#e8c060');
+      radio('▣ ÓPTIMA: ' + TXT('optima.crisolBenvida'), '#e8c060');
       sfxT('voice_blip', 200, 'OPTIMA');
     }, 1200);
-    setTimeout(() => hqSay('Simulacro con fuego real. Cinco oleadas. Sobrevivid.'), 3600);
+    setTimeout(() => hqSay(TXT('hq.crisolInicio')), 3600);
   }
   return g;
 }

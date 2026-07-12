@@ -88,7 +88,7 @@ function damageWall(g, w, dmg){
     sfxT('wall_break', 200); addShake(g, 1.8);
     dropScrap(g, w.x, w.y, 3);
     if(!g._wallMsgT || g.t - g._wallMsgT > 120){
-      radio('Sección de muro derribada.', '#c8a86a', {x:w.x, y:w.y});
+      radio(TXT('r.muroDerribado'), '#c8a86a', {x:w.x, y:w.y});
       g._wallMsgT = g.t;
     }
   }
@@ -120,7 +120,7 @@ function tickBaseAlarm(g){
   const recente = g.t - hq.lastDamageT < 60*3;
   if(recente && (!g._alarmT || g.t - g._alarmT > 60*6)){
     g._alarmT = g.t;
-    radio('⚠ ¡BASE BAJO ATAQUE! (clic para ir)', '#ff5340', {x: hq.x + hq.w/2, y: hq.y + hq.h/2});
+    radio(TXT('r.baseAtaque'), '#ff5340', {x: hq.x + hq.w/2, y: hq.y + hq.h/2});
     playAlarm();
     if(typeof playSysVoice === 'function') playSysVoice('base_attack');
   }
@@ -167,6 +167,73 @@ const CHACHARA = [
    {f:{p:'NERVIOSO'}, t:'Por favor, apunta lejos de mí.'}],
 ];
 
+/* (v0.40 F3b) A cháchara de campo en galego e inglés (REESCRITA). */
+const CHACHARA_GL = [
+  [{f:{p:'NERVIOSO'}, t:'Munición revisada. Dúas veces.'},
+   {f:{p:'ESTOICO'}, t:'Perfecto.'},
+   {f:{p:'IRONICO'}, t:'Eu traería outro cargador.'}],
+  [{f:{p:'LEAL'}, t:'Listos para o que ordenen.'},
+   {f:{p:'CINICO'}, t:'Fala por ti.'}],
+  [{f:{p:'IRONICO'}, t:'¿Alguén leu o plan?'},
+   {f:{p:'ESTOICO'}, t:'Avanzar.'},
+   {f:{p:'IRONICO'}, t:'Bo plan. Curto. Directo.'}],
+  [{f:{p:'NERVIOSO'}, t:'¿Oístes iso?'},
+   {f:{p:'CINICO'}, t:'É o teu ventilador, novato.'}],
+  [{f:{cls:'ENGINEER'}, t:'Se alguén estoupa, que sexa preto. Odio camiñar.'},
+   {f:{}, t:'Tomo nota.'}],
+  [{f:{cls:'SNIPER'}, t:'Véxovos mellor de lonxe.'},
+   {f:{p:'IRONICO'}, t:'Gañamos todos.'}],
+  [{f:{e:'SARCASTICO'}, t:'Outra estrada...'},
+   {f:{e:'LEAL'}, t:'Esta vez cruzamos.'},
+   {f:{e:'DESCONFIADO'}, t:'Iso dixeches a última vez.'}],
+  [{f:{e:'AUTOPRESERVACION'}, t:'Eu vou detrás.'},
+   {f:{e:'LEAL'}, t:'Vas onde che toque.'},
+   {f:{e:'AUTOPRESERVACION'}, t:'Detrás, entón.'}],
+  [{f:{cls:'HEAVY'}, t:'Peso, munición, dúbidas. Todo cargado.'},
+   {f:{p:'ESTOICO'}, t:'Deixa as dúbidas.'}],
+  [{f:{p:'CINICO'}, t:'¿Sabedes o que cobra ÓPTIMA por hora?'},
+   {f:{p:'LEAL'}, t:'Non empeces.'},
+   {f:{p:'CINICO'}, t:'Nós tampouco cobramos. Só digo.'}],
+  [{f:{recoveries:true}, t:'Este chasis non é o meu. Seino.'},
+   {f:{}, t:'Funciona. Camiña.'}],
+  [{f:{cls:'BOMBARDERO'}, t:'¿Muros? ¿Alguén viu muros?'},
+   {f:{p:'NERVIOSO'}, t:'Por favor, apunta lonxe de min.'}],
+];
+const CHACHARA_EN = [
+  [{f:{p:'NERVIOSO'}, t:'Ammo checked. Twice.'},
+   {f:{p:'ESTOICO'}, t:'Good.'},
+   {f:{p:'IRONICO'}, t:'I\u2019d have brought another magazine.'}],
+  [{f:{p:'LEAL'}, t:'Ready for whatever they order.'},
+   {f:{p:'CINICO'}, t:'Speak for yourself.'}],
+  [{f:{p:'IRONICO'}, t:'Has anyone read the plan?'},
+   {f:{p:'ESTOICO'}, t:'Advance.'},
+   {f:{p:'IRONICO'}, t:'Good plan. Short. Direct.'}],
+  [{f:{p:'NERVIOSO'}, t:'Did you hear that?'},
+   {f:{p:'CINICO'}, t:'That\u2019s your fan, rookie.'}],
+  [{f:{cls:'ENGINEER'}, t:'If anyone explodes, do it nearby. I hate walking.'},
+   {f:{}, t:'Noted.'}],
+  [{f:{cls:'SNIPER'}, t:'You all look better from a distance.'},
+   {f:{p:'IRONICO'}, t:'Everybody wins.'}],
+  [{f:{e:'SARCASTICO'}, t:'Another road...'},
+   {f:{e:'LEAL'}, t:'This time we cross it.'},
+   {f:{e:'DESCONFIADO'}, t:'You said that last time.'}],
+  [{f:{e:'AUTOPRESERVACION'}, t:'I\u2019ll take the rear.'},
+   {f:{e:'LEAL'}, t:'You go where you\u2019re told.'},
+   {f:{e:'AUTOPRESERVACION'}, t:'The rear, then.'}],
+  [{f:{cls:'HEAVY'}, t:'Weight, ammo, doubts. All loaded.'},
+   {f:{p:'ESTOICO'}, t:'Drop the doubts.'}],
+  [{f:{p:'CINICO'}, t:'Do you know what OPTIMA bills per hour?'},
+   {f:{p:'LEAL'}, t:'Don\u2019t start.'},
+   {f:{p:'CINICO'}, t:'We don\u2019t get paid either. Just saying.'}],
+  [{f:{recoveries:true}, t:'This chassis isn\u2019t mine. I know it.'},
+   {f:{}, t:'It works. Walk.'}],
+  [{f:{cls:'BOMBARDERO'}, t:'Walls? Has anyone seen walls?'},
+   {f:{p:'NERVIOSO'}, t:'Please aim far away from me.'}],
+];
+function chacharaPool(){
+  return I18N.lang === 'gl' ? CHACHARA_GL : (I18N.lang === 'en' ? CHACHARA_EN : CHACHARA);
+}
+
 function _matchRol(u, f){
   if(f.p && u.personalidad !== f.p) return false;
   if(f.e && estadoConfianza(u) !== f.e) return false;
@@ -179,7 +246,7 @@ function playChachara(g, seleccionados){
   const cands = seleccionados.filter(u => !u.dead && !u.inside && u.team === PT);
   if(cands.length < 2) return false;
   for(const u of cands){ if(!u.personalidad) u.personalidad = pickPersonalidad(u.cls); }
-  const barallada = [...CHACHARA].sort(() => Math.random() - 0.5);
+  const barallada = [...chacharaPool()].sort(() => Math.random() - 0.5);
   for(const inter of barallada){
     if(inter.length > cands.length) continue;
     /* Repartir roles: unidades distintas que casen cos filtros */
@@ -358,11 +425,11 @@ function queueUnit(team, cls){
   const g=game; if(!g||g.over) return;
   if(g.prod[team]) return;
   const myCount = g.units.filter(u=>u.team===team && !u.dead).length;
-  if(myCount>=9){ if(team===PT) radio('Capacidad máxima de despliegue (9).', '#ff8'); return; }
+  if(myCount>=9){ if(team===PT) radio(TXT('r.capMax'), '#ff8'); return; }
   if(cls === 'TORRETA'){
     if(team === PT){
       if((DATA.chatarra||0) < TURRET_BUILD.cost){
-        radio(`Chatarra insuficiente para TORRETA (necesitas ${TURRET_BUILD.cost}⚙).`, '#ff8');
+        radio(TXT('r.senChatarraTorreta', {c:TURRET_BUILD.cost}), '#ff8');
         return;
       }
       DATA.chatarra -= TURRET_BUILD.cost;
@@ -374,7 +441,7 @@ function queueUnit(team, cls){
   if(cls === 'TANQUE'){
     if(team === PT){
       if((DATA.chatarra||0) < TANK_DEF.cost){
-        radio(`Chatarra insuficiente para TANQUE (necesitas ${TANK_DEF.cost}⚙).`, '#ff8');
+        radio(TXT('r.senChatarraTanque', {c:TANK_DEF.cost}), '#ff8');
         return;
       }
       DATA.chatarra -= TANK_DEF.cost;
@@ -404,7 +471,7 @@ function tickProd(g){
       if(p.cls === 'TORRETA'){
         if(t === PT){
           g.turretPending = (g.turretPending || 0) + 1;
-          radio('⌂ TORRETA lista — clic esquerdo para colocala (preto do HQ ou de sectores teus).', '#c8a86a');
+          radio(TXT('r.torretaLista'), '#c8a86a');
           sfx('radio_open');
         } else {
           g._turretPendingET = (g._turretPendingET || 0) + 1;   /* (v0.32) torreta do rival humano */
@@ -425,7 +492,7 @@ function tickProd(g){
         pilot.x = tank.x; pilot.y = tank.y;
         g.units.push(pilot);
         g.vehicles.push(tank);
-        if(t===PT) radio(`${pilot.name} sae do hangar en TANQUE.`, '#7fdc7f', {x:tank.x, y:tank.y});
+        if(t===PT) radio(TXT('r.saeTanque', {n:pilot.name}), '#7fdc7f', {x:tank.x, y:tank.y});
       } else {
         const u = mkUnit(t, p.cls, sx, sy, null);
         /* (v0.14) BOTÍN: 12% dos inimigos producidos levan unha peza de equipo */
@@ -450,7 +517,7 @@ function tickProd(g){
             const f = Math.min(1.2, 1 + 0.04 * (vet.ops || 1));
             u.hp = Math.round(u.hp * f); u.max = u.hp;
             u.dmg = u.dmg * f;
-            radio(`⚠ Veterano inimigo en campo: ${vet.name} (${vet.ops} ops).`, '#ff7a5a', {x:u.x, y:u.y});
+            radio(TXT('r.vetEnCampo', {n:vet.name, ops:vet.ops}), '#ff7a5a', {x:u.x, y:u.y});
           }
         }
         /* (v0.19 R2) PORTADOR: 10% de sacar ao campo unha peza TÚA do pool inimigo */
@@ -465,11 +532,11 @@ function tickProd(g){
             if(g.radar && g.radar.owner === PT){
               addSubquest(g, {
                 tipo: 'RECUPERACION', x: u.x, y: u.y,
-                titulo: `⚙ Recupera: ${PEZA_LABEL[p.tipo]} de ${p.deNome}`,
-                desc: 'Mata o portador e recolle a peza',
+                titulo: TXT('sq.recupera', {peza:PEZA_LABEL[p.tipo], de:p.deNome}),
+                desc: TXT('sq.recuperaDesc'),
                 carrier: u, pezaId: p.id, bounty: 12,
               });
-              hqSay(`Señal de material propio en unidad hostil: ${PEZA_LABEL[p.tipo].toUpperCase()} DE ${p.deNome}. Misión registrada.`);
+              hqSay(TXT('hq.portador', {peza: PEZA_LABEL[p.tipo].toUpperCase(), nome: p.deNome}));
             }
           }
         }
@@ -969,7 +1036,7 @@ function tickUnits(g){
               if(dead.team !== PT) dropScrap(g, tu.x, tu.y, CHATARRA_VALUES[dead.cls] || 5);
               if(dead.team===PT){
                 const place = (typeof placeAt==='function')?placeAt(tu.x, tu.y):'campo';
-                if(typeof radio==='function') radio(`${dead.name} caeu dentro da torreta.`, '#ff5340');
+                if(typeof radio==='function') radio(TXT('r.caeuTorreta', {n:dead.name}), '#ff5340');
                 if(typeof sfx==='function') sfx('signal_lost');
                 g.remains.push({
                   x: tu.x + 22, y: tu.y + 22,
@@ -1022,7 +1089,7 @@ function tickUnits(g){
               if(dead.team !== PT) dropScrap(g, veh.x, veh.y, CHATARRA_VALUES[dead.cls] || 5);
               if(dead.team===PT){
                 const place = (typeof placeAt==='function')?placeAt(veh.x, veh.y):'campo';
-                if(typeof radio==='function') radio(`${dead.name} caeu dentro do jeep.`, '#ff5340');
+                if(typeof radio==='function') radio(TXT('r.caeuJeep', {n:dead.name}), '#ff5340');
                 if(typeof sfx==='function') sfx('signal_lost');
                 g.remains.push({
                   x: veh.x + 22, y: veh.y + 22,
@@ -1093,12 +1160,12 @@ function tickUnits(g){
           if(s.peza){
             g.pezasRecuperadas = g.pezasRecuperadas || [];
             g.pezasRecuperadas.push(s.peza.id);
-            radio(`⚙ ${u.name} recuperou a ${PEZA_LABEL[s.peza.tipo].toUpperCase()} DE ${s.peza.deNome}!`, '#ff9a3c', {x:s.x, y:s.y});
+            radio(TXT('r.recuperouPeza', {n:u.name, peza:PEZA_LABEL[s.peza.tipo].toUpperCase(), de:s.peza.deNome}), '#ff9a3c', {x:s.x, y:s.y});
             sfx('loot_pick');
           } else if(s.loot){
             g.lootGanado = g.lootGanado || [];
             g.lootGanado.push(s.loot);
-            radio(`★ ${u.name} recuperou BOTÍN inimigo!`, '#ffd700', {x:s.x, y:s.y});
+            radio(TXT('r.recuperouBotin', {n:u.name}), '#ffd700', {x:s.x, y:s.y});
             sfx('loot_pick');
           } else if(u.team === PT){
             g.chatarraGanada = (g.chatarraGanada||0) + s.amount;
@@ -1113,7 +1180,7 @@ function tickUnits(g){
         if(!r.secured && r.unit && r.unit.team === u.team && Math.hypot(u.x-r.x, u.y-r.y) < 28){
           r.secured = true;
           r.recoveredBy = u.name;
-          if(u.team === PT) radio(`${u.name} asegurou os restos de ${r.unit.name}.`, '#7fdc7f', {x:r.x, y:r.y});
+          if(u.team === PT) radio(TXT('r.asegurouRestos', {n:u.name, de:r.unit.name}), '#7fdc7f', {x:r.x, y:r.y});
           else if(g.modo === 'pvp') pvpRadioET(g, `${u.name} asegurou os restos de ${r.unit.name}.`, '#7fdc7f');
         }
       }
@@ -1136,7 +1203,7 @@ function tickUnits(g){
             }
           }
           g.walls.push({x: bt.x, y: bt.y, hp: WALL_HP, max: WALL_HP, destroyed: false});
-          radio(`⌂ ${u.name}: muro levantado.`, '#7fdc7f', {x: bt.x, y: bt.y});
+          radio(TXT('r.muroLevantado', {n:u.name}), '#7fdc7f', {x: bt.x, y: bt.y});
           sfx('capture');
           if(u.act) u.act.caps += 0;  /* (sen efecto; reservado) */
           u.buildTask = null;
@@ -1188,7 +1255,7 @@ function tickUnits(g){
             tu.hp = Math.min(tu.max, tu.hp + structRate);
             u.repairs += structRate;
             if(!tu._repairMsgShown && u.team === PT){
-              radio(`${u.name} reparando a torreta ${tu.id}.`, '#7fdc7f');
+              radio(TXT('r.reparandoTorreta', {n:u.name, id:tu.id}), '#7fdc7f');
               tu._repairMsgShown = true;
             }
             if(tu.hp >= tu.max) tu._repairMsgShown = false;
@@ -1202,7 +1269,7 @@ function tickUnits(g){
             veh.hp = Math.min(veh.max, veh.hp + structRate);
             u.repairs += structRate;
             if(!veh._repairMsgShown && u.team === PT){
-              radio(`${u.name} reparando o jeep ${veh.id}.`, '#7fdc7f');
+              radio(TXT('r.reparandoJeep', {n:u.name, id:veh.id}), '#7fdc7f');
               veh._repairMsgShown = true;
             }
             if(veh.hp >= veh.max) veh._repairMsgShown = false;
@@ -1218,13 +1285,13 @@ function tickUnits(g){
             if(s.peza){
               g.pezasRecuperadas = g.pezasRecuperadas || [];
               g.pezasRecuperadas.push(s.peza.id);
-              radio(`⚙ ${u.name} recuperou a ${PEZA_LABEL[s.peza.tipo].toUpperCase()} DE ${s.peza.deNome}!`, '#ff9a3c', {x:s.x, y:s.y});
+              radio(TXT('r.recuperouPeza', {n:u.name, peza:PEZA_LABEL[s.peza.tipo].toUpperCase(), de:s.peza.deNome}), '#ff9a3c', {x:s.x, y:s.y});
               sfx('loot_pick');
             } else if(s.loot){
               g.lootGanado = g.lootGanado || [];
               g.lootGanado.push(s.loot);
               const lbl = EQUIPOS[s.loot] ? EQUIPOS[s.loot].label : s.loot;
-              radio(`★ ${u.name} recuperou BOTÍN inimigo: ${lbl}!`, '#ffd700', {x:s.x, y:s.y});
+              radio(TXT('r.recuperouBotinL', {n:u.name, l:lbl}), '#ffd700', {x:s.x, y:s.y});
               sfx('loot_pick');
             } else if(u.team === PT){
               g.chatarraGanada = (g.chatarraGanada||0) + s.amount;
@@ -1355,13 +1422,13 @@ function tickUnits(g){
   /* (v0.26.1) Aviso didáctico: o radar é o detector de misións */
   if(!g._radarHint && g.modo !== 'pvp' && g.t > 1500 && DATA.opCount >= 1 && g.radar && g.radar.owner !== PT){
     g._radarHint = true;
-    hqSay('Radar central sin enlazar. Sin él no se detectan MISIONES SECUNDARIAS ni material propio en campo enemigo.');
+    hqSay(TXT('hq.radarHint'));
   }
   /* (v0.26) anuncio do clima ao empezar */
   if(!g._climaAnunciado && g.t > 90){
     g._climaAnunciado = true;
     if(g.clima && g.clima.id !== 'CLARO'){
-      hqSay(`Meteorología: ${g.clima.label}. Visibilidad reducida al ${Math.round(g.clima.vis*100)}%.`);
+      hqSay(TXT('hq.clima', {label: TXT('clima.' + g.clima.id), vis: Math.round(g.clima.vis*100)}));
     }
   }
   /* (v0.26) RIVALIDADES: o marcador cántase en vivo */
@@ -1390,16 +1457,16 @@ function tickUnits(g){
        && !g.sectors.some(s => s.owner === ET)){
       g._colapso = g.t;
       g.prod[ET] = null;   /* a fábrica morre */
-      hqSay('Producción enemiga colapsada. Cierre de operación en 90 segundos: recojan el campo.');
+      hqSay(TXT('hq.colapso'));
       setTimeout(() => voltSay('grumble'), 2500);
     }
     if(g._colapso){
       const restante = 5400 - (g.t - g._colapso);
-      if(restante <= 3600 && !g._colAviso60){ g._colAviso60 = true; hqSay('Cierre en 60 segundos.'); }
-      if(restante <= 1800 && !g._colAviso30){ g._colAviso30 = true; hqSay('Cierre en 30 segundos.'); }
-      if(restante <= 600 && !g._colAviso10){ g._colAviso10 = true; hqSay('Diez segundos.'); }
+      if(restante <= 3600 && !g._colAviso60){ g._colAviso60 = true; hqSay(TXT('hq.peche60')); }
+      if(restante <= 1800 && !g._colAviso30){ g._colAviso30 = true; hqSay(TXT('hq.peche30')); }
+      if(restante <= 600 && !g._colAviso10){ g._colAviso10 = true; hqSay(TXT('hq.peche10')); }
       if(restante <= 0){
-        radio('VOLT: «No os dejaré ni los tornillos.»', '#ff7a5a');
+        radio(TXT('r.voltTornillos'), '#ff7a5a');
         sfxT('voice_blip', 250, 'VOLT');
         g.hq[ET].hp = 0;
         addShake(g, 8);
@@ -1415,12 +1482,12 @@ function tickUnits(g){
     const vivos2 = g.units.filter(u => u.team === 2 && !u.dead).length;
     const meus2 = g.units.filter(u => u.team === PT && !u.dead).length;
     if(meus2 === 0 && !g.prod[PT] && g._wave > 0){
-      radio('▣ ÓPTIMA: Datos suficientes. Unidades supervivientes: cero. Gracias por su donación.', '#e8c060');
+      radio('▣ ÓPTIMA: ' + TXT('optima.crisolDerrota'), '#e8c060');
       g.hq[PT].hp = 0;
     } else if(vivos2 === 0){
       if(g._wave >= 5){
-        radio('▣ ÓPTIMA: Validación completada. Durabilidad: por encima de proyección. Decepcionante para contabilidad.', '#e8c060');
-        hqSay('Cinco oleadas. Todos os datos son nosos. Volvemos á casa.');
+        radio('▣ ÓPTIMA: ' + TXT('optima.crisolVitoria'), '#e8c060');
+        hqSay(TXT('hq.crisolVitoria'));
         g.hq[ET].hp = 0;
       } else if(g.t - g._waveClearT > 700){
         g._wave++;
@@ -1439,12 +1506,12 @@ function tickUnits(g){
           g.units.push(u);
           orderMove(u, W/2 + (Math.random()*240 - 120), H/2 + (Math.random()*180 - 90));
         }
-        radio(`▣ ÓPTIMA: Iteración de prueba Nº ${g._wave} de 5. ${n} unidades de validación. Generen datos.`, '#e8c060');
+        radio('▣ ÓPTIMA: ' + TXT('optima.iteracion', {n: g._wave, u: n}), '#e8c060');
         sfxT('voice_blip', 200, 'OPTIMA');
         addShake(g, 2);
       } else if(g._wave > 0 && !g._waveBreather){
         g._waveBreather = true;
-        hqSay(`Oleada ${g._wave} neutralizada. Recarguen.`);
+        hqSay(TXT('hq.oleada', {n: g._wave}));
       }
     }
     if(vivos2 > 0) g._waveBreather = false;
@@ -1472,7 +1539,7 @@ function tickUnits(g){
         const chave = [u.id, conQuen.id].sort().join('|');
         if(!g._vincAnunciados.has(chave)){
           g._vincAnunciados.add(chave);
-          radio(`★ ${u.name} e ${conQuen.name} operan xuntos. O vello equipo.`, '#ffd700', {x:u.x, y:u.y});
+          radio(TXT('r.vellosEquipo', {a:u.name, b:conQuen.name}), '#ffd700', {x:u.x, y:u.y});
           sfxT('voice_blip', 200, u.cls);
         }
       }
@@ -1484,7 +1551,7 @@ function tickUnits(g){
       u._pezaDropped = true;
       g.scrap = g.scrap || [];
       g.scrap.push({x:u.x+8, y:u.y-10, amount:0, peza:u._pezaPortada, timer:90*60, collected:false});
-      radio(`⚙ ${PEZA_LABEL[u._pezaPortada.tipo].toUpperCase()} DE ${u._pezaPortada.deNome} no chan!`, '#ff9a3c', {x:u.x, y:u.y});
+      radio(TXT('r.pezaNoChan', {peza:PEZA_LABEL[u._pezaPortada.tipo].toUpperCase(), de:u._pezaPortada.deNome}), '#ff9a3c', {x:u.x, y:u.y});
     }
   }
 }

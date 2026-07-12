@@ -343,7 +343,7 @@ function startMusic(){
         if(p && p.then){
           p.then(() => {
             _music = a;
-            radio(`♪ Música de fondo: ${files[i]}`, '#888');
+            radio(TXT('r.musica', {f: files[i]}), '#888');
           }).catch(() => tryFile(files, i + 1));
         } else {
           /* sen promesa: asumir que soa (implementacións antigas) */
