@@ -1,0 +1,144 @@
+  :root{
+    --crt:#0a0a08; --phos:#ffb000; --phos-dim:#8a6200;
+    --blue:#4f8aff; --red:#ff5340; --grass:#161d12; --water:#10283f;
+    --gold:#ffd24a; --green:#7fdc7f;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:var(--crt); color:var(--phos);
+    font-family:'Courier New', Courier, monospace;
+    display:flex; flex-direction:column; align-items:center;
+    min-height:100vh; padding:12px; letter-spacing:1px;
+  }
+  h1{font-size:22px; margin:6px 0 2px; text-transform:uppercase;}
+  .sub{font-size:11px; color:var(--phos-dim); margin-bottom:10px;}
+  #wrap{position:relative; flex:1 1 auto; min-width:320px; max-width:1280px;}
+  canvas{
+    width:100%; display:block; background:var(--grass);
+    border:2px solid var(--phos-dim); image-rendering:pixelated;
+    cursor:crosshair;
+  }
+  #wrap::after{
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background:repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 1px, transparent 1px 3px);
+  }
+  /* ====== Layout cabina de mando ====== */
+  #battleLayout{
+    display:flex; gap:8px; width:100%; max-width:1580px;
+    align-items:stretch; flex-wrap:nowrap;
+  }
+  #sidePanel{
+    flex:0 0 280px; min-height:540px;
+    border:2px solid var(--phos-dim); background:#0d0d0a;
+    padding:10px 12px; font-size:12px; overflow:auto;
+    position:relative;
+  }
+  #sidePanel.interrupted{
+    border-color: var(--red);
+    animation: interrupt 0.15s steps(2) infinite;
+  }
+  #sidePanel.interrupted::after{
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background:repeating-linear-gradient(0deg, rgba(255,80,60,.06) 0 1px, transparent 1px 3px);
+  }
+  @keyframes interrupt{
+    0%   {opacity:1; filter:none;}
+    50%  {opacity:.88; filter:contrast(1.15);}
+    100% {opacity:1; filter:none;}
+  }
+  #sidePanel .ph-name{font-size:14px; color:var(--phos); margin-bottom:2px;}
+  #sidePanel .ph-sub{font-size:10px; color:var(--phos-dim); margin-bottom:8px;}
+  #sidePanel .ph-section{
+    border-top:1px dashed #3a2e00; padding-top:6px; margin-top:6px;
+    font-size:10px; color:var(--phos-dim);
+  }
+  #sidePanel .ph-section b{color:var(--phos); display:block; margin-bottom:3px;}
+  #sidePanel .ph-bar{
+    height:6px; background:#000; margin:3px 0 6px;
+  }
+  #sidePanel .ph-bar > div{height:100%; background:var(--green);}
+  #sidePanel .ph-event{font-size:11px; color:var(--phos); line-height:1.35;}
+  #sidePanel .ph-place{color:var(--gold);}
+  #sidePanel .interrupt-banner{
+    background:var(--red); color:#000; padding:2px 6px;
+    font-weight:bold; margin-bottom:6px; font-size:10px;
+    text-align:center; letter-spacing:2px;
+  }
+  /* Retratos */
+  .portrait-frame{
+    display:inline-block; padding:4px; background:#000;
+    border:1px solid var(--phos-dim); vertical-align:top;
+  }
+  .portrait-frame canvas{
+    display:block; image-rendering:pixelated;
+  }
+  .portrait-row{display:flex; gap:8px; align-items:flex-start; margin-bottom:8px;}
+  .portrait-row .meta{flex:1; min-width:0; font-size:11px;}
+  .portrait-row .meta .ph-name{font-size:13px;}
+  .portrait-row .meta .ph-sub{font-size:10px;}
+  /* Modo interrupción: retrato grande centrado */
+  .interrupt-portrait{
+    text-align:center; padding:6px 0 4px;
+  }
+  .interrupt-portrait .speaker{
+    color:var(--gold); font-size:13px; margin-top:8px; letter-spacing:1px;
+  }
+  .interrupt-portrait .line{
+    color:var(--phos); font-size:12px; margin-top:6px; line-height:1.4;
+    padding:0 6px;
+  }
+  @media (max-width: 1100px){
+    #sidePanel{flex:1 1 100%; min-height:auto; max-height:none;}
+  }
+  #hud{display:flex; gap:8px; width:100%; max-width:1260px; margin-top:8px; flex-wrap:wrap;}
+  button{
+    background:var(--crt); color:var(--phos);
+    border:1px solid var(--phos); font-family:inherit;
+    font-size:12px; padding:8px 12px; cursor:pointer;
+    text-transform:uppercase; letter-spacing:1px;
+  }
+  button:hover{background:var(--phos); color:var(--crt);}
+  button:disabled{opacity:.35; cursor:default;}
+  button:disabled:hover{background:var(--crt); color:var(--phos);}
+  #radio{
+    width:100%; max-width:1260px; border:1px solid var(--phos-dim);
+    margin-top:8px; padding:6px 10px; min-height:84px; font-size:12px;
+    background:#0d0d0a;
+  }
+  #radio .line{margin:2px 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .scr{
+    width:100%; max-width:960px; border:2px solid var(--phos-dim);
+    background:#0d0d0a; padding:18px; margin-top:8px;
+  }
+  .scr h2{font-size:16px; margin-bottom:10px; text-transform:uppercase;}
+  .roster-item{
+    display:flex; align-items:center; gap:8px; padding:7px 4px;
+    border-bottom:1px dashed #3a2e00; font-size:13px; flex-wrap:wrap;
+  }
+  .roster-item input{accent-color:var(--phos); width:16px; height:16px;}
+  .tag{font-size:10px; border:1px solid var(--phos-dim); padding:1px 4px; margin-left:2px; color:var(--phos-dim);}
+  .medal{font-size:10px; border:1px solid var(--gold); padding:1px 4px; margin-left:2px; color:var(--gold);}
+  .dead{color:#7a4a44;}
+  .ok{color:var(--green);} .bad{color:var(--red);}
+  .gold{color:var(--gold);}
+  .small{font-size:11px; color:var(--phos-dim);}
+  .row{display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;}
+  .bio-btn, .rename-btn{
+    background:transparent; border:1px solid var(--phos-dim); color:var(--phos-dim);
+    font-size:10px; padding:2px 8px; cursor:pointer; margin-left:4px;
+  }
+  .bio-btn:hover, .rename-btn:hover{border-color:var(--phos); color:var(--phos); background:transparent;}
+  .rename-btn{margin-left:2px;}
+  #bioModal{
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,.85);
+    z-index:100; padding:20px; overflow:auto;
+  }
+  #bioModal .inner{
+    max-width:680px; margin:30px auto; background:#0d0d0a;
+    border:2px solid var(--phos); padding:24px;
+  }
+  #bioModal h2{font-size:18px; margin-bottom:14px;}
+  #bioModal .ev{padding:4px 0; border-bottom:1px dotted #2a2200; font-size:12px;}
+  #bioModal .ev .op{color:var(--phos-dim); margin-right:8px;}
+  #bioModal .ev .lugar{color:var(--gold);}
+  #prodbar span{font-size:11px; color:var(--phos-dim); align-self:center;}

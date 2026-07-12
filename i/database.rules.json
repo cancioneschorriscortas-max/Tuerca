@@ -1,0 +1,24 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "salas": {
+      "$sala": {
+        ".read": true,
+        ".write": true,
+        ".validate": "$sala.matches(/^[A-Za-z0-9_-]{3,24}$/)",
+        "host":  { ".validate": "newData.hasChildren()" },
+        "guest": { ".validate": "newData.hasChildren()" },
+        "snap":  { "j": { ".validate": "newData.isString() && newData.val().length < 200000" }, "$other": { ".validate": false } },
+        "orden": { "$push": { ".validate": "newData.hasChild('ts') && newData.child('ts').isNumber()" } },
+        "fin":   { ".validate": "newData.hasChildren()" },
+        "estado":{ ".validate": "newData.isString()" },
+        "$outro":{ ".validate": true }
+      }
+    },
+    "telemetria": {
+      ".read": false,
+      "$dia": { ".write": true, "$push": { ".validate": "newData.isString() && newData.val().length < 2000" } }
+    }
+  }
+}
