@@ -24,7 +24,11 @@ function vozActualizarBoton(){
   const b = document.getElementById('btnVoz');
   if(!b) return;
   const m = vozModo();
-  b.textContent = m === 'off' ? '🔇 VOZ: OFF' : m === 'chios' ? '🤖 VOZ: CHÍOS' : '🎙 VOZ: TODA';
+  /* (v0.68) sen emoji e traducido: a icona vai en CSS e as tres etiquetas
+     xa existen no dicionario. */
+  b.textContent = (typeof TXT === 'function')
+    ? TXT(m === 'off' ? 'voz.off' : m === 'chios' ? 'voz.chios' : 'voz.toda')
+    : (m === 'off' ? 'VOZ: OFF' : m === 'chios' ? 'VOZ: CHÍOS' : 'VOZ: TODA');
 }
 
 /* ---------- síntese de chíos (timbre por nome, coma os retratos) ---------- */

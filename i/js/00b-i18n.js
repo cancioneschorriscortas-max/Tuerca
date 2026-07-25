@@ -12,16 +12,20 @@ const I18N = {
 };
 const LANGS = {
   gl: {
-    'btn.start': '▶ Iniciar operación',
-    'btn.online': '🌐 DUELO ONLINE',
-    'btn.crisol': '⚒ O CRISOL (supervivencia)',
+    'btn.start': 'Iniciar operación',
+    'btn.online': 'DUELO ONLINE',
+    'btn.crisol': 'O CRISOL (supervivencia)',
     'btn.memorial': 'Memorial de caídos',
-    'btn.despiece': '⚙ Despece',
-    'btn.cantina': '🍺 Cantina',
-    'btn.cronica': '📜 Crónica',
-    'btn.export': '💾 Exportar',
-    'btn.import': '📂 Importar',
+    'btn.despiece': 'Despece',
+    'btn.cantina': 'Cantina',
+    'btn.cronica': 'Crónica',
+    'btn.export': 'Exportar',
+    'btn.import': 'Importar',
     'btn.wipe': 'Borrar todos os datos',
+    /* (v0.68) Estes tres viñan hardcoded no HTML e nunca se traduciran. */
+    'btn.mundial': 'Mundial',
+    'btn.arquivo': 'Arquivo',
+    'voz.off': 'Voz: apagada', 'voz.chios': 'Voz: chíos', 'voz.toda': 'Voz: toda',
     'btn.abort': 'Abortar misión',
     'btn.back': 'Volver ao hangar',
     'btn.close': 'Pechar',
@@ -465,7 +469,7 @@ const LANGS = {
     'hg.folgaTitle': 'En folga: n\u00e9gase a despregar',
     'hg.fixoTitle': 'Vai fixo: acaba de ser equipado',
     'hg.senCaidos': 'sen ca\u00eddos rexistrados.',
-    'hg.faccionAzul': '\u2691 FACCI\u00d3N: AZUL', 'hg.faccionVermella': '\u2691 FACCI\u00d3N: VERMELLA',
+    'hg.faccionAzul': 'FACCI\u00d3N: AZUL', 'hg.faccionVermella': 'FACCI\u00d3N: VERMELLA',
     'hg.help': 'Selecciona ata 3 veteranos para despregar.<br>CONTROIS: arrastra para seleccionar \u00b7 clic para mover/atacar \u00b7 dobre clic nunha unidade para seleccionar todas as do mesmo tipo pr\u00f3ximas \u00b7 teclas 1/2/3 ou bot\u00f3ns para producir.<br>OBXECTIVO: destr\u00fae o HQ vermello. Captura sectores (\u25cb) para producir m\u00e1is r\u00e1pido.<br>NOVO en v0.3: inimigos que sobrevivan a unha operaci\u00f3n poden VOLVER nas seguintes (marca laranxa). Captura o RADAR CENTRAL para que se anuncien ao detectalos. Se o inimigo controla o radar, a s\u00faa IA co\u00f1ece os teus veteranos e reacciona: pesados prior\u00edzanos, lixeiros ev\u00edtanos, engineers inimigos foxen para reagruparse.',
     /* (v0.42) Taller */
     'tl.taller': 'Taller', 'tl.ocupado': 'OCUPADO',
@@ -576,16 +580,19 @@ const LANGS = {
     'imp.erro': 'Erro: {e}',
   },
   es: {
-    'btn.start': '▶ Iniciar operación',
-    'btn.online': '🌐 DUELO ONLINE',
-    'btn.crisol': '⚒ EL CRISOL (supervivencia)',
+    'btn.start': 'Iniciar operación',
+    'btn.online': 'DUELO ONLINE',
+    'btn.crisol': 'EL CRISOL (supervivencia)',
     'btn.memorial': 'Memorial de caídos',
-    'btn.despiece': '⚙ Despiece',
-    'btn.cantina': '🍺 Cantina',
-    'btn.cronica': '📜 Crónica',
-    'btn.export': '💾 Exportar',
-    'btn.import': '📂 Importar',
+    'btn.despiece': 'Despiece',
+    'btn.cantina': 'Cantina',
+    'btn.cronica': 'Crónica',
+    'btn.export': 'Exportar',
+    'btn.import': 'Importar',
     'btn.wipe': 'Borrar todos los datos',
+    'btn.mundial': 'Mundial',
+    'btn.arquivo': 'Archivo',
+    'voz.off': 'Voz: apagada', 'voz.chios': 'Voz: pitidos', 'voz.toda': 'Voz: completa',
     'btn.abort': 'Abortar misión',
     'btn.back': 'Volver al hangar',
     'btn.close': 'Cerrar',
@@ -1029,7 +1036,7 @@ const LANGS = {
     'hg.folgaTitle': 'En huelga: se niega a desplegar',
     'hg.fixoTitle': 'Va fijo: acaba de ser equipado',
     'hg.senCaidos': 'sin ca\u00eddos registrados.',
-    'hg.faccionAzul': '\u2691 FACCI\u00d3N: AZUL', 'hg.faccionVermella': '\u2691 FACCI\u00d3N: ROJA',
+    'hg.faccionAzul': 'FACCI\u00d3N: AZUL', 'hg.faccionVermella': 'FACCI\u00d3N: ROJA',
     'hg.help': 'Selecciona hasta 3 veteranos para desplegar.<br>CONTROLES: arrastra para seleccionar \u00b7 clic para mover/atacar \u00b7 doble clic en una unidad para seleccionar todas las del mismo tipo cercanas \u00b7 teclas 1/2/3 o botones para producir.<br>OBJETIVO: destruye el HQ rojo. Captura sectores (\u25cb) para producir m\u00e1s r\u00e1pido.<br>NUEVO en v0.3: enemigos que sobrevivan a una operaci\u00f3n pueden VOLVER en las siguientes (marca naranja). Captura el RADAR CENTRAL para que se anuncien al detectarlos. Si el enemigo controla el radar, su IA conoce a tus veteranos y reacciona: pesados los priorizan, ligeros los evitan, engineers enemigos huyen para reagruparse.',
     /* (v0.42) Taller */
     'tl.taller': 'Taller', 'tl.ocupado': 'OCUPADO',
@@ -1140,16 +1147,19 @@ const LANGS = {
     'imp.erro': 'Error: {e}',
   },
   en: {
-    'btn.start': '▶ Start operation',
-    'btn.online': '🌐 ONLINE DUEL',
-    'btn.crisol': '⚒ THE CRUCIBLE (survival)',
+    'btn.start': 'Start operation',
+    'btn.online': 'ONLINE DUEL',
+    'btn.crisol': 'THE CRUCIBLE (survival)',
     'btn.memorial': 'Memorial of the fallen',
-    'btn.despiece': '⚙ Salvage',
-    'btn.cantina': '🍺 Canteen',
-    'btn.cronica': '📜 War chronicle',
-    'btn.export': '💾 Export',
-    'btn.import': '📂 Import',
+    'btn.despiece': 'Salvage',
+    'btn.cantina': 'Canteen',
+    'btn.cronica': 'War chronicle',
+    'btn.export': 'Export',
+    'btn.import': 'Import',
     'btn.wipe': 'Wipe all data',
+    'btn.mundial': 'World cup',
+    'btn.arquivo': 'Archive',
+    'voz.off': 'Voice: off', 'voz.chios': 'Voice: chirps', 'voz.toda': 'Voice: full',
     'btn.abort': 'Abort mission',
     'btn.back': 'Back to hangar',
     'btn.close': 'Close',
@@ -1593,7 +1603,7 @@ const LANGS = {
     'hg.folgaTitle': 'On strike: refuses to deploy',
     'hg.fixoTitle': 'Locked in: just equipped',
     'hg.senCaidos': 'no fallen on record.',
-    'hg.faccionAzul': '\u2691 FACTION: BLUE', 'hg.faccionVermella': '\u2691 FACTION: RED',
+    'hg.faccionAzul': 'FACTION: BLUE', 'hg.faccionVermella': 'FACTION: RED',
     'hg.help': 'Select up to 3 veterans to deploy.<br>CONTROLS: drag to select \u00b7 click to move/attack \u00b7 double-click a unit to select all nearby units of the same type \u00b7 keys 1/2/3 or buttons to produce.<br>OBJECTIVE: destroy the red HQ. Capture sectors (\u25cb) to produce faster.<br>NEW in v0.3: enemies that survive an operation may RETURN in later ones (orange mark). Capture the CENTRAL RADAR so they are announced on detection. If the enemy holds the radar, its AI knows your veterans and reacts: heavies prioritize them, light units avoid them, enemy engineers flee to regroup.',
     /* (v0.42) Workshop */
     'tl.taller': 'Workshop', 'tl.ocupado': 'BUSY',
@@ -1754,6 +1764,7 @@ const I18N_CHROME = {
   btnDespiece: ['btn.despiece'], btnCantina: ['btn.cantina', 'tip.cantina'],
   btnCronica: ['btn.cronica', 'tip.cronica'], btnExport: ['btn.export', 'tip.export'],
   btnImport: ['btn.import', 'tip.import'], btnWipe: ['btn.wipe'],
+  btnMundial: ['btn.mundial'], btnDiario: ['btn.arquivo'],
   btnAbort: ['btn.abort'], btnBack: ['btn.back'], btnBioClose: ['btn.close'],
   subTitle: ['sub.titulo'], brHint: ['br.hint'],
   p4: ['btn.p4'], p5: ['btn.p5'], p6: ['btn.p6'], pMuro: ['btn.muro', 'tip.muro'],
@@ -1778,7 +1789,10 @@ function aplicarIdioma(){
   const chd = document.getElementById('chatarraDisplay');
   if(chd && window.DATA) chd.textContent = TXT('hg.chatarra', {n: window.DATA.chatarra||0});
   const bl = document.getElementById('btnLang');
-  if(bl) bl.textContent = '🌐 ' + I18N.lang.toUpperCase();
+  if(bl) bl.textContent = I18N.lang.toUpperCase();   /* a icona vai en CSS */
+  /* O botón de voz escribe a súa propia etiqueta (é tri-estado), así que
+     hai que avisalo ao cambiar de idioma ou quedaría no anterior. */
+  if(typeof vozActualizarBoton === 'function'){ try{ vozActualizarBoton(); }catch(_){} }
   /* VERSIÓN: TUERCA_V (00-preambulo.js) é o único sitio onde se toca.
      Píntase aquí porque o subtítulo depende do idioma e reaplícase en
      cada setLang(). O <title> non pode lelo do HTML: ponse por JS. */

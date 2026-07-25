@@ -15,32 +15,48 @@
 <!-- ===================== HANGAR ===================== -->
 <div id="hangar" class="scr">
   <h2><span id="hgTitle">// Hangar — Roster persistente</span> <span id="chatarraDisplay" style="float:right; font-size:14px; color:#c8a86a;"></span></h2>
-  <div id="rosterList" class="small">Cargando roster…</div><!-- hg.cargando: substitúese ao renderizar -->
-  <div class="row">
-    <button id="btnStart">▶ Iniciar operación</button>
-    <button id="btnLang" title="Idioma / Language">🌐 GL</button>
-    <button id="btnOnline" style="color:#7fdc7f; border-color:#7fdc7f;" title="Crea unha sala ou únete á dun rival. O creador xoga como AZUL; o convidado como VERMELLO. Cada quen co seu roster.">🌐 DUELO ONLINE</button>
-    <button id="btnLado" style="color:#4f8aff; border-color:#4f8aff;" title="Escolle a facción coa que despregas. A IA leva a outra. (Alicerce do modo 2 xogadores)">⚑ FACCIÓN: AZUL</button>
-    <button id="btnCrisol" style="color:#e8c060; border-color:#8a6a20;" title="Programa de Validación de Durabilidade de ÓPTIMA: 5 oleadas de brigadas grises contra o teu escuadrón. Todo o gañado (skills, ops, alcumes, pezas) volve contigo á campaña. Os datos doen.">⚒ O CRISOL (supervivencia)</button>
-    <button id="btnMemorial">Memorial de caídos</button>
-    <button id="btnDespiece" style="color:#c8a86a;">⚙ Despiece</button>
-    <button id="btnMundial" style="color:#7fd0ff;">🏆 MUNDIAL</button>
-    <button id="btnVoz" style="color:#9fd0ff;">🤖 VOZ: CHÍOS</button>
-    <button id="btnDiario" style="color:#c8a86a; display:none;">📖 ARQUIVO</button>
-    <button id="btnCantina" title="O escuadrón de charla entre operacións. Podes invitar a unha rolda (+2 confianza a todos).">🍺 Cantina</button>
-    <button id="btnCronica" title="O xogo escribe a historia da túa guerra: escuadrón, caídos, vínculos, pezas, VOLT. Descárgase como .md">📜 Crónica</button>
-    <button id="btnExport" title="Descarga a partida enteira como JSON — roster, pezas, vínculos, campaña. O localStorage é fráxil; isto non.">💾 Exportar</button>
-    <button id="btnImport" title="Carga unha partida exportada (substitúe a actual)">📂 Importar</button>
-    <input type="file" id="importFile" accept=".json,application/json" style="display:none;">
-    <button id="btnWipe">Borrar todos los datos</button>
+  <div id="rosterList" class="small"><!-- hg.cargando: énchese ao renderizar --></div>
+
+  <!-- (v0.68) Acción principal soa: é a única que se preme sempre. -->
+  <div class="row" style="justify-content:space-between; align-items:center;">
+    <button id="btnStart" class="b-primario" data-icona="op"></button>
+    <button id="btnLang" data-icona="idioma" title="Idioma / Language"></button>
   </div>
+
+  <div class="grupo">
+    <span class="rotulo">Operacións</span>
+    <div class="fila">
+      <button id="btnOnline" class="a-verde" data-icona="duelo"></button>
+      <button id="btnCrisol" class="a-ouro" data-icona="crisol"></button>
+      <button id="btnMundial" class="a-ciano" data-icona="mundial"></button>
+      <button id="btnLado" class="a-azul" data-icona="faccion"></button>
+    </div>
+  </div>
+
+  <div class="grupo">
+    <span class="rotulo">Escuadrón</span>
+    <div class="fila">
+      <button id="btnMemorial" data-icona="memorial"></button>
+      <button id="btnDespiece" class="a-bronce" data-icona="despece"></button>
+      <button id="btnCantina" data-icona="cantina"></button>
+      <button id="btnVoz" class="a-azul" data-icona="voz"></button>
+    </div>
+  </div>
+
+  <div class="grupo">
+    <span class="rotulo">Rexistro</span>
+    <div class="fila">
+      <button id="btnDiario" class="a-bronce" data-icona="arquivo" style="display:none;"></button>
+      <button id="btnCronica" data-icona="cronica"></button>
+      <button id="btnExport" data-icona="export"></button>
+      <button id="btnImport" data-icona="import"></button>
+      <input type="file" id="importFile" accept=".json,application/json" style="display:none;">
+      <button id="btnWipe" class="b-perigo" data-icona="borrar"></button>
+    </div>
+  </div>
+
   <div id="memorial" style="display:none; margin-top:12px;" class="small"></div>
-  <p id="hgHelp" class="small" style="margin-top:14px;">
-    Selecciona hasta 3 veteranos para desplegar.<br>
-    CONTROLES: arrastra para seleccionar · clic para mover/atacar · doble clic en una unidad para seleccionar todas las del mismo tipo cercanas · teclas 1/2/3 o botones para producir.<br>
-    OBJETIVO: destruye el HQ rojo. Captura sectores (○) para producir más rápido.<br>
-    NUEVO en v0.3: enemigos que sobrevivan a una operación pueden VOLVER en las siguientes (marca naranja). Captura el RADAR CENTRAL para que se anuncien al detectarlos. Si el enemigo controla el radar, su IA conoce a tus veteranos y reacciona: pesados los priorizan, ligeros los evitan, engineers enemigos huyen para reagruparse.
-  </p>
+  <p id="hgHelp" class="small" style="margin-top:16px;"><!-- hg.help: énchese en aplicarIdioma() --></p>
 </div>
 
 <!-- ===================== BATALLA ===================== -->
@@ -55,10 +71,10 @@
       <button id="p1">[2] HEAVY</button>
       <button id="p2">[3] ENGINEER</button>
       <button id="p3">[4] SNIPER</button>
-      <button id="p4" style="color:#c8a86a;">[5] TANQUE 40⚙</button>
+      <button id="p4" class="a-bronce">[5] TANQUE 40⚙</button>
       <button id="p5">[6] BOMBARDERO</button>
-      <button id="p6" style="color:#c8a86a;">[7] TORRETA 45⚙</button>
-      <button id="pMuro" style="display:none; color:#c8a86a; border-color:#c8a86a;" title="O Engineer seleccionado camiña ao punto e constrúe o muro in situ (~4s exposto)">[8] MURO 10⚙ ⌂</button>
+      <button id="p6" class="a-bronce">[7] TORRETA 45⚙</button>
+      <button id="pMuro" class="a-bronce" style="display:none;" title="O Engineer seleccionado camiña ao punto e constrúe o muro in situ (~4s exposto)">[8] MURO 10⚙ ⌂</button>
       <span id="prodinfo"></span>
       <span id="forminfo" style="padding:2px 8px; border:1px solid var(--phos-dim); font-size:11px;" title="Tecla F para alternar formación"></span>
       <span id="radarinfo" style="margin-left:auto; padding:2px 8px; border:1px solid var(--phos-dim); font-size:11px;"></span>

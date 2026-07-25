@@ -2,6 +2,20 @@
     --crt:#0a0a08; --phos:#ffb000; --phos-dim:#8a6200;
     --blue:#4f8aff; --red:#ff5340; --grass:#161d12; --water:#10283f;
     --gold:#ffd24a; --green:#7fdc7f;
+    /* (v0.68) CHAPA: o chrome dixita de "bordo de 1px" a obxecto físico.
+       Tres tons de metal e un bisel que se pinta con sombras internas —
+       luz arriba-esquerda, sombra abaixo-dereita. */
+    --metal:#17170f; --metal-alto:#24241a; --metal-baixo:#0b0b07;
+    --bordo:#3a3428; --bordo-vivo:#5c5340;
+    --bisel: inset 1px 1px 0 rgba(255,214,140,.09), inset -1px -1px 0 rgba(0,0,0,.6);
+    --bisel-fondo: inset -1px -1px 0 rgba(255,214,140,.06), inset 1px 1px 0 rgba(0,0,0,.7);
+    /* (v0.68) Dúas familias con traballos distintos: unha condensada
+       industrial para o chrome, e a monoespazada SÓ para datos e radio,
+       que é onde o aire de terminal significa algo.
+       NOTA: son fontes do sistema. Unha tipografía propia auto-hospedada
+       sería mellor; cambiar --fnt-ui chega para enchufala. */
+    --fnt-ui:'Bahnschrift','Oswald','Franklin Gothic Medium','Arial Narrow','Helvetica Neue',sans-serif;
+    --fnt-dato:'Courier New',Courier,monospace;
     /* (v0.66) Forza das scanlines sobre o mapa. Estaban en .18 e comían a
        atmosfera: co mapa de luz por baixo, sobraba reixa. Sobe se queres
        recuperar o aire de terminal; 0 apágaas de todo. */
@@ -10,11 +24,14 @@
   *{box-sizing:border-box; margin:0; padding:0;}
   body{
     background:var(--crt); color:var(--phos);
-    font-family:'Courier New', Courier, monospace;
+    font-family:var(--fnt-ui);
     display:flex; flex-direction:column; align-items:center;
-    min-height:100vh; padding:12px; letter-spacing:1px;
+    min-height:100vh; padding:12px; letter-spacing:.5px;
   }
-  h1{font-size:22px; margin:6px 0 2px; text-transform:uppercase;}
+  /* Datos, radio e listas seguen monoespazadas: aliñan en columna e é
+     onde o aire de terminal aporta algo. */
+  #radio, .small, .roster-item, #prodbar, #sidePanel{font-family:var(--fnt-dato);}
+  h1{font-size:26px; margin:6px 0 2px; text-transform:uppercase; letter-spacing:3px; font-weight:600;}
   .sub{font-size:11px; color:var(--phos-dim); margin-bottom:10px;}
   #wrap{position:relative; flex:1 1 auto; min-width:320px; max-width:1280px;}
   canvas{
@@ -95,15 +112,97 @@
     #sidePanel{flex:1 1 100%; min-height:auto; max-height:none;}
   }
   #hud{display:flex; gap:8px; width:100%; max-width:1260px; margin-top:8px; flex-wrap:wrap;}
+  /* ====== (v0.68) BOTÓNS: chapa, non bordo ======
+     Cada botón leva o seu acento en --acento; por defecto, fósforo. */
   button{
-    background:var(--crt); color:var(--phos);
-    border:1px solid var(--phos); font-family:inherit;
-    font-size:12px; padding:8px 12px; cursor:pointer;
-    text-transform:uppercase; letter-spacing:1px;
+    --acento:var(--phos);
+    background:linear-gradient(180deg, var(--metal-alto), var(--metal));
+    color:var(--acento);
+    border:1px solid var(--bordo);
+    box-shadow:var(--bisel);
+    font-family:var(--fnt-ui); font-size:13px; font-weight:600;
+    padding:9px 14px; cursor:pointer;
+    text-transform:uppercase; letter-spacing:1.5px;
+    display:inline-flex; align-items:center; gap:8px;
+    transition:border-color .12s, color .12s, background .12s;
   }
-  button:hover{background:var(--phos); color:var(--crt);}
-  button:disabled{opacity:.35; cursor:default;}
-  button:disabled:hover{background:var(--crt); color:var(--phos);}
+  button:hover:not(:disabled){
+    border-color:var(--acento);
+    background:linear-gradient(180deg, #2e2e22, #1c1c14);
+  }
+  button:active:not(:disabled){
+    box-shadow:var(--bisel-fondo);
+    transform:translateY(1px);
+  }
+  button:focus-visible{outline:2px solid var(--acento); outline-offset:2px;}
+  button:disabled{opacity:.3; cursor:default;}
+
+  /* Acción principal: máis grande e coa chapa acesa */
+  button.b-primario{
+    font-size:15px; padding:13px 22px; letter-spacing:2px;
+    background:linear-gradient(180deg, #4a3606, var(--metal));
+    border-color:var(--phos-dim);
+  }
+  button.b-primario:hover:not(:disabled){
+    background:linear-gradient(180deg, #63480a, #241a04);
+    border-color:var(--phos);
+  }
+  button.b-perigo{--acento:#c06052;}
+  button.b-perigo:hover:not(:disabled){--acento:var(--red);}
+  /* Acentos por familia de acción (antes ían en style= por botón). */
+  .a-verde {--acento:var(--green);}
+  .a-azul  {--acento:#8ab4ff;}
+  .a-ouro  {--acento:#e8c060;}
+  .a-ciano {--acento:#7fd0ff;}
+  .a-bronce{--acento:#c8a86a;}
+  /* A barra de produción é outra cousa: oito atallos nunha liña estreita.
+     Compactos e monoespazados — o [5] importa tanto como o nome. */
+  #prodbar button{
+    font-family:var(--fnt-dato); font-size:11px;
+    padding:6px 9px; letter-spacing:.5px; gap:5px;
+  }
+
+  /* ====== ICONAS ======
+     SVG en liña como máscara: colle a cor do botón (currentColor), así
+     un só debuxo vale para todos os acentos. Nada de emojis: dependen da
+     fonte do sistema, non se poden tinguir e desaliñan a liña base. */
+  button[data-icona]::before{
+    content:''; width:15px; height:15px; flex:0 0 15px;
+    background:currentColor;
+    -webkit-mask:var(--ic) center/contain no-repeat;
+    mask:var(--ic) center/contain no-repeat;
+  }
+  [data-icona="op"]      {--ic:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M5 3l8 5-8 5z'/></svg>");}
+  [data-icona="duelo"]   {--ic:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><circle cx='3.6' cy='8' r='2.4'/><circle cx='12.4' cy='8' r='2.4'/><rect x='6' y='7.2' width='4' height='1.6'/></svg>");}
+  [data-icona="crisol"]  {--ic:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='2' y='3.5' width='7' height='4' rx='1'/><rect x='9' y='4.7' width='5' height='1.6'/><rect x='4.2' y='7.5' width='2' height='6.5'/></svg>");}
+  [data-icona="memorial"]{--ic:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='7' y='2' width='2' height='12'/><rect x='4' y='5' width='8' height='2'/></svg>");}
+  [data-icona="despece"] {--ic:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M8 5.2A2.8 2.8 0 108 10.8 2.8 2.8 0 008 5.2zm0 1.6a1.2 1.2 0 110 2.4 1.2 1.2 0 010-2.4z'/><rect x='7.2' y='1.4' width='1.6' height='2.6'/><rect x='7.2' y='12' width='1.6' height='2.6'/><rect x='1.4' y='7.2' width='2.6' height='1.6'/><rect x='12' y='7.2' width='2.6' height='1.6'/></svg>");}
+  [data-icona="cantina"] {--ic:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='3' y='4' width='7' height='9' rx='1'/><path d='M10 6h2a1.6 1.6 0 010 3.2h-2z'/></svg>");}
+  [data-icona="cronica"] {--ic:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='3' y='2' width='10' height='12' rx='1'/><rect x='5' y='4.6' width='6' height='1.3'/><rect x='5' y='7.4' width='6' height='1.3'/><rect x='5' y='10.2' width='4' height='1.3'/></svg>");}
+  [data-icona="export"]  {--ic:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='7' y='2' width='2' height='5.5'/><path d='M8 11L4.4 6.6h7.2z'/><rect x='2.5' y='12.4' width='11' height='1.6'/></svg>");}
+  [data-icona="import"]  {--ic:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='7' y='4.5' width='2' height='5.5'/><path d='M8 1.5l3.6 4.4H4.4z'/><rect x='2.5' y='12.4' width='11' height='1.6'/></svg>");}
+  [data-icona="mundial"] {--ic:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M4 2h8v3.6a4 4 0 01-8 0z'/><rect x='7' y='9' width='2' height='3.2'/><rect x='4.4' y='12.4' width='7.2' height='1.6'/></svg>");}
+  [data-icona="arquivo"] {--ic:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='2.6' y='2.4' width='10.8' height='11.2' rx='1'/><rect x='7.4' y='2.4' width='1.2' height='11.2'/></svg>");}
+  [data-icona="voz"]     {--ic:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M2.5 6h3l4-3.2v10.4L5.5 10h-3z'/><path d='M11.2 5.4a4 4 0 010 5.2' fill='none' stroke='black' stroke-width='1.5'/></svg>");}
+  [data-icona="faccion"] {--ic:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='2.8' y='2' width='1.6' height='12'/><path d='M5 2.4h8.2l-2 3 2 3H5z'/></svg>");}
+  [data-icona="borrar"]  {--ic:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='2.6' y='3.8' width='10.8' height='1.6'/><rect x='4.4' y='5.8' width='7.2' height='8.2' rx='1'/><rect x='6.2' y='2' width='3.6' height='1.6'/></svg>");}
+  [data-icona="idioma"]  {--ic:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M8 1.4A6.6 6.6 0 118 14.6 6.6 6.6 0 018 1.4zm0 1.5a5.1 5.1 0 100 10.2A5.1 5.1 0 008 2.9z'/><rect x='1.6' y='7.2' width='12.8' height='1.5'/><path d='M8 1.6c2 2 2 10.8 0 12.8-2-2-2-10.8 0-12.8z'/></svg>");}
+
+  /* ====== (v0.68) GRUPOS DO HANGAR ======
+     14 botóns en ringleira eran unha lista da compra. Agora: acción
+     principal arriba, e o resto en bloques cun rótulo gravado. */
+  .grupo{
+    border:1px solid var(--bordo); background:var(--metal-baixo);
+    box-shadow:var(--bisel);
+    padding:14px 14px 12px; margin-top:14px; position:relative;
+  }
+  .grupo > .rotulo{
+    position:absolute; top:-8px; left:12px;
+    background:var(--crt); padding:0 8px;
+    font-size:11px; letter-spacing:3px; color:var(--phos-dim);
+    text-transform:uppercase;
+  }
+  .grupo > .fila{display:flex; gap:10px; flex-wrap:wrap;}
   #radio{
     width:100%; max-width:1260px; border:1px solid var(--phos-dim);
     margin-top:8px; padding:6px 10px; min-height:84px; font-size:12px;
