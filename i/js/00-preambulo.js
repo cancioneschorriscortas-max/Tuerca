@@ -9,7 +9,7 @@
    Vive no preámbulo, o primeiro ficheiro que carga, para estar
    dispoñible en TODOS os módulos posteriores.
    ============================================================ */
-const TUERCA_V = 'v0.82';
+const TUERCA_V = 'v0.83';
 
 /* ============================================================
    (v0.78) AZAR SEMENTADO DA SIMULACIÓN

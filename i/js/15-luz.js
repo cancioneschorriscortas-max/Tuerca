@@ -187,6 +187,12 @@ function luzFontes(g){
       F.push({x: s.x, y: s.y, r: 34, c: '#ffe6c0', a: 0.38 * LUZ.tropas, senBloom: true});
     }
   }
+  /* (v0.83) Destellos das explosións. A capa de efectos declara os seus
+     focos e aquí só se recollen: o fogonazo dunha onda de choque ilumina
+     o mapa enteiro durante tres frames, e é o efecto máis barato que hai. */
+  if(typeof efxFocos === 'function'){
+    try{ for(const f of efxFocos()) F.push(f); }catch(e){ console.error('[luz efx]', e); }
+  }
   /* Chispas e cascallos ardendo (as partículas do sistema de FX) */
   if(typeof _fx !== 'undefined') for(const p of _fx){
     if(p.t !== 'spark') continue;

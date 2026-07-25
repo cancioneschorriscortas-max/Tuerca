@@ -3,7 +3,7 @@
 Uso: python3 build.py"""
 import pathlib, re
 ROOT = pathlib.Path(__file__).parent
-FILES = ['config.js', '00-preambulo.js', '00b-i18n.js', '01-nucleo-datos.js', '01b-assets.js', '02-pvp-lobby.js', '03-pvp-sync.js', '04-progresion.js', '05-mapa-camara-neboa.js', '06-audio-voces.js', '06b-voz.js', '07-terreo-batalla.js', '08-social-narrativa.js', '09-economia-combate.js', '10-estructuras.js', '11-retratos-ui.js', '12-debrief-hangar.js', '13-mundial.js', '14-diario.js', '15-luz.js', '16-estado.js', '17-ambiente.js', '99-boot.js']
+FILES = ['config.js', '00-preambulo.js', '00b-i18n.js', '01-nucleo-datos.js', '01b-assets.js', '02-pvp-lobby.js', '03-pvp-sync.js', '04-progresion.js', '05-mapa-camara-neboa.js', '06-audio-voces.js', '06b-voz.js', '07-terreo-batalla.js', '08-social-narrativa.js', '09-economia-combate.js', '10-estructuras.js', '11-retratos-ui.js', '12-debrief-hangar.js', '13-mundial.js', '14-diario.js', '15-luz.js', '16-estado.js', '17-ambiente.js', '18-efectos.js', '99-boot.js']
 # encoding='utf-8' EXPLÍCITO en todo: en Windows o defecto de Python é a
 # codepage ANSI (cp1252) e peta cos emojis dos botóns e cos acentos.
 html = (ROOT / 'index.html').read_text(encoding='utf-8')

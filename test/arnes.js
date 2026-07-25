@@ -23,7 +23,7 @@ const FICHEIROS = [
   '05-mapa-camara-neboa.js', '06-audio-voces.js', '06b-voz.js',
   '07-terreo-batalla.js', '08-social-narrativa.js', '09-economia-combate.js',
   '10-estructuras.js', '11-retratos-ui.js', '12-debrief-hangar.js',
-  '13-mundial.js', '14-diario.js', '15-luz.js', '16-estado.js', '17-ambiente.js', '99-boot.js',
+  '13-mundial.js', '14-diario.js', '15-luz.js', '16-estado.js', '17-ambiente.js', '18-efectos.js', '99-boot.js',
 ];
 
 /* ---------- Canvas 2D de mentira ----------

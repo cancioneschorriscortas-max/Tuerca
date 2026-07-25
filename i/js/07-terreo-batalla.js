@@ -599,6 +599,7 @@ function newBattle(deployed){
   g.semente = _semente;
   g.rngEstado = game.rngEstado;
   game = g;
+  if(typeof efxLimpar === 'function') efxLimpar();   /* (v0.83) sen restos da batalla anterior */
   deployed.forEach((vu,i)=>{
     const _sp = nudgeSpawn(g, PT, PT===0 ? HQ[0].x + HQ[0].w + 30 : HQ[1].x - 30, HQ[PT].y - 28 + i*40);
     const u = mkUnit(PT, vu.cls, _sp.x, _sp.y, vu);

@@ -1493,7 +1493,12 @@ function draw(g){
     for(const b of g.booms){
       /* (v0.49) partículas ao nacer o boom (dedup por posición: o snap do
          convidado re-entrega o mesmo boom en varios frames) */
-      if(b.t >= 13 && _fxDedup('b' + (b.x|0) + '_' + (b.y|0), 600)) fxBurst(b.x, b.y, b.big);
+      if(b.t >= 13 && _fxDedup('b' + (b.x|0) + '_' + (b.y|0), 600)){
+        fxBurst(b.x, b.y, b.big);
+        /* (v0.83) o que lle faltaba ao bombardeiro non eran máis chispas:
+           era a ONDA, e o destello que a capa de luz converte en fogonazo */
+        if(typeof efxOnda === 'function') efxOnda(b.x, b.y, b.big);
+      }
       b.t -= _fxDt * 60;   /* (v0.49) decae por TEMPO, non por frame do monitor */
       const prog = 1 - b.t / 14;
       const r = prog * (b.big ? 34 : 16);
@@ -1650,6 +1655,11 @@ function draw(g){
     ctx.strokeRect(g.drag.x, g.drag.y, g.drag.x2-g.drag.x, g.drag.y2-g.drag.y);
     ctx.setLineDash([]);
   }
+  /* (v0.83) Capa de efectos de lectura, por riba de todo o do mundo:
+     ondas de choque, marcas de abate e cruz de reparación. */
+  try{
+    if(typeof efxDebuxar === 'function') efxDebuxar(g, _fxDt);
+  }catch(e){ console.error('[efectos]', e); }
   /* Info producción */
   const p=g.prod[PT];
   $('prodinfo').textContent = p

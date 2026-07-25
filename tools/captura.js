@@ -18,6 +18,7 @@
      --pasos N     pasos de simulación antes de debuxar (defecto 1800)
      --sen-luz     apaga a capa de luz e as sombras (para o A/B)
      --lingua X    gl | es | en, para revisar as traducións
+     --efectos     dispara os efectos de lectura para poder velos
      --saida RUTA  onde gardar (defecto: capturas/<modo>.png)
      --ancho N --alto N   tamaño da ventá
 
@@ -90,6 +91,26 @@ window.addEventListener('load', function(){
       ${hora != null ? 'LUZ.horaForzada = ' + Number(hora) + ';' : ''}
       for(var s = 0; s < ${pasos}; s++) simStep(game);
       requestAnimationFrame(loop);
+      ${ten('efectos') ? `
+      /* Dispara os efectos de lectura preto da cámara para poder velos:
+         caducan en menos dun segundo, así que hai que ir renovándoos. */
+      var _bt = 0;
+      (function bombardeo(){
+        /* Cada 26 frames, non cada un: disparando en continuo superpóñense
+           unha ducia de fogonazos e a captura mente sobre a intensidade
+           real, que é UN por explosión e apágase en cuartos de segundo. */
+        if((_bt++ % 26) === 0){
+          var cx = cam.x + cv.width/(2*camZoom), cy = cam.y + cv.height/(2*camZoom);
+          efxOnda(cx - 150, cy - 60, true);
+          efxOnda(cx + 90, cy + 40, false);
+          efxSniper(cx + 200, cy - 90);
+          efxSniper(cx + 1400, cy);            /* fóra de cámara: frecha no bordo */
+        }
+        for(var i = 0; i < 3 && i < game.units.length; i++){
+          game.units[i]._curandoT = game.t;    /* cruz de reparación, continua */
+        }
+        requestAnimationFrame(bombardeo);
+      })();` : ''}
     }catch(e){
       document.body.innerHTML = '<pre style="color:#ff6a5a;font:14px monospace;padding:20px">'
         + 'ERRO NA SONDA\\n' + (e && e.stack || e) + '</pre>';

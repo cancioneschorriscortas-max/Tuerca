@@ -963,6 +963,13 @@ function tickUnits(g){
       if(u.team===PT){ u.defendLastFireT = g.t; }
       if(foe.hp<=0 && !foe.dead && !cheatDeath(foe, g)){
         foe.dead=true; u.kills++; g.kills[u.team]++;
+        /* (v0.83) O SNIPER mata lonxe, moitas veces fóra de cámara: sen
+           marca, o xogador non se entera de que o seu francotirador está
+           a facer o seu traballo. Só nos nosos abates — os do inimigo xa
+           se notan abondo. */
+        if(u.team === PT && u.cls === 'SNIPER' && typeof efxSniper === 'function'){
+          efxSniper(foe.x, foe.y);
+        }
         if(u.team===PT){
           radioSay('killed_enemy', u, {targetName: foe.name});
           logEvent(u, {type:'MATO_EN', place: placeAt(u.x, u.y), target: foe.name});
@@ -1239,6 +1246,9 @@ function tickUnits(g){
           v.hp = Math.min(v.max, v.hp + u.healRate);
           u.repairs += u.healRate;
           reparoEsteFrame = true;
+          /* (v0.83) marca no PACIENTE + soldadura no punto de contacto */
+          v._curandoT = g.t;
+          if(typeof efxCura === 'function') efxCura(u.x, u.y, v.x, v.y);
           /* (v0.11.1) Δ confianza: sanar de <34% a >50% = +10 (rescate in extremis, subido de 5) */
           if(v.team === PT && hpBefore < v.max*0.34 && v.hp >= v.max*0.5 && !v._savedFromCriticThisOp){
             aplicarConfianza(v, +10);
