@@ -97,9 +97,44 @@ window.addEventListener('load', function(){
 </script>
 ` : '';
 
+/* Hangar con datos: cun roster baleiro o panel de estado sae todo a cero
+   e non se ve nada do que se está a facer. --sementar enche DATA cun
+   escuadrón, unha baixa e unha reensamblaxe en curso. */
+const semente = (modo === 'hangar' && ten('sementar')) ? `
+<script>
+window.addEventListener('load', function(){
+  setTimeout(function(){
+    try{
+      var clases = ['GRUNT','HEAVY','ENGINEER','SNIPER','GRUNT','HEAVY','ENGINEER'];
+      DATA.units = clases.map(function(cls, i){
+        return {
+          id: 'R-0' + (i+1), name: pickName(DATA, []), cls: cls,
+          ops: i < 5 ? 2 + i : 0, kills: i, traits: [], events: [], medals: [],
+          crossings: 0, recoveries: 0, criticalSurvivals: 0, captures: 0,
+          personalidad: pickPersonalidad(cls), confianza: 50,
+          renacido: i < 2 ? {opsLeft: 3} : null,
+          folga: i === 6 ? {ops: 2, por: 'MARTELO'} : null,
+          activity: {dist:0, shots:0, kills:0, dmgTaken:0, caps:0, veh:0}
+        };
+      });
+      DATA.chatarra = 124;
+      DATA.opCount = 13;
+      DATA.fallen = [TXT('deb.fallenLine', {id:'R-08', n:'MARTELO', ops:9, k:14,
+        l:'a Ponte', op:13, reason: TXT('deb.restosPerdidos')})];
+      DATA.reconstruccion = {rec: DATA.units[0], pezas: [], encargadaOp: 13, sinergia: null};
+      estadoRender();
+    }catch(e){
+      document.body.innerHTML = '<pre style="color:#ff6a5a;font:14px monospace;padding:20px">'
+        + 'ERRO NA SEMENTE\\n' + (e && e.stack || e) + '</pre>';
+    }
+  }, 700);   /* despois de que showHangar() resolva o seu loadData */
+});
+</script>
+` : '';
+
 const sonda = path.join(I, '_captura_tmp.html');
 let html = fs.readFileSync(path.join(I, 'index.html'), 'utf8');
-html = html.replace('</body>', arranque + '</body>');
+html = html.replace('</body>', arranque + semente + '</body>');
 fs.writeFileSync(sonda, html, 'utf8');
 
 /* ---------- Disparo ----------

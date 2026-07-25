@@ -14,6 +14,11 @@
 
 <!-- ===================== HANGAR ===================== -->
 <div id="hangar" class="scr">
+ <div id="hangarLayout">
+  <!-- (v0.71) Columna de estado: non engade datos novos, saca á luz os
+       que o xogo xa calculaba e non ensinaba. Énchea estadoRender(). -->
+  <aside id="estadoPanel"></aside>
+  <div id="hangarCentro">
   <h2><span id="hgTitle">// Hangar — Roster persistente</span> <span id="chatarraDisplay" style="float:right; font-size:14px; color:#c8a86a;"></span></h2>
   <div id="rosterList" class="small"><!-- hg.cargando: énchese ao renderizar --></div>
 
@@ -57,6 +62,8 @@
 
   <div id="memorial" style="display:none; margin-top:12px;" class="small"></div>
   <p id="hgHelp" class="small" style="margin-top:16px;"><!-- hg.help: énchese en aplicarIdioma() --></p>
+  </div><!-- /hangarCentro -->
+ </div><!-- /hangarLayout -->
 </div>
 
 <!-- ===================== BATALLA ===================== -->
@@ -138,6 +145,7 @@
 <script src="js/13-mundial.js"></script>
 <script src="js/14-diario.js"></script>
 <script src="js/15-luz.js"></script>
+<script src="js/16-estado.js"></script>
 <script src="js/99-boot.js"></script>
 </body>
 </html>

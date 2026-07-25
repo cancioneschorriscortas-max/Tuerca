@@ -605,6 +605,8 @@ async function showHangar(){
   $('debrief').style.display='none';
   $('battle').style.display='none';
   $('hangar').style.display='block';
+  /* (v0.71) columna de estado: repíntase sempre que se entra no hangar */
+  if(typeof estadoRender === 'function'){ try{ estadoRender(); }catch(e){ console.error('[estado]', e); } }
   /* (v0.12) Display de chatarra */
   const chd = $('chatarraDisplay');
   if(chd) chd.textContent = TXT('hg.chatarra', {n: DATA.chatarra||0});

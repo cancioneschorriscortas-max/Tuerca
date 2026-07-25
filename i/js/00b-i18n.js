@@ -22,6 +22,17 @@ const LANGS = {
     'btn.export': 'Exportar',
     'btn.import': 'Importar',
     'btn.wipe': 'Borrar todos os datos',
+    /* (v0.71) Panel de estado do hangar */
+    'est.titulo': 'Estado do escuadrón', 'est.activas': 'Unidades activas',
+    'est.veteranos': 'Veteranos', 'est.reconstruidos': 'Reconstruídos', 'est.folga': 'En folga',
+    'est.ultimaBaixa': 'Última baixa', 'est.senBaixas': 'Sen baixas rexistradas.',
+    'est.reensamblaxe': 'Reensamblaxe en curso', 'est.senReensamblaxe': 'Ningunha en curso.',
+    'est.listoTras': 'Listo tras a próxima operación',
+    'est.comunicado': 'Comunicado de ÓPTIMA',
+    'est.optSenRoster': 'Sen unidades rexistradas. Proceda a dotar o escuadrón.',
+    'est.optFolga': 'Incidencia laboral: {n} unidade(s) en folga. Colaboración obrigatoria.',
+    'est.optRecon': '{n} unidade(s) reconstruída(s) en servizo. Rendemento dentro do previsto.',
+    'est.optNominal': 'Produtividade nominal. Sen incidencias que comunicar.',
     /* (v0.68) Estes tres viñan hardcoded no HTML e nunca se traduciran. */
     'btn.mundial': 'Mundial',
     'btn.arquivo': 'Arquivo',
@@ -590,6 +601,16 @@ const LANGS = {
     'btn.export': 'Exportar',
     'btn.import': 'Importar',
     'btn.wipe': 'Borrar todos los datos',
+    'est.titulo': 'Estado del escuadrón', 'est.activas': 'Unidades activas',
+    'est.veteranos': 'Veteranos', 'est.reconstruidos': 'Reconstruidos', 'est.folga': 'En huelga',
+    'est.ultimaBaixa': 'Última baja', 'est.senBaixas': 'Sin bajas registradas.',
+    'est.reensamblaxe': 'Reensamblaje en curso', 'est.senReensamblaxe': 'Ninguno en curso.',
+    'est.listoTras': 'Listo tras la próxima operación',
+    'est.comunicado': 'Comunicado de ÓPTIMA',
+    'est.optSenRoster': 'Sin unidades registradas. Proceda a dotar el escuadrón.',
+    'est.optFolga': 'Incidencia laboral: {n} unidad(es) en huelga. Colaboración obligatoria.',
+    'est.optRecon': '{n} unidad(es) reconstruida(s) en servicio. Rendimiento dentro de lo previsto.',
+    'est.optNominal': 'Productividad nominal. Sin incidencias que comunicar.',
     'btn.mundial': 'Mundial',
     'btn.arquivo': 'Archivo',
     'voz.off': 'Voz: apagada', 'voz.chios': 'Voz: pitidos', 'voz.toda': 'Voz: completa',
@@ -1157,6 +1178,16 @@ const LANGS = {
     'btn.export': 'Export',
     'btn.import': 'Import',
     'btn.wipe': 'Wipe all data',
+    'est.titulo': 'Squad status', 'est.activas': 'Active units',
+    'est.veteranos': 'Veterans', 'est.reconstruidos': 'Rebuilt', 'est.folga': 'On strike',
+    'est.ultimaBaixa': 'Last casualty', 'est.senBaixas': 'No casualties on record.',
+    'est.reensamblaxe': 'Reassembly in progress', 'est.senReensamblaxe': 'None in progress.',
+    'est.listoTras': 'Ready after the next operation',
+    'est.comunicado': 'ÓPTIMA bulletin',
+    'est.optSenRoster': 'No units on record. Proceed to staff the squad.',
+    'est.optFolga': 'Labour incident: {n} unit(s) on strike. Collaboration is mandatory.',
+    'est.optRecon': '{n} rebuilt unit(s) in service. Performance within forecast.',
+    'est.optNominal': 'Nominal productivity. No incidents to report.',
     'btn.mundial': 'World cup',
     'btn.arquivo': 'Archive',
     'voz.off': 'Voice: off', 'voz.chios': 'Voice: chirps', 'voz.toda': 'Voice: full',
@@ -1793,6 +1824,9 @@ function aplicarIdioma(){
   /* O botón de voz escribe a súa propia etiqueta (é tri-estado), así que
      hai que avisalo ao cambiar de idioma ou quedaría no anterior. */
   if(typeof vozActualizarBoton === 'function'){ try{ vozActualizarBoton(); }catch(_){} }
+  /* A columna de estado escríbese enteira desde o dicionario: hai que
+     repintala ao cambiar de idioma ou queda no anterior. */
+  if(typeof estadoRender === 'function'){ try{ estadoRender(); }catch(_){} }
   /* VERSIÓN: TUERCA_V (00-preambulo.js) é o único sitio onde se toca.
      Píntase aquí porque o subtítulo depende do idioma e reaplícase en
      cada setLang(). O <title> non pode lelo do HTML: ponse por JS. */

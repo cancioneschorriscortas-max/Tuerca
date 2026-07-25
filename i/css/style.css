@@ -26,7 +26,11 @@
      que o que asome sexa o negro da casa e non unha sorpresa. */
   html{background:var(--crt);}
   body{
-    background:var(--crt); color:var(--phos);
+    /* TRANSPARENTE a propósito: o negro ponno html. Se o body ten fondo
+       propio, deixa de propagarse ao lenzo da páxina e PÍNTASE no body,
+       tapando os ::before/::after de z-index negativo — e a lámina do
+       hangar desaparecía. */
+    background:transparent; color:var(--phos);
     font-family:var(--fnt-ui);
     display:flex; flex-direction:column; align-items:center;
     min-height:100vh; padding:12px; letter-spacing:.5px;
@@ -258,6 +262,55 @@
     color:#6c6455; text-transform:uppercase;
   }
   .grupo > .fila{display:flex; gap:10px; flex-wrap:wrap;}
+
+  /* ====== (v0.71) COLUMNA DE ESTADO ======
+     Á esquerda, en columna estreita. Debaixo de 1100px pasa a ir enriba,
+     que nunha pantalla estreita o importante segue sendo o botón grande. */
+  #hangarLayout{display:flex; gap:16px; align-items:flex-start;}
+  #hangarCentro{flex:1; min-width:0;}
+  #estadoPanel{flex:0 0 250px; display:flex; flex-direction:column; gap:10px;}
+  @media (max-width: 1100px){
+    #hangarLayout{flex-direction:column;}
+    #estadoPanel{flex:1 1 auto; width:100%;}
+  }
+  .est-bloque{
+    border:1px solid rgba(255,214,140,.16);
+    background:linear-gradient(180deg, rgba(12,13,8,.92), rgba(8,9,6,.96));
+    box-shadow:inset 0 2px 6px rgba(0,0,0,.7);
+    padding:10px 12px 11px;
+  }
+  .est-bloque h3{
+    font-size:11px; letter-spacing:2.5px; text-transform:uppercase;
+    color:var(--phos); font-weight:600;
+    border-bottom:1px solid rgba(255,214,140,.13);
+    padding-bottom:6px; margin-bottom:8px;
+  }
+  .est-bloque h3.h-baixa{color:#c06052;}
+  .est-fila{
+    display:flex; justify-content:space-between; align-items:baseline;
+    font-family:var(--fnt-dato); font-size:11px; color:#8d8574;
+    padding:3px 0;
+  }
+  .est-fila b{font-family:var(--fnt-ui); font-size:16px; color:var(--phos);}
+  .est-fila b.v-bronce{color:#c8a86a;}
+  .est-fila b.v-alerta{color:var(--red);}
+  .est-baixa{
+    font-family:var(--fnt-dato); font-size:10.5px; line-height:1.45;
+    color:#a89880; border-left:2px solid #6b3a32; padding-left:8px;
+  }
+  .est-baleiro{font-family:var(--fnt-dato); font-size:10.5px; color:#5f5949; font-style:italic;}
+  .est-recon{display:flex; gap:9px; align-items:flex-start;}
+  .est-recon b{font-size:13px; color:var(--phos); display:block;}
+  .est-recon .est-sub{
+    display:block; font-family:var(--fnt-dato); font-size:10px; color:#7c7462; line-height:1.5;
+  }
+  .est-optima p{
+    font-family:var(--fnt-dato); font-size:10.5px; line-height:1.45; color:#9a9280;
+  }
+  .est-optima .est-firma{
+    display:block; margin-top:7px; font-family:var(--fnt-dato);
+    font-size:9px; color:#5a5445; letter-spacing:.5px;
+  }
   #radio{
     width:100%; max-width:1260px; border:1px solid var(--phos-dim);
     margin-top:8px; padding:6px 10px; min-height:84px; font-size:12px;
@@ -304,3 +357,6 @@
   #bioModal .ev .op{color:var(--phos-dim); margin-right:8px;}
   #bioModal .ev .lugar{color:var(--gold);}
   #prodbar span{font-size:11px; color:var(--phos-dim); align-self:center;}
+  /* O lenzo do retrato é 100x120 (o tamaño para o que está feito
+     drawPortrait); aquí redúcese sen perder o pixelado. */
+  #estReconRetrato{width:50px; height:60px; image-rendering:pixelated;}
