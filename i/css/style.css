@@ -28,6 +28,20 @@
     display:flex; flex-direction:column; align-items:center;
     min-height:100vh; padding:12px; letter-spacing:.5px;
   }
+  /* (v0.69) O HANGAR É UN SITIO.
+     A lámina de fondo vai fixa e cuberta, cun veo escuro por riba para
+     que a interface se lea sen apagar de todo o que pasa detrás. Só na
+     portada: en batalla estorbaría. */
+  body.no-hangar::before{
+    content:''; position:fixed; inset:0; z-index:-2;
+    background:url('../ui/fondo_menu.png') center/cover no-repeat;
+  }
+  body.no-hangar::after{
+    content:''; position:fixed; inset:0; z-index:-1;
+    background:
+      radial-gradient(ellipse at 50% 45%, rgba(10,10,8,.10) 0%, rgba(8,8,6,.66) 78%),
+      linear-gradient(180deg, rgba(8,8,6,.22), rgba(8,8,6,.50));
+  }
   /* Datos, radio e listas seguen monoespazadas: aliñan en columna e é
      onde o aire de terminal aporta algo. */
   #radio, .small, .roster-item, #prodbar, #sidePanel{font-family:var(--fnt-dato);}
@@ -114,38 +128,51 @@
   #hud{display:flex; gap:8px; width:100%; max-width:1260px; margin-top:8px; flex-wrap:wrap;}
   /* ====== (v0.68) BOTÓNS: chapa, non bordo ======
      Cada botón leva o seu acento en --acento; por defecto, fósforo. */
+  /* Os botóns son PANTALLAS afundidas na placa: interior case negro con
+     reixa fina, contorno de un píxel e sombra interior arriba. Nada de
+     degradado metálico — o metal xa o pon o marco. */
   button{
     --acento:var(--phos);
-    background:linear-gradient(180deg, var(--metal-alto), var(--metal));
+    background:
+      repeating-linear-gradient(0deg, rgba(255,214,140,.026) 0 1px, transparent 1px 12px),
+      linear-gradient(180deg, #0a0b07, #0e0f0a);
     color:var(--acento);
-    border:1px solid var(--bordo);
-    box-shadow:var(--bisel);
+    border:1px solid rgba(255,214,140,.20);
+    box-shadow:inset 0 2px 6px rgba(0,0,0,.75);
     font-family:var(--fnt-ui); font-size:13px; font-weight:600;
-    padding:9px 14px; cursor:pointer;
+    padding:11px 15px; cursor:pointer;
     text-transform:uppercase; letter-spacing:1.5px;
-    display:inline-flex; align-items:center; gap:8px;
-    transition:border-color .12s, color .12s, background .12s;
+    display:inline-flex; align-items:center; gap:9px;
+    transition:border-color .12s, color .12s, box-shadow .12s;
   }
   button:hover:not(:disabled){
     border-color:var(--acento);
-    background:linear-gradient(180deg, #2e2e22, #1c1c14);
+    box-shadow:inset 0 2px 6px rgba(0,0,0,.75), 0 0 12px -2px var(--acento);
   }
   button:active:not(:disabled){
-    box-shadow:var(--bisel-fondo);
+    box-shadow:inset 0 3px 9px rgba(0,0,0,.9);
     transform:translateY(1px);
   }
   button:focus-visible{outline:2px solid var(--acento); outline-offset:2px;}
   button:disabled{opacity:.3; cursor:default;}
 
-  /* Acción principal: máis grande e coa chapa acesa */
+  /* Acción principal: barra ancha con contorno aceso e a icona metida
+     nun cadrado cheo, como na referencia. É a única que se preme sempre;
+     que se note. */
   button.b-primario{
-    font-size:15px; padding:13px 22px; letter-spacing:2px;
-    background:linear-gradient(180deg, #4a3606, var(--metal));
-    border-color:var(--phos-dim);
+    flex:1; justify-content:flex-start;
+    font-size:19px; padding:16px 18px; letter-spacing:2.5px;
+    border-color:var(--phos);
+    box-shadow:inset 0 2px 8px rgba(0,0,0,.8), 0 0 18px -6px var(--phos);
+  }
+  button.b-primario::before{
+    width:34px; height:34px; flex:0 0 34px;
+    background:var(--phos);
+    -webkit-mask-size:19px; mask-size:19px;
+    box-shadow:0 0 14px -3px var(--phos);
   }
   button.b-primario:hover:not(:disabled){
-    background:linear-gradient(180deg, #63480a, #241a04);
-    border-color:var(--phos);
+    box-shadow:inset 0 2px 8px rgba(0,0,0,.8), 0 0 26px -4px var(--phos);
   }
   button.b-perigo{--acento:#c06052;}
   button.b-perigo:hover:not(:disabled){--acento:var(--red);}
@@ -191,16 +218,36 @@
   /* ====== (v0.68) GRUPOS DO HANGAR ======
      14 botóns en ringleira eran unha lista da compra. Agora: acción
      principal arriba, e o resto en bloques cun rótulo gravado. */
-  .grupo{
-    border:1px solid var(--bordo); background:var(--metal-baixo);
-    box-shadow:var(--bisel);
-    padding:14px 14px 12px; margin-top:14px; position:relative;
+  /* (v0.69) A PLACA É METAL, O BOTÓN É PANTALLA.
+     Esa é a xerarquía que faltaba. O marco vén dunha peza recortada da
+     lámina (tools/recortar.js) usado como bordo de nove pezas SEN
+     recheo: quédase o anel de metal cos remaches e o centro píntoo eu.
+     Así o marco estira sen deformarse e os rótulos que a lámina trae
+     queimados en galego quedan fóra — escríbense desde o dicionario. */
+  .grupo, .scr{
+    border:14px solid transparent;
+    border-image:url('../ui/marco-panel.png') 14 stretch;
+    background:
+      repeating-linear-gradient(0deg,  rgba(255,214,140,.022) 0 1px, transparent 1px 15px),
+      repeating-linear-gradient(90deg, rgba(255,214,140,.022) 0 1px, transparent 1px 15px),
+      linear-gradient(180deg, rgba(16,17,9,.94), rgba(8,9,6,.97));
+    background-clip:padding-box;   /* o fondo non se mete baixo o marco */
+    box-shadow:0 10px 34px -8px rgba(0,0,0,.9);
   }
+  .grupo{padding:10px 14px 14px; margin-top:14px; position:relative;}
+  .scr{padding:16px 20px 20px;}
+  /* Cabeceira de sección: título en ámbar á esquerda, función en gris
+     á dereita. É o patrón da referencia e custa unha liña. */
   .grupo > .rotulo{
-    position:absolute; top:-8px; left:12px;
-    background:var(--crt); padding:0 8px;
-    font-size:11px; letter-spacing:3px; color:var(--phos-dim);
+    display:flex; justify-content:space-between; align-items:baseline;
+    border-bottom:1px solid rgba(255,214,140,.13);
+    padding-bottom:7px; margin-bottom:12px;
+    font-size:12px; letter-spacing:3px; color:var(--phos);
     text-transform:uppercase;
+  }
+  .grupo > .rotulo em{
+    font-style:normal; font-size:10px; letter-spacing:2px;
+    color:#6c6455; text-transform:uppercase;
   }
   .grupo > .fila{display:flex; gap:10px; flex-wrap:wrap;}
   #radio{
@@ -209,10 +256,10 @@
     background:#0d0d0a;
   }
   #radio .line{margin:2px 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-  .scr{
-    width:100%; max-width:960px; border:2px solid var(--phos-dim);
-    background:#0d0d0a; padding:18px; margin-top:8px;
-  }
+  /* (v0.69) O bordo e o fondo veñen da regra de placa de arriba; aquí só
+     queda a caixa. Antes había un `border:2px solid` que gañaba por ir
+     despois no ficheiro e comía o marco metálico. */
+  .scr{width:100%; max-width:1000px; margin-top:10px;}
   .scr h2{font-size:16px; margin-bottom:10px; text-transform:uppercase;}
   .roster-item{
     display:flex; align-items:center; gap:8px; padding:7px 4px;

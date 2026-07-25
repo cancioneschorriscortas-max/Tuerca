@@ -151,6 +151,14 @@ function crearContorno({ silencioso = true } = {}) {
     fetch: () => Promise.reject(new Error('sen rede nas probas')),
     alert() {}, confirm: () => false, prompt: () => null,
     addEventListener() {}, removeEventListener() {}, dispatchEvent: () => true,
+    /* Nada muta nun DOM falso, así que observar non ten que facer nada;
+       pero a clase ten que existir ou peta a carga do módulo. */
+    MutationObserver: function () {
+      return { observe() {}, disconnect() {}, takeRecords: () => [] };
+    },
+    ResizeObserver: function () {
+      return { observe() {}, unobserve() {}, disconnect() {} };
+    },
     /* Firebase non existe: o código xa se protexe con typeof/guardas. */
   };
   sandbox.window = sandbox;
