@@ -1,0 +1,20 @@
+# Finais de liña: LF en todas partes (repo e copia de traballo).
+# Sen isto, core.autocrlf=true en Windows acaba xerando diffs fantasma
+# de ficheiros enteiros. O proxecto edítase en Windows pero publícase
+# a Firebase Hosting, onde LF é o normal.
+* text=auto eol=lf
+
+# Binarios: que git non lles toque nada nin intente facer diff de texto.
+*.mp3  binary
+*.ogg  binary
+*.wav  binary
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.webp binary
+
+# O artefacto publicado é xerado: márcase para que non conte como código
+# nas estatísticas de linguaxe de GitHub.
+i/dist/tuerca.html linguist-generated=true
