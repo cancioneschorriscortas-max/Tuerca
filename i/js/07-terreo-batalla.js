@@ -574,6 +574,15 @@ function newBattle(deployed){
     })),
     /* Para tracking de DEFENDIO: por unidad, lugar actual + tiempo en él */
   };
+  /* (v0.76) O global `game` ASÍGNASE AQUÍ, antes de crear unha soa unidade.
+     mkUnit numera os inimigos con `game ? ++game.enemyN : 1`, e ata agora
+     `game` non se asignaba ata que newBattle DEVOLVÍA: na primeira batalla
+     da sesión todos os inimigos do arranque saían como K-01, e nas
+     seguintes numerábanse co contador da batalla ANTERIOR.
+     Importa no PvP, que resolve ocupantes de torretas e vehículos por id
+     (pvpAplicarSnap): con ids repetidos, find() devolve a unidade
+     equivocada. */
+  game = g;
   deployed.forEach((vu,i)=>{
     const _sp = nudgeSpawn(g, PT, PT===0 ? HQ[0].x + HQ[0].w + 30 : HQ[1].x - 30, HQ[PT].y - 28 + i*40);
     const u = mkUnit(PT, vu.cls, _sp.x, _sp.y, vu);

@@ -201,9 +201,49 @@ function pvpSnapshot(g){
     tracers: (g.tracers||[]).filter(t=>t.t>0).map(t => ({x1:Math.round(t.x1), y1:Math.round(t.y1), x2:Math.round(t.x2), y2:Math.round(t.y2), t:Math.round(t.t), team:t.team})),
   };
 }
+/* ============================================================
+   (v0.76) LATEXO SIMÉTRICO
+
+   O convidado xa vixiaba o host: 8 s sen instantánea = aviso, 18 s =
+   fin por abandono. Pero o host non vixiaba a NINGUÉN. Se a lapela do
+   convidado se conxela sen desconectar —suspensión, colgue, portátil
+   pechado— o onDisconnect de Firebase non dispara, non chegan ordes (o
+   que é indistinguible de "non está a dar ordes") e o host queda
+   xogando contra un rival que xa non existe. Para sempre.
+
+   Arránxase co mesmo patrón na outra dirección: o convidado publica un
+   latexo cada dous segundos e o host mírao.
+   ============================================================ */
+const PVP_PULSO_MS   = 2000;    /* cada canto latexa o convidado */
+const PVP_AVISO_MS   = 8000;    /* silencio que xa merece aviso */
+const PVP_ABANDONO_MS = 18000;  /* silencio que se dá por marchado */
+
+/* Chámase cada frame no convidado; só escribe de cando en vez. */
+function pvpPulso(){
+  const P = window._pvp;
+  if(!P || P.rol !== 'guest' || !P.net) return;
+  const agora = Date.now();
+  if(P._pulsoT && agora - P._pulsoT < PVP_PULSO_MS) return;
+  P._pulsoT = agora;
+  P.net.write(`salas/${P.sala}/pulso`, {t: agora}).catch(() => {});
+}
+
 function pvpHostFrame(g){
   const P = window._pvp;
   if(!P) return;
+  /* (v0.76) WATCHDOG DO HOST — simétrico ao do convidado.
+     O primeiro latexo pode tardar (a batalla arranca antes de que o
+     convidado teña o bucle en marcha), así que o reloxo empeza agora e
+     non no arranque da sala. */
+  if(!P.ultimoPulso) P.ultimoPulso = Date.now();
+  if(!g.over){
+    const sen = Date.now() - P.ultimoPulso;
+    if(sen > PVP_AVISO_MS && !P.avisoPulso){
+      P.avisoPulso = true;
+      radio(TXT('pvp.senSinalRival'), '#ff5340');
+    }
+    if(sen > PVP_ABANDONO_MS){ pvpAbandono(); return; }
+  }
   /* consumir ordes novas do convidado */
   if(P.ordenPend){
     const ordes = P.ordenPend; P.ordenPend = null;
@@ -323,6 +363,7 @@ function pvpAplicarSnap(g){
   if(!P || !P.snapPend) return;
   const s = P.snapPend; P.snapPend = null;
   window._pvpLastSnapMs = Date.now();   /* (v0.51.1) watchdog: último snap recibido */
+  window._pvpSnapWarn = false;          /* (v0.76) volveu o sinal: rearmar o aviso */
   window._pvpSnapWarn = false;
   const sel = new Set(g.units.filter(u => u.sel).map(u => u.id));
   const prev = new Map(g.units.map(u => [u.id, u]));
@@ -593,6 +634,12 @@ function pvpIniciarBatalla(rol, meus, rivais){
     window._pvp.rivais = rivais || [];   /* (v0.33) recs do rival, para xerar pezas con procedencia */
     pvpSpawnRivais(game, rivais);
     window._pvp.unsub.push(net.onValue(`salas/${window._pvp.sala}/orden`, v => { if(window._pvp) window._pvp.ordenPend = v || null; }));
+    /* (v0.76) latexo do convidado: só interesa CANDO chegou, non que trae */
+    window._pvp.unsub.push(net.onValue(`salas/${window._pvp.sala}/pulso`, () => {
+      if(!window._pvp) return;
+      window._pvp.ultimoPulso = Date.now();
+      window._pvp.avisoPulso = false;   /* volveu: reármase o aviso */
+    }));
   } else {
     window._pvp.unsub.push(net.onValue(`salas/${window._pvp.sala}/snap`, v => {
       if(!window._pvp) return;

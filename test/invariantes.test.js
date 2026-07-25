@@ -12,7 +12,7 @@
    duplicados e calquera excepción no bucle — que é exactamente o
    que rompe ao mexer no render.
    ============================================================ */
-const { proba, probaPendente, afirmar } = require('./probar.js');
+const { proba, afirmar } = require('./probar.js');
 const { cargarXogo, novaBatalla, avanzar } = require('./arnes.js');
 
 const finito = (n) => typeof n === 'number' && Number.isFinite(n);
@@ -22,9 +22,7 @@ function revisarInvariantes(S, g, onde) {
   const W = S.aval('W'), H = S.aval('H');
   const erro = (msg) => { throw new Error(`${onde} (paso ${g.t}): ${msg}`); };
 
-  /* A unicidade de ids NON se revisa aquí: hai un bug coñecido que a
-     rompe na primeira batalla da sesión e taparía todo o demais. Ten a
-     súa propia proba pendente ao final deste ficheiro. */
+  const vistos = new Map();
   for (const u of g.units) {
     const quen = `${u.id}/${u.cls}/equipo ${u.team}`;
     if (!finito(u.x) || !finito(u.y)) erro(`${quen} ten posición non finita (${u.x}, ${u.y})`);
@@ -45,6 +43,10 @@ function revisarInvariantes(S, g, onde) {
       erro(`${quen} fuxiu do mapa en (${Math.round(u.x)}, ${Math.round(u.y)}); mapa ${W}x${H}`);
     }
     if (u.team !== 0 && u.team !== 1) erro(`${quen} ten equipo inválido: ${u.team}`);
+    /* Os ids teñen que ser únicos: o PvP resolve ocupantes de torretas e
+       vehículos por id, e un repetido faille coller a unidade equivocada. */
+    if (vistos.has(u.id)) erro(`id ${u.id} repetido: ${vistos.get(u.id)} e ${quen}`);
+    vistos.set(u.id, quen);
   }
 
   for (const h of g.hq) {
@@ -132,20 +134,21 @@ proba('os veteranos despregados conservan a súa ficha persistente', () => {
   }
 });
 
-/* ---------- Bugs coñecidos, aínda sen arranxar ---------- */
-
-probaPendente(
-  'os ids das unidades son únicos dentro dunha batalla',
-  'mkUnit numera os inimigos co global `game`, que aínda non está asignado',
-  () => {
-    const S = cargarXogo();
-    const g = novaBatalla(S, { op: 2 });   /* primeira batalla da sesión */
+proba('os ids son únicos tamén na PRIMEIRA batalla da sesión', () => {
+  /* Era o bug de mkUnit: numeraba os inimigos con `game ? ++game.enemyN : 1`
+     e `game` non se asignaba ata que newBattle devolvía, así que na
+     primeira batalla saían todos como K-01. Arranxado na v0.76 asignando
+     o global antes de crear unidades. Compróbanse tres batallas seguidas
+     porque na segunda o síntoma era distinto: numerábase co contador da
+     batalla anterior. */
+  const S = cargarXogo();
+  for (let n = 1; n <= 3; n++) {
+    const g = novaBatalla(S, { op: 2 });
     const vistos = new Map();
     for (const u of g.units) {
-      if (vistos.has(u.id)) {
-        throw new Error(`id ${u.id} repetido: ${vistos.get(u.id)} e ${u.cls}/equipo ${u.team}`);
-      }
+      afirmar(!vistos.has(u.id),
+        `batalla ${n}: id ${u.id} repetido (${vistos.get(u.id)} e ${u.cls}/equipo ${u.team})`);
       vistos.set(u.id, `${u.cls}/equipo ${u.team}`);
     }
-  },
-);
+  }
+});

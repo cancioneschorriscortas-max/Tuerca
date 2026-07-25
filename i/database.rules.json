@@ -11,6 +11,7 @@
         "guest": { ".validate": "newData.hasChildren()" },
         "snap":  { "j": { ".validate": "newData.isString() && newData.val().length < 200000" }, "$other": { ".validate": false } },
         "orden": { "$push": { ".validate": "newData.hasChild('ts') && newData.child('ts').isNumber()" } },
+        "pulso": { ".validate": "newData.hasChild('t') && newData.child('t').isNumber()", "$other": { ".validate": false } },
         "fin":   { ".validate": "newData.hasChildren()" },
         "estado":{ ".validate": "newData.isString()" },
         "$outro":{ ".validate": true }

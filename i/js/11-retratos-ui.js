@@ -719,17 +719,19 @@ function simStep(g){
       pvpAplicarSnap(g);   /* (v0.31) o convidado NON simula: renderiza o estado do host */
       pvpInterpolar(g);    /* (v0.32) suavizado visual entre snaps */
       pvpFlushOrdes();
+      pvpPulso();   /* (v0.76) que o host saiba que seguimos vivos */
       /* (v0.51.1) WATCHDOG: host conxelado SEN desconectar (lapela suspendida,
          cuelgue) non dispara o onDisconnect de Firebase — o convidado quedaba
          pillado para sempre. 8s sen snap = aviso; 18s = fin por abandono. */
       if(!g.over){
         if(!window._pvpLastSnapMs) window._pvpLastSnapMs = Date.now();
         const _sen = Date.now() - window._pvpLastSnapMs;
-        if(_sen > 8000 && !window._pvpSnapWarn){
+        /* (v0.76) mesmos limiares que o watchdog do host, nun só sitio */
+        if(_sen > PVP_AVISO_MS && !window._pvpSnapWarn){
           window._pvpSnapWarn = true;
           radio(TXT('pvp.senSinal'), '#ff5340');
         }
-        if(_sen > 18000) pvpAbandono();
+        if(_sen > PVP_ABANDONO_MS) pvpAbandono();
       }
     }catch(e){ console.error('[pvp guest]', e); }   /* (v0.34.1) nada mata o loop */
   } else if(!g.over){
