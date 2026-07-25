@@ -255,15 +255,21 @@ function diaPaxInforme(ctx, cap){
   ctx.save(); ctx.translate(126, 288); ctx.rotate(0.035);
   ctx.fillStyle = '#ded6bc'; ctx.fillRect(-93, -108, 186, 216);
   ctx.fillStyle = '#3a352b'; ctx.fillRect(-85, -100, 170, 176);
-  try{
+  /* (v0.70) O retiro vai en `finally`: estaba dentro do try, así que se
+     drawPortrait petaba, o catch baleiro tragaba o erro E o canvas
+     quedaba pendurado do body para sempre. */
+  {
     const tmp = document.createElement('canvas'); tmp.width = 100; tmp.height = 120; tmp.id = '_diaTmpPortrait';
+    tmp.style.cssText = 'position:absolute; left:-9999px; top:0;';
     document.body.appendChild(tmp);
-    if(typeof drawPortrait === 'function') drawPortrait(tmp, {name: s.u.name, cls: s.u.cls, ops: s.u.ops, hp: 1, max: 1});
-    ctx.filter = 'grayscale(0.3) sepia(0.25) contrast(1.05)';
-    ctx.drawImage(tmp, -70, -92, 140, 160);
-    ctx.filter = 'none';
-    document.body.removeChild(tmp);
-  }catch(e){}
+    try{
+      if(typeof drawPortrait === 'function') drawPortrait(tmp, {name: s.u.name, cls: s.u.cls, ops: s.u.ops, hp: 1, max: 1});
+      ctx.filter = 'grayscale(0.3) sepia(0.25) contrast(1.05)';
+      ctx.drawImage(tmp, -70, -92, 140, 160);
+      ctx.filter = 'none';
+    }catch(e){ console.error('[diario retrato]', e); }
+    finally{ tmp.remove(); }
+  }
   ctx.restore();
   /* clip */
   ctx.strokeStyle = '#787060'; ctx.lineWidth = 4;
@@ -372,15 +378,18 @@ function diaPaxFicha(ctx, cap){
   ctx.save(); ctx.translate(500, 190); ctx.rotate(-0.03);
   ctx.fillStyle = '#ded6bc'; ctx.fillRect(-64, -74, 128, 148);
   ctx.fillStyle = '#3a352b'; ctx.fillRect(-58, -68, 116, 122);
-  try{
+  {
     const tmp = document.createElement('canvas'); tmp.width = 100; tmp.height = 120;
+    tmp.style.cssText = 'position:absolute; left:-9999px; top:0;';
     document.body.appendChild(tmp);
-    if(typeof drawPortrait === 'function') drawPortrait(tmp, {name: s.u.name, cls: s.u.cls, ops: 0, hp: 1, max: 1});
-    ctx.filter = 'grayscale(0.3) sepia(0.25)';
-    ctx.drawImage(tmp, -50, -62, 100, 112);
-    ctx.filter = 'none';
-    document.body.removeChild(tmp);
-  }catch(e){}
+    try{
+      if(typeof drawPortrait === 'function') drawPortrait(tmp, {name: s.u.name, cls: s.u.cls, ops: 0, hp: 1, max: 1});
+      ctx.filter = 'grayscale(0.3) sepia(0.25)';
+      ctx.drawImage(tmp, -50, -62, 100, 112);
+      ctx.filter = 'none';
+    }catch(e){ console.error('[diario retrato]', e); }
+    finally{ tmp.remove(); }
+  }
   ctx.restore();
   /* PEZAS DE ORIXE — os nomes dos mortos, en vermello, nun impreso oficial */
   ctx.fillStyle = DIA_INK; ctx.font = 'bold 14px "Courier New", monospace';

@@ -92,6 +92,37 @@ proba('non quedan estilos de cor en liña nos botóns do hangar', () => {
   }
 });
 
+proba('ningún selector global de tipo estira todos os canvas', () => {
+  /* Había unha regra `canvas{width:100%; background:verde; border:...}`
+     pensada para o mapa de batalla. Ao ser un selector de TIPO collía
+     calquera canvas do documento: un temporal de 100x120 que quedase
+     solto no body convertíase nunha franxa verde a todo o ancho da
+     páxina. Aquí evítase que volva. */
+  const regras = CSS.replace(/\/\*[\s\S]*?\*\//g, '')       /* fóra comentarios */
+    .split('}').map(r => r.trim()).filter(Boolean);
+  for (const regra of regras) {
+    const [selector, corpo = ''] = regra.split('{');
+    const sels = selector.split(',').map(s => s.trim());
+    for (const s of sels) {
+      if (s !== 'canvas') continue;
+      afirmar(!/width\s*:\s*100%/.test(corpo),
+        'hai unha regra `canvas` global que estira todos os canvas; ' +
+        'acóutaa a #cv ou ao contedor que corresponda');
+    }
+  }
+});
+
+proba('o retrato temporal do arquivo retírase mesmo se peta o debuxo', () => {
+  /* O removeChild estaba dentro do try, así que unha excepción en
+     drawPortrait deixaba o canvas pendurado do body para sempre. */
+  const diario = fs.readFileSync('C:/tuerca/i/js/14-diario.js', 'utf8');
+  const veces = (diario.match(/document\.body\.appendChild\(tmp\)/g) || []).length;
+  afirmar(veces > 0, 'cambiou o código do arquivo: revisa esta proba');
+  const enFinally = (diario.match(/finally\s*\{\s*tmp\.remove\(\)/g) || []).length;
+  afirmar(enFinally === veces,
+    `${veces} canvas temporais engádense ao body pero só ${enFinally} se retiran en finally`);
+});
+
 proba('o botón de voz segue o idioma nos seus tres estados', () => {
   const S = cargarXogo();
   const setLang = S.aval('setLang');

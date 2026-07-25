@@ -22,6 +22,9 @@
     --scan:.05;
   }
   *{box-sizing:border-box; margin:0; padding:0;}
+  /* Cinto e tirantes: se algún día o body non chega ao fondo da fiestra,
+     que o que asome sexa o negro da casa e non unha sorpresa. */
+  html{background:var(--crt);}
   body{
     background:var(--crt); color:var(--phos);
     font-family:var(--fnt-ui);
@@ -48,7 +51,12 @@
   h1{font-size:26px; margin:6px 0 2px; text-transform:uppercase; letter-spacing:3px; font-weight:600;}
   .sub{font-size:11px; color:var(--phos-dim); margin-bottom:10px;}
   #wrap{position:relative; flex:1 1 auto; min-width:320px; max-width:1280px;}
-  canvas{
+  /* (v0.70) SÓ o mapa de batalla, non `canvas` a secas.
+     Era un selector de tipo global: pillaba CALQUERA canvas do
+     documento e dáballe ancho 100%, fondo verde e bordo de fósforo.
+     Un canvas temporal de 100x120 que quedase solto no body
+     convertíase nunha franxa verde a todo o ancho da páxina. */
+  #cv{
     width:100%; display:block; background:var(--grass);
     border:2px solid var(--phos-dim); image-rendering:pixelated;
     cursor:crosshair;
