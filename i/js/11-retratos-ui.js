@@ -778,6 +778,10 @@ function loop(now){
   try{
     if(typeof luzComporFrame === 'function') luzComporFrame(g, frameTime / 1000);
   }catch(e){ console.error('[luz]', e); }
+  /* (v0.74) A cama de son mira o combate para agacharse cando hai leña. */
+  try{
+    if(typeof ambienteTick === 'function') ambienteTick(g);
+  }catch(e){ console.error('[ambiente]', e); }
   /* (v0.26) tinta do clima (baixo o minimapa, que segue lexible) */
   if(g.clima && g.clima.tint){
     ctx.save();

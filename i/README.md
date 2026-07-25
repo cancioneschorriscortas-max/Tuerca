@@ -31,6 +31,8 @@ tuerca/
 │   ├── 13-mundial.js       ← modo MUNDIAL (torneo, XI contra XI)
 │   ├── 14-diario.js        ← ARQUIVO: a crónica lexible no xogo
 │   ├── 15-luz.js           ← luz, po e viñeta (pasada de composición)
+│   ├── 16-estado.js        ← columna de estado e axuda do hangar
+│   ├── 17-ambiente.js      ← cama de son procedural (vento, motores)
 │   └── 99-boot.js          ← arranque que depende de módulos posteriores
 ├── voces/                  ← .ogg por idioma + manifest.json
 ├── tools/                  ← xerar o manifest e placeholders de voz
@@ -106,6 +108,23 @@ hai que tocala: o executable **devolve o control antes de escribir o PNG**
 (hai que agardar a que o ficheiro apareza e deixe de medrar, non a que o
 proceso remate), e sen `--user-data-dir` propio o encargo deléganse nunha
 instancia xa aberta e a sonda temporal bórrase antes de cargarse.
+
+## Ambiente sonoro (v0.74)
+
+ pon a capa que faltaba: ata agora TUERCA só soaba cando
+pasaba algo e entre medias había silencio. Procedural, sen un só ficheiro de
+audio, e todo colga de  — así que a tecla **M** apaga tamén isto.
+
+Dúas escenas: no **hangar** unha nave pechada (motores, ventilación, golpes de
+taller); en **batalla** campo aberto (vento e metal moi ao lonxe). Cámbianse
+soas co ecrán, desde o mesmo observador de .
+
+O **agachado reactivo** é o que fai que funcione: canto máis tiroteo hai, máis
+baixa a cama. Sen iso o ambiente pelexa cos disparos e non se entende nada. O
+nivel sae dos tracers vivos, que xa é o que mide o combate en curso.
+
+**Shift+A** acende e apaga (persistente). Vai con Shift porque  soa move a
+cámara. Axustable en vivo desde a consola: , .
 
 ## Probas
 
