@@ -68,3 +68,27 @@ Mundial (retransmisión, se algún día vai humana): `mun.saque` · `mun.gol` ·
 
 ## O que fará o xogo (wiring pendente, próxima sesión)
 `voz.js`: xestor de canle (unha voz á vez, prioridades GOL/mando > selección > cháchara, dedupe 6s, ducking da música) + ruta: frase con dono robot→robot = chío procedural; clave no manifesto na lingua activa = reprodución do ogg; resto = só texto. Toggle en opcións: VOZ: OFF / CHÍOS / CHÍOS+HUMANAS.
+
+## Estado e guión (v0.79)
+
+```
+node tools/voces.js              # cobertura: que se pide, que hai gravado, que ten texto
+node tools/voces.js --guion gl   # o que falta nesa lingua, coa frase e o nome de ficheiro
+```
+
+O informe cruza tres cousas que antes ninguén cruzaba: as claves que o xogo
+**pide** (`vozMando`/`vozComentarista`), as que teñen **gravación** (o manifesto) e
+as que teñen **texto** (o dicionario). Detecta tres fallos silenciosos:
+
+- **Orfas**: hai ficheiro, publícase, e o xogo non pide esa clave nunca.
+- **Manifesto roto**: promete un ficheiro que non está no disco.
+- **Sen texto**: sen gravación NIN texto, o chío sintetiza o nome interno da
+  clave (`op.inicio`) en vez dunha frase.
+
+**Claves con `{variables}`** (o marcador do Mundial, por exemplo) non se poden
+gravar tal cal: un clip fixo non pode dicir un resultado que cambia. Ou se
+gravan sen os números —o dato queda só na radio escrita— ou se deixan en chío.
+
+**Fluxo para engadir voz**: grava o `.ogg`, ponlle de nome a clave exacta,
+déixao en `voces/<lingua>/`, e executa `python tools/xerar_manifest.py`.
+Non hai que tocar código.

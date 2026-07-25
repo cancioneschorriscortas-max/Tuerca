@@ -60,6 +60,55 @@ for (const [k, m] of Object.entries(manifesto)) {
   }
 }
 
+/* ---------- Guión de gravación ----------
+   `node tools/voces.js --guion [gl|es|en]` imprime o que falta por gravar
+   nesa lingua, coa frase de referencia e o nome de ficheiro exacto. É o
+   que converte "hai que gravar voces" nunha tarefa de vinte minutos. */
+if (process.argv.includes('--guion')) {
+  const lingua = process.argv[process.argv.indexOf('--guion') + 1] || 'gl';
+  /* O texto de referencia sae do dicionario: é o que le o xogador en
+     pantalla, así que a voz e o texto contan o mesmo. */
+  const bloque = i18n.slice(i18n.indexOf(`  ${lingua}: {`));
+  const textoDe = (k) => {
+    const m = bloque.match(new RegExp(`['"]${k.replace('.', '\\.')}['"]\\s*:\\s*'([^']*)'`));
+    return m ? m[1] : null;
+  };
+  const faltan = [...pedidas.keys()].filter((k) => !(manifesto[k] && manifesto[k][lingua])).sort();
+
+  console.log(`\nTUERCA — guión de gravación · ${lingua.toUpperCase()}\n`);
+  console.log(`  ${faltan.length} clip(s) por gravar de ${pedidas.size} que o xogo pide.\n`);
+  console.log('  Formato: .ogg (Vorbis). Gárdaos en voces/' + lingua + '/ co nome exacto');
+  console.log('  e despois:  python tools/xerar_manifest.py\n');
+  /* A decoración da radio (o emoji e as comiñas angulares) é para a
+     pantalla, non para ler en alto. */
+  const limpar = (s) => s
+    .replace(/\\u([0-9a-f]{4})/gi, (_, c) => String.fromCharCode(parseInt(c, 16)))
+    .replace(/^[^\p{L}\p{N}«"]*/u, '').replace(/^«|»$/g, '').trim();
+
+  const conVariables = [];
+  faltan.forEach((k, i) => {
+    const t = textoDe(k);
+    console.log(`  ${String(i + 1).padStart(2)}. voces/${lingua}/${k}.ogg`);
+    if (!t) {
+      console.log('      \x1b[33m(sen texto no dicionario — escribe ti a frase)\x1b[0m');
+      return;
+    }
+    const limpo = limpar(t);
+    console.log(`      "${limpo}"`);
+    if (/\{[a-z]+\}/i.test(limpo)) {
+      conVariables.push(k);
+      console.log('      \x1b[33m^ leva variables: un clip fixo non pode dicir un marcador que cambia\x1b[0m');
+    }
+  });
+  if (conVariables.length) {
+    console.log(`\n  ${conVariables.length} das de arriba levan {variables}. Ou se gravan SEN os`);
+    console.log('  números (e o dato queda só na radio escrita), ou se deixan en chío.');
+  }
+  console.log('\n  Consello do README: son avisos do MANDO ao comandante.');
+  console.log('  Ton seco, curto, e con paso banda 250-3400 Hz queda a radio militar.\n');
+  process.exit(0);
+}
+
 console.log('\nTUERCA — cobertura de voces\n');
 console.log('  clave                 texto   ' + LINGUAS.map((l) => l.padEnd(4)).join('') + ' onde');
 console.log('  ' + '-'.repeat(74));
