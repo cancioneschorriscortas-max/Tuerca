@@ -89,6 +89,40 @@ proba('apagada, a composición non fai nada', () => {
   LUZ.activa = true;
 });
 
+proba('as tropas levan luz propia, e apágase co seu regulador', () => {
+  const S = cargarXogo();
+  const LUZ = S.aval('LUZ');
+  const luzFontes = S.aval('luzFontes');
+  const g = novaBatalla(S, { op: 2 });
+  avanzar(S, g, 900);
+
+  const vivas = g.units.filter((u) => !u.dead && !u.inside).length;
+  afirmar(vivas > 0, 'non quedou ningunha unidade viva');
+
+  const antes = LUZ.tropas;
+  LUZ.tropas = 0.55;
+  const conLuz = luzFontes(g).filter((f) => f.senBloom).length;
+  afirmar(conLuz >= vivas, `esperábase unha luz por unidade viva (${vivas}), houbo ${conLuz}`);
+
+  LUZ.tropas = 0;
+  afirmar(luzFontes(g).filter((f) => f.senBloom).length === 0,
+    'con LUZ.tropas = 0 non debería quedar ningunha luz de tropa');
+  LUZ.tropas = antes;
+});
+
+proba('a luz das tropas non fai bloom (senón parecerían farois)', () => {
+  const S = cargarXogo();
+  const luzFontes = S.aval('luzFontes');
+  const g = novaBatalla(S, { op: 2 });
+  avanzar(S, g, 900);
+  for (const f of luzFontes(g)) {
+    /* Os focos de verdade (portas, sectores, disparos, chispas) SI
+       derraman; os das tropas non. Aquí só se comproba que a marca
+       existe e é coherente: nada sen marcar pode ser branco cálido. */
+    if (f.c === '#ffe6c0') afirmar(f.senBloom === true, 'unha luz de tropa quedou sen marcar');
+  }
+});
+
 proba('os focos saen dentro do mundo e con alfa válida', () => {
   const S = cargarXogo();
   const luzFontes = S.aval('luzFontes');

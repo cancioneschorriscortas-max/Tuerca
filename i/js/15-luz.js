@@ -21,6 +21,7 @@ const LUZ = {
   activa: (function(){ try{ return localStorage.getItem('tuerca_luz') !== '0'; }catch(e){ return true; } })(),
   horaForzada: null,   /* null = segue o reloxo do mundo; 9..19 para probar */
   forza: 1,            /* 0 = sen efecto, 1 = ambiente pleno */
+  tropas: 0.55,        /* luz propia das unidades; 0 = apágaas co resto */
   bloom: true,
   po: true,
   vineta: true,
@@ -32,12 +33,12 @@ const LUZ = {
    (o mesmo reloxo que pinta o HUD), así que a batalla empeza fresca,
    pasa por un mediodía case neutro e acaba en solpor ámbar. */
 const LUZ_RAMPA = [
-  { h: 9,  c: [0x86, 0x90, 0xa8] },   /* mañá: azul frío, sol baixo */
-  { h: 11, c: [0xbc, 0xbc, 0xb8] },
-  { h: 13, c: [0xd6, 0xd2, 0xc6] },   /* mediodía: case neutro */
-  { h: 16, c: [0xc8, 0xae, 0x90] },   /* tarde: quéntase */
-  { h: 18, c: [0x8e, 0x66, 0x50] },   /* solpor: ámbar forte */
-  { h: 19, c: [0x44, 0x3e, 0x62] },   /* lusco-fusco: azul profundo */
+  { h: 9,  c: [0xa6, 0xae, 0xc2] },   /* mañá: azul frío, sol baixo */
+  { h: 11, c: [0xcc, 0xcc, 0xc6] },
+  { h: 13, c: [0xe0, 0xdc, 0xd0] },   /* mediodía: case neutro */
+  { h: 16, c: [0xd2, 0xba, 0x9c] },   /* tarde: quéntase */
+  { h: 18, c: [0x9c, 0x76, 0x5e] },   /* solpor: ámbar forte */
+  { h: 19, c: [0x56, 0x50, 0x78] },   /* lusco-fusco: azul profundo */
 ];
 
 function luzHora(g){
@@ -90,6 +91,26 @@ function luzFontes(g){
   if(g.tracers) for(const t of g.tracers){
     F.push({x: t.x1, y: t.y1, r: 40, c: t.team === 0 ? '#cfe0ff' : '#ffd0b0',
             a: 0.5 * Math.max(0, t.t / 7)});
+  }
+  /* LUZ PROPIA DAS TROPAS.
+     Sen isto, o multiply apaga por igual chan e unidades — pero as
+     unidades son pequenas, detalladas e é o que hai que ler. Cada unha
+     leva un pouso de luz cálida e neutra: non brilla, só non se afoga.
+     Neutra a propósito: tinguila por bando empeoraría a lexibilidade
+     de quen non distingue azul de vermello. Escala co zoom porque de
+     preto convén un pouso máis amplo. */
+  if(LUZ.tropas > 0){
+    for(const u of g.units){
+      if(u.dead || u.inside) continue;
+      F.push({x: u.x, y: u.y - 2, r: u.heavy ? 30 : 24, c: '#ffe6c0',
+              a: 0.42 * LUZ.tropas, senBloom: true});
+    }
+    /* Os vehículos e torretas ocupados tamén: son unidades de feito. */
+    const tripulados = [].concat(g.vehicles || [], g.turrets || []);
+    for(const s of tripulados){
+      if(!s.occupant || s.destroyed) continue;
+      F.push({x: s.x, y: s.y, r: 34, c: '#ffe6c0', a: 0.38 * LUZ.tropas, senBloom: true});
+    }
   }
   /* Chispas e cascallos ardendo (as partículas do sistema de FX) */
   if(typeof _fx !== 'undefined') for(const p of _fx){
@@ -172,7 +193,8 @@ function luzComporFrame(g, dt){
   const z = (typeof camZoom === 'number' ? camZoom : 1);
   const cx = (typeof cam === 'object' && cam) ? cam.x : 0;
   const cy = (typeof cam === 'object' && cam) ? cam.y : 0;
-  const aPantalla = (f) => ({ x: (f.x - cx) * z, y: (f.y - cy) * z, r: f.r * z, c: f.c, a: f.a });
+  const aPantalla = (f) => ({ x: (f.x - cx) * z, y: (f.y - cy) * z, r: f.r * z,
+                              c: f.c, a: f.a, senBloom: f.senBloom });
 
   const fontes = luzFontes(g).map(aPantalla).filter(f =>
     f.x > -f.r && f.x < w + f.r && f.y > -f.r && f.y < h + f.r && f.a > 0.01);
@@ -204,6 +226,9 @@ function luzComporFrame(g, dt){
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     for(const f of fontes){
+      /* A luz propia das tropas non derrama: só evita que se afoguen.
+         Se fixese halo, as unidades parecerían farois andando. */
+      if(f.senBloom) continue;
       const grd = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, f.r * 1.5);
       grd.addColorStop(0, f.c);
       grd.addColorStop(1, 'rgba(0,0,0,0)');
