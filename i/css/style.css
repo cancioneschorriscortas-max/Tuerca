@@ -360,3 +360,28 @@
   /* O lenzo do retrato é 100x120 (o tamaño para o que está feito
      drawPortrait); aquí redúcese sen perder o pixelado. */
   #estReconRetrato{width:50px; height:60px; image-rendering:pixelated;}
+
+  /* ====== (v0.72) AXUDA DO HANGAR ======
+     Era un parágrafo de catro liñas monoespazadas. Agora: teclas nunha
+     columna e obxectivo noutra, para que se poida ler dun golpe. */
+  #hgHelp{margin-top:18px;}
+  .ax-despregue{
+    font-family:var(--fnt-ui); font-size:13px; letter-spacing:1px;
+    color:var(--phos); text-transform:uppercase; margin-bottom:12px;
+  }
+  .ax-cols{display:flex; gap:26px; flex-wrap:wrap; align-items:flex-start;}
+  .ax-cols > section{flex:1 1 260px; min-width:0;}
+  .ax-cols h4{
+    font-size:10px; letter-spacing:2.5px; text-transform:uppercase;
+    color:#7c7462; font-weight:600;
+    border-bottom:1px solid rgba(255,214,140,.12);
+    padding-bottom:5px; margin-bottom:9px;
+  }
+  .ax-teclas > div{display:flex; gap:10px; align-items:baseline; padding:2.5px 0;}
+  .ax-teclas dt{
+    flex:0 0 84px; font-family:var(--fnt-dato); font-size:10px;
+    color:var(--phos); text-align:right;
+    border-right:1px solid rgba(255,214,140,.16); padding-right:9px;
+  }
+  .ax-teclas dd{font-family:var(--fnt-dato); font-size:10.5px; color:#8d8574;}
+  .ax-obx{font-family:var(--fnt-dato); font-size:10.5px; line-height:1.6; color:#8d8574;}

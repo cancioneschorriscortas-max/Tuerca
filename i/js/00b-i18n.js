@@ -33,6 +33,15 @@ const LANGS = {
     'est.optFolga': 'Incidencia laboral: {n} unidade(s) en folga. Colaboración obrigatoria.',
     'est.optRecon': '{n} unidade(s) reconstruída(s) en servizo. Rendemento dentro do previsto.',
     'est.optNominal': 'Produtividade nominal. Sen incidencias que comunicar.',
+    /* (v0.72) Axuda do hangar, en bloque e non nun muro de texto */
+    'ax.controis': 'Controis', 'ax.obxectivo': 'Obxectivo',
+    'ax.despregue': 'Selecciona ata 3 veteranos para despregar.',
+    'ax.kArrastrar': 'Arrastrar', 'ax.kClic': 'Clic', 'ax.kDobre': 'Dobre clic', 'ax.kRoda': 'Roda',
+    'ax.aSeleccionar': 'Seleccionar unidades', 'ax.aMover': 'Mover ou atacar',
+    'ax.aMesmoTipo': 'Todas as do mesmo tipo preto', 'ax.aProducir': 'Producir unidades',
+    'ax.aFormacion': 'Formación', 'ax.aSon': 'Silenciar o son', 'ax.aSair': 'Saír de torreta ou vehículo',
+    'ax.aLuz': 'Acender ou apagar a luz', 'ax.aHora': 'Hora do día', 'ax.aZoom': 'Achegar o mapa',
+    'ax.obxTexto': 'Destruír o HQ inimigo. Capturar sectores acelera a túa produción, e o radar central anuncia os inimigos recorrentes ao detectalos.',
     /* (v0.68) Estes tres viñan hardcoded no HTML e nunca se traduciran. */
     'btn.mundial': 'Mundial',
     'btn.arquivo': 'Arquivo',
@@ -611,6 +620,14 @@ const LANGS = {
     'est.optFolga': 'Incidencia laboral: {n} unidad(es) en huelga. Colaboración obligatoria.',
     'est.optRecon': '{n} unidad(es) reconstruida(s) en servicio. Rendimiento dentro de lo previsto.',
     'est.optNominal': 'Productividad nominal. Sin incidencias que comunicar.',
+    'ax.controis': 'Controles', 'ax.obxectivo': 'Objetivo',
+    'ax.despregue': 'Selecciona hasta 3 veteranos para desplegar.',
+    'ax.kArrastrar': 'Arrastrar', 'ax.kClic': 'Clic', 'ax.kDobre': 'Doble clic', 'ax.kRoda': 'Rueda',
+    'ax.aSeleccionar': 'Seleccionar unidades', 'ax.aMover': 'Mover o atacar',
+    'ax.aMesmoTipo': 'Todas las del mismo tipo cerca', 'ax.aProducir': 'Producir unidades',
+    'ax.aFormacion': 'Formación', 'ax.aSon': 'Silenciar el sonido', 'ax.aSair': 'Salir de torreta o vehículo',
+    'ax.aLuz': 'Encender o apagar la luz', 'ax.aHora': 'Hora del día', 'ax.aZoom': 'Acercar el mapa',
+    'ax.obxTexto': 'Destruir el HQ enemigo. Capturar sectores acelera tu producción, y el radar central anuncia a los enemigos recurrentes al detectarlos.',
     'btn.mundial': 'Mundial',
     'btn.arquivo': 'Archivo',
     'voz.off': 'Voz: apagada', 'voz.chios': 'Voz: pitidos', 'voz.toda': 'Voz: completa',
@@ -1188,6 +1205,14 @@ const LANGS = {
     'est.optFolga': 'Labour incident: {n} unit(s) on strike. Collaboration is mandatory.',
     'est.optRecon': '{n} rebuilt unit(s) in service. Performance within forecast.',
     'est.optNominal': 'Nominal productivity. No incidents to report.',
+    'ax.controis': 'Controls', 'ax.obxectivo': 'Objective',
+    'ax.despregue': 'Select up to 3 veterans to deploy.',
+    'ax.kArrastrar': 'Drag', 'ax.kClic': 'Click', 'ax.kDobre': 'Double click', 'ax.kRoda': 'Wheel',
+    'ax.aSeleccionar': 'Select units', 'ax.aMover': 'Move or attack',
+    'ax.aMesmoTipo': 'All nearby of the same type', 'ax.aProducir': 'Produce units',
+    'ax.aFormacion': 'Formation', 'ax.aSon': 'Mute sound', 'ax.aSair': 'Exit turret or vehicle',
+    'ax.aLuz': 'Toggle lighting', 'ax.aHora': 'Time of day', 'ax.aZoom': 'Zoom the map',
+    'ax.obxTexto': 'Destroy the enemy HQ. Capturing sectors speeds up your production, and the central radar announces recurring enemies on detection.',
     'btn.mundial': 'World cup',
     'btn.arquivo': 'Archive',
     'voz.off': 'Voice: off', 'voz.chios': 'Voice: chirps', 'voz.toda': 'Voice: full',
@@ -1811,8 +1836,10 @@ function aplicarIdioma(){
   }
   const rc = document.getElementById('radioCanal');
   if(rc) rc.textContent = '— ' + TXT('r.canal') + ' —';
-  const hh = document.getElementById('hgHelp');
-  if(hh) hh.innerHTML = TXT('hg.help');
+  /* (v0.72) A axuda constrúese por bloques en 16-estado.js; a clave
+     antiga hg.help queda sen usar pero non se borra: os saves vellos
+     non a tocan e así non se rompe nada se alguén a referencia. */
+  if(typeof axudaRender === 'function'){ try{ axudaRender(); }catch(e){ console.error('[axuda]', e); } }
   const bl2 = document.getElementById('btnLado');
   if(bl2) bl2.textContent = TXT(window._lado ? 'hg.faccionVermella' : 'hg.faccionAzul');
   /* (v0.46 FIX) DATA decláirase con `let` nun módulo posterior; `typeof DATA`

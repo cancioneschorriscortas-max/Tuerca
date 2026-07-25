@@ -13,6 +13,48 @@
    e vai aparte.
    ============================================================ */
 
+/* ---------- Axuda do hangar ----------
+   Era un parágrafo monoespazado de catro liñas que aínda anunciaba
+   "NOVO en v0.3" — cambios de hai setenta versións. E deixaba fóra
+   teclas que si existen: E para saír dun vehículo, e L/K da capa de
+   luz, que non estaban documentadas en ningures. */
+const AXUDA_TECLAS = [
+  ['ax.kArrastrar', 'ax.aSeleccionar'],
+  ['ax.kClic',      'ax.aMover'],
+  ['ax.kDobre',     'ax.aMesmoTipo'],
+  ['1 – 8',         'ax.aProducir'],
+  ['F',             'ax.aFormacion'],
+  ['E',             'ax.aSair'],
+  ['M',             'ax.aSon'],
+  ['L',             'ax.aLuz'],
+  ['K',             'ax.aHora'],
+  ['ax.kRoda',      'ax.aZoom'],
+];
+
+/* Se a entrada leva punto é unha clave do dicionario; se non, é a tecla
+   literal (F, M, 1-8...), que non se traduce. */
+const _axTxt = (s) => (s.indexOf('.') > 0 ? TXT(s) : s);
+
+function axudaRender(){
+  const el = document.getElementById('hgHelp');
+  if(!el) return;
+  el.innerHTML = `
+    <p class="ax-despregue">${TXT('ax.despregue')}</p>
+    <div class="ax-cols">
+      <section>
+        <h4>${TXT('ax.controis')}</h4>
+        <dl class="ax-teclas">
+          ${AXUDA_TECLAS.map(([k, a]) =>
+            `<div><dt>${_axTxt(k)}</dt><dd>${TXT(a)}</dd></div>`).join('')}
+        </dl>
+      </section>
+      <section>
+        <h4>${TXT('ax.obxectivo')}</h4>
+        <p class="ax-obx">${TXT('ax.obxTexto')}</p>
+      </section>
+    </div>`;
+}
+
 function estadoContadores(){
   const u = (window.DATA && DATA.units) || [];
   return {
