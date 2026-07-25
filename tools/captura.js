@@ -17,6 +17,7 @@
      --hora N      forza a hora do día (9..19) na capa de luz
      --pasos N     pasos de simulación antes de debuxar (defecto 1800)
      --sen-luz     apaga a capa de luz e as sombras (para o A/B)
+     --lingua X    gl | es | en, para revisar as traducións
      --saida RUTA  onde gardar (defecto: capturas/<modo>.png)
      --ancho N --alto N   tamaño da ventá
 
@@ -43,6 +44,7 @@ const pasos = parseInt(op('pasos', '1800'), 10);
 const ancho = parseInt(op('ancho', '1280'), 10);
 const alto = parseInt(op('alto', modo === 'batalla' ? '900' : '760'), 10);
 const senLuz = ten('sen-luz');
+const lingua = op('lingua', null);   /* gl | es | en — para revisar traducións */
 const saida = path.resolve(op('saida', path.join(RAIZ, 'capturas', modo + '.png')));
 
 /* ---------- Navegador ---------- */
@@ -122,6 +124,7 @@ window.addEventListener('load', function(){
       DATA.fallen = [TXT('deb.fallenLine', {id:'R-08', n:'MARTELO', ops:9, k:14,
         l:'a Ponte', op:13, reason: TXT('deb.restosPerdidos')})];
       DATA.reconstruccion = {rec: DATA.units[0], pezas: [], encargadaOp: 13, sinergia: null};
+      ${lingua ? "setLang('" + lingua + "', {persist:false});" : ""}
       estadoRender();
     }catch(e){
       document.body.innerHTML = '<pre style="color:#ff6a5a;font:14px monospace;padding:20px">'

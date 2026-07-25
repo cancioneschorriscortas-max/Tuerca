@@ -92,6 +92,66 @@ proba('non quedan estilos de cor en liña nos botóns do hangar', () => {
   }
 });
 
+/* ---------- Idioma ---------- */
+
+proba('os tres dicionarios teñen exactamente as mesmas claves', () => {
+  const S = cargarXogo();
+  const L = S.aval('LANGS');
+  const gl = Object.keys(L.gl);
+  for (const lang of ['es', 'en']) {
+    const faltan = gl.filter((k) => !(k in L[lang]));
+    const sobran = Object.keys(L[lang]).filter((k) => !(k in L.gl));
+    afirmar(!faltan.length, `[${lang}] faltan ${faltan.length} claves: ${faltan.slice(0, 8).join(', ')}`);
+    afirmar(!sobran.length, `[${lang}] sobran ${sobran.length} claves: ${sobran.slice(0, 8).join(', ')}`);
+  }
+});
+
+proba('non hai entradas inglesas sen traducir', () => {
+  /* Ter a clave non abonda: se o valor inglés é idéntico ao galego, o
+     xogador ve galego aínda que o dicionario pareza completo. Estas
+     coinciden a propósito (siglas, formatos, palabras iguais). */
+  const IGUAIS_A_PROPOSITO = new Set([
+    'mm.rival', 'hud.radarNeutral', 'mun.fase.semi', 'trait.PROTECTOR',
+    'deb.skillUp', 'bio.base', 'ct.conf',
+  ]);
+  const S = cargarXogo();
+  const L = S.aval('LANGS');
+  const sospeitosas = Object.keys(L.gl).filter((k) => {
+    if (IGUAIS_A_PROPOSITO.has(k)) return false;
+    const a = L.gl[k], b = L.en[k];
+    return typeof a === 'string' && typeof b === 'string' &&
+           a === b && a.length > 3 && /[a-záéíóúñ]/i.test(a);
+  });
+  afirmar(!sospeitosas.length,
+    `${sospeitosas.length} entrada(s) inglesas idénticas ao galego: ` +
+    sospeitosas.slice(0, 8).map((k) => `${k}=${JSON.stringify(L.en[k])}`).join(', '));
+});
+
+proba('os rótulos de grupo non levan texto no markup', () => {
+  /* Metéranse literais na v0.68 e quedaron sen traducir ata a v0.73. */
+  const re = /<span class="rotulo"([^>]*)>([\s\S]*?)<\/span>/g;
+  let m, n = 0;
+  while ((m = re.exec(HTML))) {
+    n++;
+    const [, attrs, dentro] = m;
+    const visible = dentro.replace(/<!--[\s\S]*?-->/g, '').trim();
+    afirmar(!visible, `un rótulo leva texto no HTML: ${JSON.stringify(visible)}`);
+    afirmar(/data-rot=/.test(attrs), 'un rótulo non declara a súa clave data-rot');
+  }
+  afirmar(n > 0, 'non se atopou ningún rótulo: cambiou o markup?');
+});
+
+proba('cambiar de idioma repinta o roster', () => {
+  /* O roster non é chrome: constrúese como HTML dentro de showHangar(),
+     e aplicarIdioma() traballa por ids, así que non o toca. Sen esta
+     chamada, a lista queda conxelada no idioma no que se pintou. */
+  const i18n = fs.readFileSync('C:/tuerca/i/js/00b-i18n.js', 'utf8');
+  const corpo = i18n.slice(i18n.indexOf('function setLang'));
+  const fin = corpo.indexOf('\n}');
+  afirmar(/showHangar\s*\(\)/.test(corpo.slice(0, fin)),
+    'setLang() xa non repinta o hangar: o roster quedará no idioma anterior');
+});
+
 proba('ningún selector global de tipo estira todos os canvas', () => {
   /* Había unha regra `canvas{width:100%; background:verde; border:...}`
      pensada para o mapa de batalla. Ao ser un selector de TIPO collía

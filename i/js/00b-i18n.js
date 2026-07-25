@@ -35,6 +35,9 @@ const LANGS = {
     'est.optNominal': 'Produtividade nominal. Sen incidencias que comunicar.',
     /* (v0.72) Axuda do hangar, en bloque e non nun muro de texto */
     'ax.controis': 'Controis', 'ax.obxectivo': 'Obxectivo',
+    'rot.operacions': 'Operacións', 'rot.operacionsSub': 'Selecciona un modo',
+    'rot.escuadron': 'Escuadrón', 'rot.escuadronSub': 'Xestión e preparación',
+    'rot.rexistro': 'Rexistro', 'rot.rexistroSub': 'Arquivos e historial',
     'ax.despregue': 'Selecciona ata 3 veteranos para despregar.',
     'ax.kArrastrar': 'Arrastrar', 'ax.kClic': 'Clic', 'ax.kDobre': 'Dobre clic', 'ax.kRoda': 'Roda',
     'ax.aSeleccionar': 'Seleccionar unidades', 'ax.aMover': 'Mover ou atacar',
@@ -621,6 +624,9 @@ const LANGS = {
     'est.optRecon': '{n} unidad(es) reconstruida(s) en servicio. Rendimiento dentro de lo previsto.',
     'est.optNominal': 'Productividad nominal. Sin incidencias que comunicar.',
     'ax.controis': 'Controles', 'ax.obxectivo': 'Objetivo',
+    'rot.operacions': 'Operaciones', 'rot.operacionsSub': 'Selecciona un modo',
+    'rot.escuadron': 'Escuadrón', 'rot.escuadronSub': 'Gestión y preparación',
+    'rot.rexistro': 'Registro', 'rot.rexistroSub': 'Archivos e historial',
     'ax.despregue': 'Selecciona hasta 3 veteranos para desplegar.',
     'ax.kArrastrar': 'Arrastrar', 'ax.kClic': 'Clic', 'ax.kDobre': 'Doble clic', 'ax.kRoda': 'Rueda',
     'ax.aSeleccionar': 'Seleccionar unidades', 'ax.aMover': 'Mover o atacar',
@@ -1206,6 +1212,9 @@ const LANGS = {
     'est.optRecon': '{n} rebuilt unit(s) in service. Performance within forecast.',
     'est.optNominal': 'Nominal productivity. No incidents to report.',
     'ax.controis': 'Controls', 'ax.obxectivo': 'Objective',
+    'rot.operacions': 'Operations', 'rot.operacionsSub': 'Select a mode',
+    'rot.escuadron': 'Squad', 'rot.escuadronSub': 'Management and preparation',
+    'rot.rexistro': 'Registry', 'rot.rexistroSub': 'Files and history',
     'ax.despregue': 'Select up to 3 veterans to deploy.',
     'ax.kArrastrar': 'Drag', 'ax.kClic': 'Click', 'ax.kDobre': 'Double click', 'ax.kRoda': 'Wheel',
     'ax.aSeleccionar': 'Select units', 'ax.aMover': 'Move or attack',
@@ -1836,6 +1845,13 @@ function aplicarIdioma(){
   }
   const rc = document.getElementById('radioCanal');
   if(rc) rc.textContent = '— ' + TXT('r.canal') + ' —';
+  /* (v0.73) Rótulos de grupo: título + función. Levaban texto literal no
+     HTML desde a v0.68 e non se traducían. Non poden ir por I18N_CHROME
+     porque teñen dous anacos con estilo distinto. */
+  for(const r of document.querySelectorAll('[data-rot]')){
+    const k = r.dataset.rot;
+    r.innerHTML = TXT(k) + ' <em>' + TXT(k + 'Sub') + '</em>';
+  }
   /* (v0.72) A axuda constrúese por bloques en 16-estado.js; a clave
      antiga hg.help queda sen usar pero non se borra: os saves vellos
      non a tocan e así non se rompe nada se alguén a referencia. */
@@ -1871,6 +1887,16 @@ function setLang(l, opts){
     try{ localStorage.setItem('tuerca_lang', l); }catch(e){}
   }
   aplicarIdioma();
+  /* (v0.73) O ROSTER NON É CHROME: constrúese como HTML dentro de
+     showHangar(), así que aplicarIdioma() —que traballa por ids— non o
+     toca. Quedaba conxelado no idioma no que se pintara: cambiabas a
+     inglés e a lista seguía en galego. Hai que refacelo.
+     Só se está á vista: en batalla ou no PvP (que forza inglés nos dous
+     lados) non hai roster que repintar. */
+  const hg = document.getElementById('hangar');
+  if(hg && hg.style.display !== 'none' && typeof showHangar === 'function'){
+    try{ showHangar(); }catch(e){ console.error('[idioma roster]', e); }
+  }
 }
 /* selector: cicla gl → es → en */
 (function(){
