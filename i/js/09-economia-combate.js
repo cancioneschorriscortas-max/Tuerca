@@ -1441,7 +1441,7 @@ function tickUnits(g){
   /* (v0.26.1) Aviso didáctico: o radar é o detector de misións */
   if(!g._radarHint && g.modo !== 'pvp' && g.t > 1500 && DATA.opCount >= 1 && g.radar && g.radar.owner !== PT){
     g._radarHint = true;
-    hqSay(TXT('hq.radarHint'));
+    hqSay(TXT('hq.radarHint'), 0, 'hq.radarHint');
   }
   /* (v0.26) anuncio do clima ao empezar */
   if(!g._climaAnunciado && g.t > 90){
@@ -1476,14 +1476,14 @@ function tickUnits(g){
        && !g.sectors.some(s => s.owner === ET)){
       g._colapso = g.t;
       g.prod[ET] = null;   /* a fábrica morre */
-      hqSay(TXT('hq.colapso'));
+      hqSay(TXT('hq.colapso'), 0, 'hq.colapso');
       setTimeout(() => voltSay('grumble'), 2500);
     }
     if(g._colapso){
       const restante = 5400 - (g.t - g._colapso);
-      if(restante <= 3600 && !g._colAviso60){ g._colAviso60 = true; hqSay(TXT('hq.peche60')); }
-      if(restante <= 1800 && !g._colAviso30){ g._colAviso30 = true; hqSay(TXT('hq.peche30')); }
-      if(restante <= 600 && !g._colAviso10){ g._colAviso10 = true; hqSay(TXT('hq.peche10')); }
+      if(restante <= 3600 && !g._colAviso60){ g._colAviso60 = true; hqSay(TXT('hq.peche60'), 0, 'hq.peche60'); }
+      if(restante <= 1800 && !g._colAviso30){ g._colAviso30 = true; hqSay(TXT('hq.peche30'), 0, 'hq.peche30'); }
+      if(restante <= 600 && !g._colAviso10){ g._colAviso10 = true; hqSay(TXT('hq.peche10'), 0, 'hq.peche10'); }
       if(restante <= 0){
         radio(TXT('r.voltTornillos'), '#ff7a5a');
         sfxT('voice_blip', 250, 'VOLT');
@@ -1506,7 +1506,7 @@ function tickUnits(g){
     } else if(vivos2 === 0){
       if(g._wave >= 5){
         radio('▣ ÓPTIMA: ' + TXT('optima.crisolVitoria'), '#e8c060');
-        hqSay(TXT('hq.crisolVitoria'));
+        hqSay(TXT('hq.crisolVitoria'), 0, 'hq.crisolVitoria');
         g.hq[ET].hp = 0;
       } else if(g.t - g._waveClearT > 700){
         g._wave++;

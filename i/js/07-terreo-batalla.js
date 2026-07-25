@@ -735,7 +735,7 @@ function newBattle(deployed){
       radio('▣ ÓPTIMA: ' + TXT('optima.crisolBenvida'), '#e8c060');
       sfxT('voice_blip', 200, 'OPTIMA');
     }, 1200);
-    setTimeout(() => hqSay(TXT('hq.crisolInicio')), 3600);
+    setTimeout(() => hqSay(TXT('hq.crisolInicio'), 0, 'hq.crisolInicio'), 3600);
   }
   return g;
 }

@@ -75,7 +75,7 @@ function tickSubquests(g){
         desc: TXT('sq.tecDesc'),
         progress: 0, progressMax: 180,
       });
-      hqSay(TXT('hq.tecnoloxia'));
+      hqSay(TXT('hq.tecnoloxia'), 0, 'hq.tecnoloxia');
     }
   }
 
@@ -104,7 +104,7 @@ function tickSubquests(g){
           desc: TXT('sq.muroDesc'),
           bounty: peza ? 0 : 6,
         });
-        hqSay(TXT('hq.muroRestos'));
+        hqSay(TXT('hq.muroRestos'), 0, 'hq.muroRestos');
       }
     }
   }
@@ -126,7 +126,7 @@ function tickSubquests(g){
         else if(!(g.pezasRecuperadas || []).includes(q.pezaId)){
           /* nin portador nin drop nin recuperada → oxidou/perdida */
           q.failed = true; q._doneT = g.t;
-          hqSay(TXT('hq.sinalPerdida'));
+          hqSay(TXT('hq.sinalPerdida'), 0, 'hq.sinalPerdida');
         }
       }
       if((g.pezasRecuperadas || []).includes(q.pezaId)){
@@ -159,7 +159,7 @@ function tickSubquests(g){
           completarSubquest(g, q, quen);
         } else if(q._drop.collected && q._drop.timer <= 0){
           q.failed = true; q._doneT = g.t;
-          hqSay(TXT('hq.oxidados'));
+          hqSay(TXT('hq.oxidados'), 0, 'hq.oxidados');
         }
       }
     }
@@ -212,10 +212,16 @@ function completarSubquest(g, q, unidade){
    datos, prioridades, silencio. Sen retranca (iso é de ÓPTIMA),
    sen barro (iso é das unidades).
    ============================================================ */
-function hqSay(text, delayMs = 0){
+/* (v0.80) `clave` é a clave i18n da frase, e serve para buscar gravación
+   no manifesto de voces. Sen ela queda o blip xenérico de sempre; con
+   ela, o HQ fala — humano se hai .ogg, chío se non.
+   Vai de terceiro parámetro para non romper as chamadas que xa pasaban
+   delayMs. */
+function hqSay(text, delayMs = 0, clave = null){
   const emit = () => {
     radio(`HQ: ${text}`, '#8aa0b8');
-    sfxT('voice_blip', 200, 'HQ');
+    if(clave && typeof vozMando === 'function') vozMando(clave, text);
+    else sfxT('voice_blip', 200, 'HQ');
   };
   if(delayMs > 0) setTimeout(emit, delayMs);
   else emit();
@@ -336,7 +342,7 @@ function avisoEscudo(g, hqIdx, atacanteTeam){
   if(atacanteTeam !== 0) return;
   if(!g._escudoAvisado){
     g._escudoAvisado = true;
-    hqSay(TXT('hq.escudo'));
+    hqSay(TXT('hq.escudo'), 0, 'hq.escudo');
   }
 }
 
@@ -380,7 +386,7 @@ function spawnGreys(g){
     g.units.push(u);
     orderMove(u, W/2 + (rnd()*200-100), H/2 + (rnd()*160-80));
   }
-  hqSay(TXT('hq.grises'));
+  hqSay(TXT('hq.grises'), 0, 'hq.grises');
   sfx('radio_static');
   setTimeout(() => {
     const _rq = REQUISAS_OPTIMA_ML[I18N.lang] || REQUISAS_OPTIMA_ML.es;
@@ -408,7 +414,7 @@ function tickHQ(g){
   /* Produción baixo mínimos */
   if(!g._hq.prodLow && g._hq.peak >= 5 && vivos.length < g._hq.peak * 0.4){
     g._hq.prodLow = true;
-    hqSay(TXT('hq.prodBaixa'));
+    hqSay(TXT('hq.prodBaixa'), 0, 'hq.prodBaixa');
   }
 
   /* Sectores: superioridade / colapso */
@@ -416,26 +422,26 @@ function tickHQ(g){
     const meus = g.sectors.filter(s => s.owner === PT).length;
     if(!g._hq.supIndustrial && meus === g.sectors.length){
       g._hq.supIndustrial = true;
-      hqSay(TXT('hq.superioridade'));
+      hqSay(TXT('hq.superioridade'), 0, 'hq.superioridade');
     }
     if(!g._hq.redPerdida && g.sectors.every(s => s.owner === ET)){
       g._hq.redPerdida = true;
-      hqSay(TXT('hq.sectoresPerdidos'));
+      hqSay(TXT('hq.sectoresPerdidos'), 0, 'hq.sectoresPerdidos');
     }
   }
 
   /* Integridade do HQ */
   if(!g._hq.dano50 && g.hq[PT].hp < g.hq[PT].max * 0.5){
     g._hq.dano50 = true;
-    hqSay(TXT('hq.hq50'));
+    hqSay(TXT('hq.hq50'), 0, 'hq.hq50');
   }
 
   /* Radar: enlace gañado/perdido */
   if(g.radar){
     if(g._hq.radarPrev === undefined) g._hq.radarPrev = g.radar.owner;
     if(g.radar.owner !== g._hq.radarPrev){
-      if(g.radar.owner === PT) hqSay(TXT('hq.radarOn'));
-      else if(g._hq.radarPrev === 0) hqSay(TXT('hq.radarOff'));
+      if(g.radar.owner === PT) hqSay(TXT('hq.radarOn'), 0, 'hq.radarOn');
+      else if(g._hq.radarPrev === 0) hqSay(TXT('hq.radarOff'), 0, 'hq.radarOff');
       g._hq.radarPrev = g.radar.owner;
     }
   }

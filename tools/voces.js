@@ -22,7 +22,8 @@ const JS = path.join(RAIZ, 'js');
 const pedidas = new Map();   /* clave -> [ficheiro:liña] */
 for (const f of fs.readdirSync(JS).filter((x) => x.endsWith('.js'))) {
   fs.readFileSync(path.join(JS, f), 'utf8').split('\n').forEach((l, i) => {
-    if (!/voz(Mando|Comentarista)\s*\(/.test(l)) return;
+    /* hqSay(TXT(K), 0, K) tamén pide voz desde a v0.80. */
+    if (!/voz(Mando|Comentarista)\s*\(|hqSay\s*\(/.test(l)) return;
     /* Colle todas as cadeas con forma de clave da liña: así entran tamén
        os ternarios, tipo vozMando(gañou ? 'op.vitoria' : 'op.derrota'). */
     for (const m of l.matchAll(/[`'"]([a-z]+\.[A-Za-z0-9_]+)[`'"]/g)) {
@@ -46,6 +47,8 @@ const temTexto = (k) => new RegExp(`['"]${k.replace('.', '\\.')}['"]\\s*:`).test
 function _pasaTexto(clave, onde){
   const [f, n] = onde.split(':');
   const l = fs.readFileSync(path.join(JS, f), 'utf8').split('\n')[Number(n) - 1] || '';
+  /* hqSay(TXT(K), 0, K) leva sempre o texto por diante. */
+  if (/hqSay\s*\(/.test(l)) return true;
   return new RegExp(`[\`'"]${clave.replace('.', '\\.')}[\`'"]\\s*,`).test(l);
 }
 
