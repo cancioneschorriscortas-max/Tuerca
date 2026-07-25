@@ -1,4 +1,5 @@
-{
+/* XERADO por tools/xerar_manifest.py — non editar a man. */
+window._VOCES_MANIFEST = {
  "hq.clima": {
   "gl": "voces/gl/hq.clima.ogg"
  },
@@ -32,4 +33,4 @@
  "r.radarNoso": {
   "gl": "voces/gl/r.radarNoso.ogg"
  }
-}
+};

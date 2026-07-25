@@ -14,6 +14,12 @@ js = '\n'.join((ROOT / 'js' / f).read_text(encoding='utf-8') for f in FILES)
 # Ao meter o CSS dentro do HTML, as rutas pasan a ser relativas a dist/,
 # así que '../ui/' deixa de valer e hai que deixalo en 'ui/'.
 css = css.replace('../ui/', 'ui/')
+# O manifesto de voces vai INLINE: é pequeno (JSON de rutas) e así o dist
+# segue sendo autónomo e non fai nin unha petición para sabelo.
+_man = ROOT / 'voces' / 'manifest.js'
+_man_txt = _man.read_text(encoding='utf-8') if _man.exists() else 'window._VOCES_MANIFEST = {};'
+html = re.sub(r'<script src="voces/manifest\.js"></script>',
+              '<script>\n' + _man_txt + '</script>', html, count=1)
 html = html.replace('<link rel="stylesheet" href="css/style.css">', '<style>\n' + css + '</style>')
 html = re.sub(r'(<script src="js/[^"]+"></script>\s*)+',
               lambda m: '<script>\n' + js + '\n</script>\n', html, count=1)

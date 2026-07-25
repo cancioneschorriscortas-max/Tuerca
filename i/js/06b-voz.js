@@ -110,6 +110,12 @@ let _vozManifest = null, _vozManifestPedido = false;
 function vozCargarManifest(){
   if(_vozManifestPedido) return;
   _vozManifestPedido = true;
+  /* (v0.82) PRIMEIRO o global que deixa voces/manifest.js cun <script>.
+     Antes só había fetch, e desde file:// —abrir index.html a man, que é
+     como se proba en local— o fetch FALLA por CORS: a voz humana non
+     podía soar nunca por moitos .ogg que houbese. O <script> funciona
+     igual en disco e en servidor. */
+  if(window._VOCES_MANIFEST){ _vozManifest = window._VOCES_MANIFEST; return; }
   try{
     fetch('voces/manifest.json').then(r => r.ok ? r.json() : null)
       .then(m => { _vozManifest = m; })

@@ -22,7 +22,17 @@ with open(out, 'w', encoding='utf-8', newline='\n') as fh:
 # Sen frechas nin puntos medios no que se imprime: a consola de Windows vai
 # en cp1252 e petaba aquí mesmo, DESPOIS de escribir o manifesto (así que
 # parecía que fallara todo cando en realidade xa estaba feito).
+# TAMÉN como .js. O xogo cárgao cun <script>, non con fetch: desde file://
+# (abrir index.html a man, que é como se proba) o fetch FALLA por CORS e a voz
+# humana non soaba NUNCA. Con isto funciona igual en disco e en servidor.
+outjs = os.path.join(RAIZ, 'manifest.js')
+with open(outjs, 'w', encoding='utf-8', newline='\n') as fh:
+    fh.write('/* XERADO por tools/xerar_manifest.py — non editar a man. */\n')
+    fh.write('window._VOCES_MANIFEST = ')
+    json.dump(manifest, fh, indent=1, ensure_ascii=False)
+    fh.write(';\n')
 print(f"manifest: {len(manifest)} claves -> {out}")
+print(f"           e {outjs}")
 for k in sorted(manifest):
     print('  ', k, '-', '/'.join(manifest[k].keys()))
 if not manifest:
