@@ -111,20 +111,27 @@ instancia xa aberta e a sonda temporal bórrase antes de cargarse.
 
 ## Ambiente sonoro (v0.74)
 
- pon a capa que faltaba: ata agora TUERCA só soaba cando
+`js/17-ambiente.js` pon a capa que faltaba: ata agora TUERCA só soaba cando
 pasaba algo e entre medias había silencio. Procedural, sen un só ficheiro de
-audio, e todo colga de  — así que a tecla **M** apaga tamén isto.
+audio, e todo colga de `masterGain` — así que a tecla **M** apaga tamén isto.
 
 Dúas escenas: no **hangar** unha nave pechada (motores, ventilación, golpes de
 taller); en **batalla** campo aberto (vento e metal moi ao lonxe). Cámbianse
-soas co ecrán, desde o mesmo observador de .
+soas co ecrán, desde o mesmo observador de `99-boot.js` que xa sabía cando se
+ve o hangar.
 
 O **agachado reactivo** é o que fai que funcione: canto máis tiroteo hai, máis
 baixa a cama. Sen iso o ambiente pelexa cos disparos e non se entende nada. O
-nivel sae dos tracers vivos, que xa é o que mide o combate en curso.
+nivel sae dos tracers vivos, que xa é o que mide o combate en curso. Baixa ata
+o 45%, non desaparece: aparta, non se vai.
 
-**Shift+A** acende e apaga (persistente). Vai con Shift porque  soa move a
-cámara. Axustable en vivo desde a consola: , .
+Detalles que evitan que soe a zumbido: ruído **rosa** e non branco (o branco
+sae sibilante e cansa aos dous minutos), o corte do filtro e o volume respiran
+con osciladores lentos, e a maquinaria son dous osciladores desafinados a 43 e
+44.6 Hz — o batido entre eles é o que fai que soe a motor grande e non a nota.
+
+**Shift+A** acende e apaga (persistente). Vai con Shift porque `a` soa move a
+cámara. Axustable en vivo desde a consola: `AMB.vol`, `AMB.agachar`.
 
 ## Probas
 
