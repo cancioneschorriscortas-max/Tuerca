@@ -1796,8 +1796,9 @@ function aplicarIdioma(){
   /* VERSIÓN: TUERCA_V (00-preambulo.js) é o único sitio onde se toca.
      Píntase aquí porque o subtítulo depende do idioma e reaplícase en
      cada setLang(). O <title> non pode lelo do HTML: ponse por JS. */
+  /* A versión xa vai no selo do título; repetila no subtítulo era ruído. */
   const st = document.getElementById('subTitle');
-  if(st) st.textContent = TUERCA_V.toUpperCase() + ' · ' + TXT('sub.titulo');
+  if(st) st.textContent = TXT('sub.titulo');
   const vh = document.getElementById('vHangar');
   if(vh) vh.textContent = TUERCA_V;
   document.title = 'TUERCA — ' + TUERCA_V;
