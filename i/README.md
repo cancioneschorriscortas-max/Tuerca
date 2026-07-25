@@ -30,6 +30,7 @@ tuerca/
 │   ├── 12-debrief-hangar.js
 │   ├── 13-mundial.js       ← modo MUNDIAL (torneo, XI contra XI)
 │   ├── 14-diario.js        ← ARQUIVO: a crónica lexible no xogo
+│   ├── 15-luz.js           ← luz, po e viñeta (pasada de composición)
 │   └── 99-boot.js          ← arranque que depende de módulos posteriores
 ├── voces/                  ← .ogg por idioma + manifest.json
 ├── tools/                  ← xerar o manifest e placeholders de voz
@@ -55,6 +56,25 @@ recargar `index.html` = desenvolvemento. `python3 build.py` = publicación.
 1. Desenvolver contra `index.html` (os cambios vense recargando).
 2. `python3 build.py` → `dist/tuerca.html` (o ficheiro único de sempre).
 3. Publicar SÓ o dist (itch.io, GitHub Pages, o que sexa).
+
+## Luz e atmosfera (v0.66)
+
+`js/15-luz.js` non toca nin un sprite: o mundo debúxase igual que sempre e a
+capa actúa DESPOIS, en espazo de pantalla, entre o `ctx.restore()` da cámara
+e o HUD (que así queda lexible). Mapa de luz por hora do día → `multiply`
+sobre a escena → bloom dos focos → po con parallaxe → viñeta.
+
+Os focos saen do que xa contaba o xogo: portas de fábrica mentres producen,
+luces de perímetro dos sectores, fogonazos dos tracers e chispas do sistema
+de FX. O ambiente vén do **mesmo reloxo** que pinta o HUD (09:00 → ~19:00),
+así que unha batalla longa remata ao solpor.
+
+En batalla: **L** acende e apaga (persistente), **K** percorre as horas para
+ver o solpor sen agardar. Todo é axustable no obxecto `LUZ`; con
+`LUZ.forza = 0` a escena queda exactamente como antes.
+
+As scanlines do CSS baixaron de `.18` a `.05` (variable `--scan` en
+`css/style.css`): co mapa de luz por baixo, sobraba reixa.
 
 ## Probas
 

@@ -771,6 +771,13 @@ function loop(now){
   ctx.translate(-Math.round(cam.x + _shx), -Math.round(cam.y + _shy));
   draw(g);
   ctx.restore();
+  /* (v0.66) LUZ E ATMOSFERA: vai aquí, coa escena xa debuxada e a cámara
+     xa restaurada (a capa é de pantalla), pero ANTES do HUD para que
+     minimapa, reloxo e avisos non se apaguen. Nada disto pode matar o
+     loop: se peta a luz, xógase sen ela. */
+  try{
+    if(typeof luzComporFrame === 'function') luzComporFrame(g, frameTime / 1000);
+  }catch(e){ console.error('[luz]', e); }
   /* (v0.26) tinta do clima (baixo o minimapa, que segue lexible) */
   if(g.clima && g.clima.tint){
     ctx.save();

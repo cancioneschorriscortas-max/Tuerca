@@ -2,6 +2,10 @@
     --crt:#0a0a08; --phos:#ffb000; --phos-dim:#8a6200;
     --blue:#4f8aff; --red:#ff5340; --grass:#161d12; --water:#10283f;
     --gold:#ffd24a; --green:#7fdc7f;
+    /* (v0.66) Forza das scanlines sobre o mapa. Estaban en .18 e comían a
+       atmosfera: co mapa de luz por baixo, sobraba reixa. Sobe se queres
+       recuperar o aire de terminal; 0 apágaas de todo. */
+    --scan:.05;
   }
   *{box-sizing:border-box; margin:0; padding:0;}
   body{
@@ -20,7 +24,7 @@
   }
   #wrap::after{
     content:''; position:absolute; inset:0; pointer-events:none;
-    background:repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 1px, transparent 1px 3px);
+    background:repeating-linear-gradient(0deg, rgba(0,0,0,var(--scan)) 0 1px, transparent 1px 3px);
   }
   /* ====== Layout cabina de mando ====== */
   #battleLayout{

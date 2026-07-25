@@ -30,9 +30,15 @@ function revisarInvariantes(S, g, onde) {
     if (!finito(u.x) || !finito(u.y)) erro(`${quen} ten posición non finita (${u.x}, ${u.y})`);
     if (!finito(u.hp) || !finito(u.max)) erro(`${quen} ten hp non finito (${u.hp}/${u.max})`);
     /* As mortas quedan na lista (o motor márcaas con `dead` e séguenas
-       debuxando como restos). O que ten que cadrar é hp <-> dead. */
+       debuxando como restos).
+
+       Só se afirma unha dirección: sen hp non se pode seguir vivo. A
+       contraria NON vale como invariante — `dead` é a fonte de verdade
+       do motor e o hp non se mantén despois de morrer. Un piloto que
+       voa coa súa torreta queda morto co hp que tiña (killPilot, en
+       09-economia-combate.js:894), e iso é lexítimo: morreu pola
+       explosión, non polo dano. */
     if (u.hp <= 0 && !u.dead) erro(`${quen} ten hp ${u.hp} pero non está marcada como morta`);
-    if (u.hp > 0 && u.dead) erro(`${quen} está marcada como morta pero ten hp ${u.hp}`);
     if (u.hp > u.max) erro(`${quen} ten hp ${u.hp} por riba do máximo ${u.max}`);
     /* Marxe xenerosa: interesa detectar fugas, non rozar o bordo. */
     if (u.x < -64 || u.x > W + 64 || u.y < -64 || u.y > H + 64) {
