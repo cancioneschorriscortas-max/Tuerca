@@ -56,6 +56,32 @@ recargar `index.html` = desenvolvemento. `python3 build.py` = publicación.
 2. `python3 build.py` → `dist/tuerca.html` (o ficheiro único de sempre).
 3. Publicar SÓ o dist (itch.io, GitHub Pages, o que sexa).
 
+## Probas
+
+```
+npm test          # ou: node test/run.js
+```
+
+Viven en `test/`, na **raíz** do repo e non aquí dentro: `firebase.json`
+publica `i/` enteiro e as probas non teñen por que ir ao servidor.
+
+`test/arnes.js` carga os 20 módulos de `js/` nun contexto de `vm` cun DOM,
+canvas e Web Audio falsos, así que a simulación corre en Node sen navegador
+—unhas 12× máis rápido que tempo real—. A lista de ficheiros do arnés ten
+que estar en sintonía coa de `build.py`.
+
+**A simulación non é reproducible.** Fai 65 chamadas a `Math.random()` no
+seu camiño de execución, así que non se pode afirmar "mesma entrada → mesmo
+estado final". Por iso as probas son de *fuzz*: moitas partidas distintas
+comprobando invariantes que teñen que cumprirse saia o que saia o dado
+(nada de NaN, ninguén fóra do mapa, `hp` coherente con `dead`, toda batalla
+remata). Sementar o xerador sería un proxecto aparte, e desbloquearía
+repeticións de batalla, informes de erro reproducibles e PvP en lockstep.
+
+`probaPendente()` marca bugs coñecidos sen arranxar: non tinguen a suite de
+vermello, pero se algún día pasan, a suite **falla** para que non se
+esquezan.
+
 ## Seguridade — LER ISTO
 
 **A apiKey de Firebase NON é un segredo.** Identifica o proxecto, non autoriza

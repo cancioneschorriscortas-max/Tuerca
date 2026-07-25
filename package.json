@@ -1,4 +1,10 @@
 {
+  "name": "tuerca",
+  "private": true,
+  "scripts": {
+    "test": "node test/run.js",
+    "build": "python i/build.py"
+  },
   "dependencies": {
     "firebase": "^12.16.0"
   }
