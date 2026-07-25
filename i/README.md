@@ -12,7 +12,8 @@ tuerca/
 ├── js/
 │   ├── config.js           ← credenciais Firebase (NON vai ao repo)
 │   ├── config.example.js   ← plantilla: copia a config.js e enche
-│   ├── 00-preambulo.js
+│   ├── 00-preambulo.js     ← TUERCA_V (versión: fonte única), facción
+│   ├── 00b-i18n.js         ← galego/castelán/inglés, chrome por ids
 │   ├── 01-nucleo-datos.js  ← storage, export/import, crónica
 │   ├── 01b-assets.js       ← sprites base64 (xerado; non editar á man)
 │   ├── 02-pvp-lobby.js     ← salas Firebase, presenza, chat
@@ -20,16 +21,30 @@ tuerca/
 │   ├── 04-progresion.js    ← skills, reconstructor, desmantelamento, campaña
 │   ├── 05-mapa-camara-neboa.js
 │   ├── 06-audio-voces.js   ← audio procedural, música, voces
+│   ├── 06b-voz.js          ← síntese de voz do sistema
 │   ├── 07-terreo-batalla.js
 │   ├── 08-social-narrativa.js  ← subquests, HQ, VOLT, grises, escudo
 │   ├── 09-economia-combate.js  ← chatarra, cobertura, cháchara, IA
-│   ├── 10-estructuras.js   ← torretas, vehículos
-│   ├── 11-retratos-ui.js
-│   └── 12-debrief-hangar.js
+│   ├── 10-estructuras.js   ← torretas, vehículos, draw() principal
+│   ├── 11-retratos-ui.js   ← retratos, panel lateral, loop() do xogo
+│   ├── 12-debrief-hangar.js
+│   ├── 13-mundial.js       ← modo MUNDIAL (torneo, XI contra XI)
+│   ├── 14-diario.js        ← ARQUIVO: a crónica lexible no xogo
+│   └── 99-boot.js          ← arranque que depende de módulos posteriores
+├── voces/                  ← .ogg por idioma + manifest.json
+├── tools/                  ← xerar o manifest e placeholders de voz
 ├── dist/tuerca.html        ← ARTEFACTO: o ficheiro único que se publica
 ├── build.py                ← reensambla dist/ desde a fonte
 └── database.rules.json     ← regras de seguridade da Realtime Database
 ```
+
+## Versión
+
+`TUERCA_V`, en `js/00-preambulo.js`, é o **único** sitio onde se toca. Del
+derivan o `<title>`, o subtítulo da portada, o selo do hangar, a cabeceira do
+duelo online, o pé dos erros e o campo `v` que se publica nas salas de
+Firebase (compatibilidade entre host e convidado). O markup non leva número
+de versión ningún, para que non poida quedar rancio.
 
 **Regra de ouro**: os ficheiros de `js/` concaténanse en orde e comparten o
 ámbito global (scripts clásicos, sen módulos ES). Editar calquera ficheiro e

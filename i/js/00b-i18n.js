@@ -51,7 +51,7 @@ const LANGS = {
     'serie.marchou': 'O rival marchou da serie.',
     'serie.pechar': 'Pechar',
     'serie.pechada': 'Serie pechada.',
-    'sub.titulo': 'V0.4 · TERREO POR CELAS · AUTOTILING XEOMÉTRICO',
+    'sub.titulo': 'TERREO POR CELAS · AUTOTILING XEOMÉTRICO',
     'br.hint': '[ Espazo / Enter para continuar ]',
     'br.titulo': '// Briefing — Operación {n}',
     'br.optima': 'ÓPTIMA v0.9β — Unidade Central de Optimización e Entusiasmo',
@@ -615,7 +615,7 @@ const LANGS = {
     'serie.marchou': 'El rival ha abandonado la serie.',
     'serie.pechar': 'Cerrar',
     'serie.pechada': 'Serie cerrada.',
-    'sub.titulo': 'V0.4 · TERRENO POR CELDAS · AUTOTILING GEOMÉTRICO',
+    'sub.titulo': 'TERRENO POR CELDAS · AUTOTILING GEOMÉTRICO',
     'br.hint': '[ Espacio / Enter para continuar ]',
     'br.titulo': '// Briefing — Operación {n}',
     'br.optima': 'ÓPTIMA v0.9β — Unidad Central de Optimización y Entusiasmo',
@@ -1179,7 +1179,7 @@ const LANGS = {
     'serie.marchou': 'Your rival left the series.',
     'serie.pechar': 'Close',
     'serie.pechada': 'Series closed.',
-    'sub.titulo': 'V0.4 · CELL TERRAIN · GEOMETRIC AUTOTILING',
+    'sub.titulo': 'CELL TERRAIN · GEOMETRIC AUTOTILING',
     'br.hint': '[ Space / Enter to continue ]',
     'br.titulo': '// Briefing — Operation {n}',
     'br.optima': 'OPTIMA v0.9β — Central Unit for Optimization and Enthusiasm',
@@ -1779,6 +1779,14 @@ function aplicarIdioma(){
   if(chd && window.DATA) chd.textContent = TXT('hg.chatarra', {n: window.DATA.chatarra||0});
   const bl = document.getElementById('btnLang');
   if(bl) bl.textContent = '🌐 ' + I18N.lang.toUpperCase();
+  /* VERSIÓN: TUERCA_V (00-preambulo.js) é o único sitio onde se toca.
+     Píntase aquí porque o subtítulo depende do idioma e reaplícase en
+     cada setLang(). O <title> non pode lelo do HTML: ponse por JS. */
+  const st = document.getElementById('subTitle');
+  if(st) st.textContent = TUERCA_V.toUpperCase() + ' · ' + TXT('sub.titulo');
+  const vh = document.getElementById('vHangar');
+  if(vh) vh.textContent = TUERCA_V;
+  document.title = 'TUERCA — ' + TUERCA_V;
 }
 function setLang(l, opts){
   if(!LANGS[l]) return;

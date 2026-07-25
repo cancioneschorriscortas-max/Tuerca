@@ -829,9 +829,9 @@ function pintarSala(datos, rol){
 /* PT/ET decláranse en 00-preambulo.js (orde de carga multi-ficheiro) */
 function setPlayerTeam(t){ PT = t ? 1 : 0; ET = 1 - PT; }
 
-/* (v0.36.1) VERSIÓN ÚNICA + OVERLAY DE ERROS: calquera excepción sen capturar
-   píntase en pantalla coa versión — adeus a depurar builds rancias ás cegas. */
-const TUERCA_V = 'v0.65';
+/* (v0.36.1) OVERLAY DE ERROS: calquera excepción sen capturar píntase en
+   pantalla coa versión — adeus a depurar builds rancias ás cegas.
+   TUERCA_V vive agora en 00-preambulo.js (fonte única). */
 function _tuercaOverlay(msg){
   try{
     let o = document.getElementById('tuercaErr');
@@ -851,7 +851,7 @@ window.addEventListener('error', e => _tuercaOverlay(
   : ((e.message||e) + (e.lineno ? ' @' + e.lineno : '')) + (e.message==='Script error.' ? '  (detalle oculto por cross-origin — ver consola do navegador F12)' : '')
 ));
 window.addEventListener('unhandledrejection', e => _tuercaOverlay('Promise: ' + ((e.reason && (e.reason.stack||e.reason.message)) || e.reason)));
-setTimeout(() => { const v = document.getElementById('vHangar'); if(v) v.textContent = TUERCA_V; }, 0);
+/* (o selo de versión do hangar píntao aplicarIdioma() en 00b-i18n.js) */
 
 function freshData(){ return {units:[], fallen:[], opCount:0, nextId:1, recurringEnemies:[], version:'0.3'}; }
 /* Migración: rosters anteriores se cargan y se les añaden los campos nuevos */

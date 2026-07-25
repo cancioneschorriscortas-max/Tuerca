@@ -60,7 +60,7 @@ function mkLobby(net, ui){
   L.crear = async (nome) => {
     L.nome = nome; L.rol = 'host';
     L.sala = Array.from({length:5}, () => SALA_ABC[Math.floor(Math.random()*SALA_ABC.length)]).join('');
-    await net.write(`salas/${L.sala}`, { estado:'agardando', creada: Date.now(), host: {nome, listo:false, v: (typeof TUERCA_V !== 'undefined' ? TUERCA_V : '?')} });
+    await net.write(`salas/${L.sala}`, { estado:'agardando', creada: Date.now(), host: {nome, listo:false, v: TUERCA_V} });
     net.onDisconnectRemove && net.onDisconnectRemove(`salas/${L.sala}`);   /* se cae o host, cae a sala */
     L._escoitar();
     return L.sala;
@@ -71,7 +71,7 @@ function mkLobby(net, ui){
     if(!datos) throw new Error('SALA_INEXISTENTE');
     if(datos.guest) throw new Error('SALA_CHEA');
     L.nome = nome; L.rol = 'guest'; L.sala = sala;
-    await net.update(`salas/${sala}/guest`, {nome, listo:false, v: (typeof TUERCA_V !== 'undefined' ? TUERCA_V : '?')});
+    await net.update(`salas/${sala}/guest`, {nome, listo:false, v: TUERCA_V});
     net.onDisconnectRemove && net.onDisconnectRemove(`salas/${sala}/guest`);
     L._escoitar();
   };
