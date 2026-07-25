@@ -72,3 +72,6 @@ node_modules/
 i/_captura_tmp.html
 # Capturas de desenvolvemento
 capturas/
+
+# Pezas xeradas por tools/recortar.js (regxéranse desde a lámina)
+i/ui/*-pezas/
