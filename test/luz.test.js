@@ -123,6 +123,44 @@ proba('a luz das tropas non fai bloom (senón parecerían farois)', () => {
   }
 });
 
+proba('a sombra cambia de lado ao pasar o mediodía e acurta no cénit', () => {
+  const S = cargarXogo();
+  const sombraVector = S.aval('sombraVector');
+  const LUZ = S.aval('LUZ');
+  const antes = LUZ.horaForzada;
+
+  const en = (h) => { LUZ.horaForzada = h; return sombraVector({ t: 0 }); };
+  const mañá = en(9), cenit = en(14), solpor = en(19);
+
+  afirmar(mañá.dx > 0 && solpor.dx < 0,
+    `a sombra debía cambiar de lado: mañá dx=${mañá.dx.toFixed(1)}, solpor dx=${solpor.dx.toFixed(1)}`);
+  afirmar(Math.abs(cenit.dx) < Math.abs(mañá.dx) && Math.abs(cenit.dx) < Math.abs(solpor.dx),
+    'ao mediodía a sombra ten que ser a máis curta');
+  afirmar(cenit.dy > 0 && mañá.dy > cenit.dy,
+    'a sombra sempre cae algo cara abaixo, e máis co sol baixo');
+  for (const v of [mañá, cenit, solpor]) {
+    for (const n of [v.dx, v.dy, v.k]) {
+      afirmar(finito(n), `compoñente non finita no vector de sombra: ${JSON.stringify(v)}`);
+    }
+  }
+  LUZ.horaForzada = antes;
+});
+
+proba('as sombras non lanzan ao longo dunha batalla', () => {
+  const S = cargarXogo();
+  const sombrasDebuxar = S.aval('sombrasDebuxar');
+  const SOMBRA = S.aval('SOMBRA');
+  const g = novaBatalla(S, { op: 2 });
+  for (let i = 0; i < 25 && !g.over; i++) {
+    avanzar(S, g, 120);
+    sombrasDebuxar(g);       /* con unidades, torretas, vehículos, muros e HQ */
+  }
+  SOMBRA.activa = false;
+  sombrasDebuxar(g);
+  SOMBRA.activa = true;
+  sombrasDebuxar(null);      /* nin cun estado inexistente */
+});
+
 proba('os focos saen dentro do mundo e con alfa válida', () => {
   const S = cargarXogo();
   const luzFontes = S.aval('luzFontes');

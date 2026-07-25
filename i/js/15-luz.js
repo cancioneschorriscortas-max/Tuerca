@@ -64,6 +64,81 @@ function luzAmbiente(h){
   return [cara(mix(0)), cara(mix(1)), cara(mix(2))];
 }
 
+/* ============================================================
+   SOMBRAS PROXECTADAS
+
+   O indicador de profundidade máis barato que existe: sen elas todo
+   flota sobre o chan e delátase que é 2D. Non van na capa de
+   composición senón DENTRO de draw(), en coordenadas de mundo, xusto
+   despois do chan (terreo e plataformas de sector) e antes de todo o
+   sólido — así unha sombra pousa sobre a plataforma e o sprite que a
+   proxecta debúxase enriba.
+
+   O sol vai do leste ao oeste ao longo da partida: ás 09:00 está baixo
+   e as sombras son longas cara a un lado, ao mediodía acurtan e case
+   caen a plomo, e ao solpor alónganse cara ao outro. A dirección sae
+   da MESMA hora que alimenta o ambiente.
+   ============================================================ */
+const SOMBRA = {
+  activa: true,
+  alfa: 0.32,      /* opacidade base */
+  longa: 13,       /* estirón extra co sol baixo, en píxeles de mundo */
+};
+
+/* Desprazamento da sombra para a hora actual. */
+function sombraVector(g){
+  const h = luzHora(g);
+  const t = Math.max(0, Math.min(1, (h - 9) / 10));   /* 0 ás 9, 1 ás 19 */
+  const k = Math.abs(1 - 2*t);                        /* 1 co sol baixo, 0 no cénit */
+  const lonx = 3 + SOMBRA.longa * k;
+  return {
+    dx: (1 - 2*t) * lonx,        /* cambia de lado ao pasar o mediodía */
+    dy: 2 + 0.42 * lonx,         /* sempre algo cara abaixo: vista case cenital */
+    k,
+  };
+}
+
+/* Chámase desde draw() (10-estructuras.js). Coordenadas de MUNDO. */
+function sombrasDebuxar(g){
+  if(!LUZ.activa || !SOMBRA.activa || !g) return;
+  const { dx, dy, k } = sombraVector(g);
+  ctx.save();
+  ctx.fillStyle = '#000';
+  /* Co sol alto a sombra é máis pechada e curta; co sol baixo, longa
+     pero máis lavada. */
+  ctx.globalAlpha = SOMBRA.alfa * (1 - 0.28 * k);
+
+  const elipse = (x, y, rx, ry) => {
+    ctx.beginPath();
+    ctx.ellipse(x + dx, y + dy, rx, ry, 0, 0, 7);
+    ctx.fill();
+  };
+
+  for(const u of g.units){
+    if(u.dead || u.inside) continue;
+    elipse(u.x, u.y + 4, u.heavy ? 9 : 7, u.heavy ? 5 : 4);
+  }
+  for(const t of (g.turrets || [])){
+    if(t.destroyed) continue;
+    elipse(t.x, t.y + 3, 10, 5);
+  }
+  for(const v of (g.vehicles || [])){
+    if(v.destroyed) continue;
+    elipse(v.x, v.y + 3, 12, 5);
+  }
+  /* Os HQ son caixas: sombra rectangular, non elipse. */
+  for(const h of g.hq){
+    ctx.fillRect(h.x + dx, h.y + dy, h.w, h.h);
+  }
+  /* Os muros tamén proxectan: son a cobertura do campo. Ollo, gárdanse
+     polo CENTRO e sen tamaño (buildWallsFromMap), non pola esquina. */
+  for(const w of (g.walls || [])){
+    if(w.destroyed) continue;
+    ctx.fillRect(w.x - 8 + dx, w.y - 8 + dy, 16, 16);
+  }
+  ctx.restore();
+}
+
 /* ---------- Focos ----------
    Devolve fontes en coordenadas de MUNDO. `r` en píxeles de mundo,
    `a` alfa 0..1, `c` cor css. */

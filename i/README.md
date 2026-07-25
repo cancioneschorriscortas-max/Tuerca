@@ -57,7 +57,7 @@ recargar `index.html` = desenvolvemento. `python3 build.py` = publicación.
 2. `python3 build.py` → `dist/tuerca.html` (o ficheiro único de sempre).
 3. Publicar SÓ o dist (itch.io, GitHub Pages, o que sexa).
 
-## Luz e atmosfera (v0.66)
+## Luz, sombras e atmosfera (v0.66-67)
 
 `js/15-luz.js` non toca nin un sprite: o mundo debúxase igual que sempre e a
 capa actúa DESPOIS, en espazo de pantalla, entre o `ctx.restore()` da cámara
@@ -69,9 +69,20 @@ luces de perímetro dos sectores, fogonazos dos tracers e chispas do sistema
 de FX. O ambiente vén do **mesmo reloxo** que pinta o HUD (09:00 → ~19:00),
 así que unha batalla longa remata ao solpor.
 
+As tropas levan **luz propia** (`LUZ.tropas`): sen ela o `multiply` afogábaas,
+porque son pequenas e detalladas e é o que hai que ler. É neutra a propósito
+—tinguila por bando empeoraría a lexibilidade de quen non distingue azul de
+vermello— e non fai bloom, ou parecerían farois andando.
+
+As **sombras proxectadas** (`sombrasDebuxar`, `SOMBRA`) non van na capa de
+composición senón dentro de `draw()`, en coordenadas de mundo, xusto despois
+do chan e antes do sólido: así pousan sobre as plataformas de sector e cada
+sprite tapa a súa. A dirección sae da mesma hora que o ambiente — o sol
+crúzase de lado a lado e as sombras cambian de man ao pasar o mediodía.
+
 En batalla: **L** acende e apaga (persistente), **K** percorre as horas para
-ver o solpor sen agardar. Todo é axustable no obxecto `LUZ`; con
-`LUZ.forza = 0` a escena queda exactamente como antes.
+ver o solpor sen agardar. Todo é axustable en vivo desde a consola, que `LUZ`
+e `SOMBRA` son globais; con `LUZ.forza = 0` a escena queda como antes.
 
 As scanlines do CSS baixaron de `.18` a `.05` (variable `--scan` en
 `css/style.css`): co mapa de luz por baixo, sobraba reixa.

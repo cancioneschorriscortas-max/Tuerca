@@ -916,6 +916,13 @@ function draw(g){
       ctx.fillRect(s.x-26,s.y+s.r+4,52*Math.abs(s.prog)/100,5);
     }
   }
+  /* (v0.67) SOMBRAS PROXECTADAS — aquí e non antes: o chan (terreo e
+     plataformas de sector) xa está posto, e todo o sólido debúxase
+     despois, así que cada sprite tapa a súa propia sombra. Definida en
+     15-luz.js; se peta, xógase sen ela. */
+  try{
+    if(typeof sombrasDebuxar === 'function') sombrasDebuxar(g);
+  }catch(e){ console.error('[sombras]', e); }
   /* HQs */
   for(const h of g.hq){
     const cx = h.x + h.w/2, cy = h.y + h.h/2;
