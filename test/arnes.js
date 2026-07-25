@@ -194,6 +194,16 @@ function cargarXogo(opcions = {}) {
 
 /* ---------- API de probas ---------- */
 
+/* AGARDA POLO ARRANQUE antes de tocar DATA.
+   12-debrief-hangar.js remata chamando a showHangar(), que é async e fai
+   `DATA = await loadData()`. Ao cargar os módulos esa promesa queda
+   PENDENTE: se unha proba muta DATA de xeito síncrono xusto despois, a
+   microtarefa resume máis tarde e písalle os cambios cun freshData().
+   Toda proba que manipule DATA ten que asentar primeiro. */
+function asentar(){
+  return new Promise((r) => setImmediate(r));
+}
+
 /* Un escuadrón de recrutas en branco, coa mesma forma que fabrica o
    hangar (12-debrief-hangar.js) e usando as funcións do propio xogo
    para o nome e a personalidade — así non inventamos datos aquí. */
@@ -243,4 +253,4 @@ function avanzar(S, g, pasos) {
   return feitos;
 }
 
-module.exports = { cargarXogo, novaBatalla, avanzar, crearRoster, crearContorno, FICHEIROS };
+module.exports = { cargarXogo, novaBatalla, avanzar, crearRoster, crearContorno, asentar, FICHEIROS };

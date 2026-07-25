@@ -55,6 +55,13 @@ function axudaRender(){
     </div>`;
 }
 
+/* (v0.81) Chámaa saveData() despois de cada cambio real de datos. É o que
+   fai que o panel non quede rancio ao encargar unha reensamblaxe, despezar
+   ou renomear sen saír do hangar. */
+function datosCambiaron(){
+  try{ estadoRender(); }catch(e){ console.error('[estado]', e); }
+}
+
 function estadoContadores(){
   const u = (window.DATA && DATA.units) || [];
   return {

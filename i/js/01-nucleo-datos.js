@@ -99,6 +99,15 @@ async function saveData(d){
     }
     localStorage.setItem(SAVE_CLAVE, txt);
     _saveAvisado = false;
+    /* (v0.81) AVISO DE CAMBIO. A columna de estado do hangar pintábase só
+       ao entrar (showHangar) e ao cambiar de idioma, así que calquera cousa
+       que mudase os datos estando xa dentro —encargar unha reensamblaxe,
+       despezar, renomear— deixaba o panel rancio ata saír e volver.
+       saveData é o punto polo que pasa TODO cambio real e non se chama nin
+       unha vez dentro do bucle de batalla, así que sae barato. */
+    if(typeof datosCambiaron === 'function'){
+      try{ datosCambiaron(); }catch(e){ console.error('[datosCambiaron]', e); }
+    }
     return true;
   }catch(e){
     /* Cota chea, modo privado, permisos... O importante é NON calar. */
