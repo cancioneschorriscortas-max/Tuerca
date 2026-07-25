@@ -26,18 +26,92 @@ function _loadAsset(key, dataUrl){
 /* === SPRITES de jeeps (v0.9) === */
 /* (v0.17.2) Sprites do TANQUE — cañón cara ao SUR, pivote no centro do corpo */
 
+/* ============================================================
+   (v0.77) PERSISTENCIA — A CAMPAÑA GARDÁBASE SÓ EN MEMORIA.
+
+   Isto usaba `window.storage`, que NON EXISTE en ningún navegador
+   nin se define en ningures do proxecto: era do arnés de probas.
+   `saveData` lanzaba en cada chamada e o `catch(e){}` baleiro
+   tragábao. A partida vivía en memStore mentres a lapela estivese
+   aberta e desaparecía ao recargar.
+
+   (O mesmo erro atopárase na v0.61.3 no módulo do Mundial e
+   arranxárase alí, pero non se volveu ao núcleo.)
+
+   Agora: localStorage, coma o resto do proxecto, con tres
+   proteccións que antes non había —
+     1. COPIA DE SEGURIDADE: antes de pisar o gardado bo, o anterior
+        pasa a unha segunda ranura. Unha escritura mala non leva a
+        campaña por diante.
+     2. VALIDACIÓN AO LER: se o JSON está roto ou non ten a forma
+        dunha partida, tírase e próbase a copia.
+     3. OS FALLOS VÉNSE. Tragar excepcións en silencio é o que
+        permitiu que isto durase tanto: agora un fallo de escritura
+        avisa por pantalla.
+   ============================================================ */
+const SAVE_CLAVE  = 'tuerca-roster';
+const SAVE_COPIA  = 'tuerca-roster-copia';
+
 let memStore = null;
-async function loadData(){
+let _saveAvisado = false;   /* non repetir o aviso en cada gardado */
+
+/* Le unha ranura e devolve a partida migrada, ou null se non serve. */
+function _lerRanura(clave){
   try{
-    const r = await window.storage.get('tuerca-roster');
-    if(!r) return freshData();
-    const d = JSON.parse(r.value);
+    const txt = localStorage.getItem(clave);
+    if(!txt) return null;
+    const d = JSON.parse(txt);
+    /* Forma mínima dunha partida. Sen isto, un JSON válido pero doutra
+       cousa entraría e petaría moito máis adiante, lonxe da causa. */
+    if(!d || typeof d !== 'object' || !Array.isArray(d.units) || typeof d.opCount !== 'number'){
+      return null;
+    }
     return migrate(d);
-  }catch(e){ return memStore ? memStore : freshData(); }
+  }catch(e){ return null; }
 }
+
+async function loadData(){
+  const bo = _lerRanura(SAVE_CLAVE);
+  if(bo){ memStore = bo; return bo; }
+
+  const copia = _lerRanura(SAVE_COPIA);
+  if(copia){
+    memStore = copia;
+    console.warn('[save] a ranura principal non servía; recuperada a copia');
+    if(typeof radio === 'function'){
+      try{ radio('⚠ Partida recuperada da copia de seguridade.', '#ffd24a'); }catch(_){}
+    }
+    return copia;
+  }
+  /* Nin unha nin outra: se hai algo en memoria desta sesión, mellor iso
+     que empezar de cero por un fallo pasaxeiro de lectura. */
+  return memStore || freshData();
+}
+
 async function saveData(d){
   memStore = d;
-  try{ await window.storage.set('tuerca-roster', JSON.stringify(d)); }catch(e){}
+  try{
+    const txt = JSON.stringify(d);
+    const anterior = localStorage.getItem(SAVE_CLAVE);
+    /* A copia faise ANTES de pisar, e só se cambiou algo. */
+    if(anterior && anterior !== txt){
+      try{ localStorage.setItem(SAVE_COPIA, anterior); }catch(_){}
+    }
+    localStorage.setItem(SAVE_CLAVE, txt);
+    _saveAvisado = false;
+    return true;
+  }catch(e){
+    /* Cota chea, modo privado, permisos... O importante é NON calar. */
+    console.error('[save] non se puido gardar', e);
+    if(!_saveAvisado){
+      _saveAvisado = true;
+      if(typeof _tuercaOverlay === 'function'){
+        _tuercaOverlay('NON SE PODE GARDAR A PARTIDA (' + (e && e.name || 'erro') +
+                       ').\nExporta cun clic en 💾 antes de pechar.');
+      }
+    }
+    return false;
+  }
 }
 /* ============================================================
    EXPORT / IMPORT (v0.22.2) — a caixa forte. Todo o roster,
@@ -130,6 +204,10 @@ function descargarCronica(){
 
 async function wipeData(){
   memStore = null;
-  try{ await window.storage.delete('tuerca-roster'); }catch(e){}
+  /* As dúas ranuras: se non, "borrar todos os datos" deixaría a copia e a
+     partida volvería soa na seguinte carga. */
+  for(const k of [SAVE_CLAVE, SAVE_COPIA]){
+    try{ localStorage.removeItem(k); }catch(e){ console.error('[save] non se puido borrar ' + k, e); }
+  }
 }
 
