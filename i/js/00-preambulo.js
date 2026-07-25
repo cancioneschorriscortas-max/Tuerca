@@ -9,7 +9,7 @@
    Vive no preámbulo, o primeiro ficheiro que carga, para estar
    dispoñible en TODOS os módulos posteriores.
    ============================================================ */
-const TUERCA_V = 'v0.74';
+const TUERCA_V = 'v0.75';
 
 /* Facción do xogador (v0.29): declárase AQUÍ para estar dispoñible en toda a carga */
 let PT = 0, ET = 1;

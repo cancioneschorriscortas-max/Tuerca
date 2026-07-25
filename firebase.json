@@ -4,7 +4,12 @@
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "ui/lamina*.png",
+      "ui/*-pezas/**",
+      "tools/**",
+      "tuerca-voz-demo.html",
+      "README*.md"
     ],
     "rewrites": [
       {

@@ -94,6 +94,35 @@ proba('non quedan estilos de cor en liña nos botóns do hangar', () => {
 
 /* ---------- Idioma ---------- */
 
+proba('non se publica material de traballo', () => {
+  /* firebase.json publica i/ ENTEIRO. As láminas de interface e as pezas
+     recortadas viven alí e pesan varios MB: son material de traballo, non
+     do xogo, e ían a cada deploy. As dúas imaxes que usa o CSS si teñen
+     que saír. */
+  const fb = JSON.parse(fs.readFileSync('C:/tuerca/firebase.json', 'utf8'));
+  const ignora = fb.hosting.ignore || [];
+  for (const patron of ['ui/lamina*.png', 'ui/*-pezas/**']) {
+    afirmar(ignora.includes(patron), `falta "${patron}" no ignore de firebase.json`);
+  }
+  /* ...e as que fan falla NON poden estar excluídas. */
+  const usadas = [...CSS.matchAll(/url\('\.\.\/ui\/([^']+)'\)/g)].map((m) => m[1]);
+  afirmar(usadas.length > 0, 'o CSS xa non referencia imaxes de ui/: revisa esta proba');
+  for (const img of usadas) {
+    afirmar(fs.existsSync('C:/tuerca/i/ui/' + img), `o CSS usa ui/${img} e non existe`);
+    afirmar(!ignora.some((p) => p === 'ui/**' || p === 'ui/' + img),
+      `ui/${img} úsase no CSS pero está no ignore de firebase.json`);
+  }
+});
+
+proba('o idioma do documento non está fixado no markup', () => {
+  const m = HTML.match(/<html[^>]*lang="([^"]+)"/);
+  afirmar(m, 'o <html> non declara lang');
+  afirmar(m[1] === 'gl', `o lang inicial debería ser o idioma por defecto (gl), é "${m[1]}"`);
+  const i18n = fs.readFileSync('C:/tuerca/i/js/00b-i18n.js', 'utf8');
+  afirmar(/documentElement\.lang\s*=\s*I18N\.lang/.test(i18n),
+    'aplicarIdioma() non actualiza o lang do documento ao cambiar de idioma');
+});
+
 proba('os tres dicionarios teñen exactamente as mesmas claves', () => {
   const S = cargarXogo();
   const L = S.aval('LANGS');

@@ -1845,6 +1845,10 @@ function aplicarIdioma(){
   }
   const rc = document.getElementById('radioCanal');
   if(rc) rc.textContent = '— ' + TXT('r.canal') + ' —';
+  /* (v0.75) O atributo lang do documento tiña "es" fixo mentres o idioma
+     por defecto é o galego. Impórtalle a quen usa lector de pantalla e á
+     partición de palabras do navegador. */
+  try{ document.documentElement.lang = I18N.lang; }catch(_){}
   /* (v0.73) Rótulos de grupo: título + función. Levaban texto literal no
      HTML desde a v0.68 e non se traducían. Non poden ir por I18N_CHROME
      porque teñen dous anacos con estilo distinto. */
