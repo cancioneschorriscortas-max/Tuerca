@@ -22,7 +22,7 @@ function ensureSqPanel(){
 
 function addSubquest(g, q){
   g.subquests = g.subquests || [];
-  q.id = 'SQ' + (g.subquests.length + 1) + '_' + Math.floor(Math.random()*999);
+  q.id = 'SQ' + (g.subquests.length + 1) + '_' + Math.floor(rnd()*999);
   g.subquests.push(q);
   sfx('radio_open');
   return q;
@@ -61,12 +61,12 @@ function tickSubquests(g){
   /* SPAWN — TECNOLOXÍA DESCOÑECIDA: unha vez por op, detectada polo radar */
   if(!g._sqTecTried && g.t > 2400 && radarMeu){
     g._sqTecTried = true;
-    if(Math.random() < 0.45){
+    if(rnd() < 0.45){
       /* punto en terra no terzo central do mapa */
       let cx = 0, cy = 0, tent = 0;
       do {
-        cx = W * (0.35 + Math.random() * 0.3);
-        cy = H * (0.2 + Math.random() * 0.6);
+        cx = W * (0.35 + rnd() * 0.3);
+        cy = H * (0.2 + rnd() * 0.6);
         tent++;
       } while((inWater(cx, cy) || inWall(g, cx, cy)) && tent < 40);
       addSubquest(g, {
@@ -82,19 +82,19 @@ function tickSubquests(g){
   /* SPAWN — RESTOS INCRUSTADOS NUN MURO: demolición requerida (co radar) */
   if(!g._sqMuroTried && g.t > 1500 && radarMeu){
     g._sqMuroTried = true;
-    if(Math.random() < 0.40){
+    if(rnd() < 0.40){
       /* muro intacto lonxe de ambos HQs */
       const hq0 = g.hq[0], hq1 = g.hq[1];
       const cands = (g.walls || []).filter(w => !w.destroyed
         && Math.hypot(w.x - (hq0.x + hq0.w/2), w.y - (hq0.y + hq0.h/2)) > 180
         && Math.hypot(w.x - (hq1.x + hq1.w/2), w.y - (hq1.y + hq1.h/2)) > 180);
       if(cands.length){
-        const w = cands[Math.floor(Math.random() * cands.length)];
+        const w = cands[Math.floor(rnd() * cands.length)];
         /* que hai dentro: peza do pool perdido (60% se hai) ou caché de chatarra */
         let peza = null;
         const pool = (DATA.piezasEnemigas || []).filter(p => !(g._pezasEnCampo && g._pezasEnCampo.has(p.id)));
-        if(pool.length && Math.random() < 0.6){
-          peza = pool[Math.floor(Math.random() * pool.length)];
+        if(pool.length && rnd() < 0.6){
+          peza = pool[Math.floor(rnd() * pool.length)];
           g._pezasEnCampo = g._pezasEnCampo || new Set();
           g._pezasEnCampo.add(peza.id);
         }
@@ -176,7 +176,7 @@ function tickSubquests(g){
             {id:'optica_termica', nome:'ÓPTICA TÉRMICA', desc:'+40 de visión na néboa'},
             {id:'servo_alleo',    nome:'SERVO ALLEO',    desc:'+8% velocidade e dano'},
           ];
-          const eq = unicos[Math.floor(Math.random() * unicos.length)];
+          const eq = unicos[Math.floor(rnd() * unicos.length)];
           eng.equipment = eng.equipment || [];
           eng.equipment.push(eq.id);
           if(eq.id === 'servo_alleo'){ eng.spd *= 1.08; eng.dmg = Math.round(eng.dmg * 1.08); if(eng._dmgBase) eng._dmgBase *= 1.08; }
@@ -281,7 +281,7 @@ const VOLT_LINES_ML = {
 function voltSay(pool, ctx = {}){
   const VL = VOLT_LINES_ML[I18N.lang] || VOLT_LINES_ML.es;
   const arr = VL[pool];
-  let t = arr[Math.floor(Math.random() * arr.length)];
+  let t = arr[Math.floor(rnd() * arr.length)];
   t = t.replace('{name}', ctx.name || '');
   radio(`VOLT: «${t}»`, '#ff7a5a');
   sfxT('voice_blip', 250, 'VOLT');
@@ -292,14 +292,14 @@ function tickVolt(g){
   /* presentación unha vez por op */
   if(!g._voltIntro && g.t > 600){
     g._voltIntro = true;
-    if(Math.random() < 0.6) voltSay('intro');
+    if(rnd() < 0.6) voltSay('intro');
   }
   /* burla cando cae un teu (throttle 40s) */
   if(!g._voltTauntT || g.t - g._voltTauntT > 2400){
     const caido = g.units.find(u => u.team === PT && u.dead && u._hqMourned && !u._voltTaunted);
     if(caido){
       caido._voltTaunted = true;
-      if(Math.random() < 0.35){
+      if(rnd() < 0.35){
         g._voltTauntT = g.t;
         setTimeout(() => voltSay('taunt'), 3500);
       }
@@ -366,25 +366,25 @@ const REQUISAS_OPTIMA_ML = {
   ],
 };
 function spawnGreys(g){
-  const n = 4 + Math.floor(Math.random() * 3);   /* 4-6 */
-  const dende = Math.random() < 0.5 ? 'norte' : 'sur';
+  const n = 4 + Math.floor(rnd() * 3);   /* 4-6 */
+  const dende = rnd() < 0.5 ? 'norte' : 'sur';
   const y0 = dende === 'norte' ? 30 : H - 30;
-  const x0 = 150 + Math.random() * (W - 300);
+  const x0 = 150 + rnd() * (W - 300);
   g._greysN = g._greysN || 0;
   for(let i = 0; i < n; i++){
     const cls = (i === 0 && n >= 5) ? 'HEAVY' : 'GRUNT';
-    const u = mkUnit(2, cls, x0 + (i - n/2) * 26 + Math.random()*10, y0 + (Math.random()*16-8), null);
+    const u = mkUnit(2, cls, x0 + (i - n/2) * 26 + rnd()*10, y0 + (rnd()*16-8), null);
     g._greysN++;
     u.name = 'REQ-' + String(g._greysN).padStart(2, '0');
     u.hp = Math.round(u.hp * 1.15); u.max = u.hp;   /* material corporativo: algo mellor */
     g.units.push(u);
-    orderMove(u, W/2 + (Math.random()*200-100), H/2 + (Math.random()*160-80));
+    orderMove(u, W/2 + (rnd()*200-100), H/2 + (rnd()*160-80));
   }
   hqSay(TXT('hq.grises'));
   sfx('radio_static');
   setTimeout(() => {
     const _rq = REQUISAS_OPTIMA_ML[I18N.lang] || REQUISAS_OPTIMA_ML.es;
-    radio(`▣ ÓPTIMA: ${_rq[Math.floor(Math.random()*_rq.length)]}`, '#e8c060');
+    radio(`▣ ÓPTIMA: ${_rq[Math.floor(rnd()*_rq.length)]}`, '#e8c060');
     sfxT('voice_blip', 200, 'OPTIMA');
   }, 2500);
 }
@@ -454,7 +454,7 @@ function rollSupervivencia(u){
   if(u.cls === 'HEAVY') prob += 0.10;                   /* chasis reforzado */
   if(u.cls === 'GRUNT') prob -= 0.05;                   /* chasis lixeiro */
   prob = Math.min(0.95, prob);                          /* teito 95%: sempre hai drama */
-  return Math.random() < prob;
+  return rnd() < prob;
 }
 
 /* Resolve a expulsión ou morte do ocupante ao destruírse a estructura.
@@ -462,7 +462,7 @@ function rollSupervivencia(u){
 function resolveEjection(u, sx, sy, structLabel, g){
   if(rollSupervivencia(u)){
     u.inside = null;
-    u.x = sx + (Math.random()*40 - 20);
+    u.x = sx + (rnd()*40 - 20);
     u.y = sy + 26;
     if(u.team === PT){
       radio(TXT(structLabel==='jeep' ? 'r.saiuJeepExpl' : 'r.saiuTorretaExpl', {n: u.name}), '#ffd24a');
@@ -1840,7 +1840,7 @@ function pickFrase(u, contexto, opts){
       if(est_table){
         const arr = est_table[contexto];
         if(arr && arr.length > 0){
-          result = arr[Math.floor(Math.random() * arr.length)];
+          result = arr[Math.floor(rnd() * arr.length)];
         }
       }
     }
@@ -1850,7 +1850,7 @@ function pickFrase(u, contexto, opts){
   if(!result && _EO[cls] && _EO[cls][est]){
     const arr = _EO[cls][est][contexto];
     if(arr && arr.length > 0){
-      result = arr[Math.floor(Math.random() * arr.length)];
+      result = arr[Math.floor(rnd() * arr.length)];
     }
   }
   /* Fallback final: en AUTOPRESERVACION o silencio é válido */

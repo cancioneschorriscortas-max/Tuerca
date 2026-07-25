@@ -440,7 +440,7 @@ function playVoice(cls, ev){
   const poolKey = `${cls.toLowerCase()}_${ev}`;
   const pool = VOICE_POOL[poolKey];
   if(!pool || pool.length === 0) return false;
-  const key = pool[Math.floor(Math.random()*pool.length)];
+  const key = pool[Math.floor(rnd()*pool.length)];
   const audio = VOICE_CACHE[key];
   if(!audio) return false;
   /* Clonar para permitir reproducciones solapadas */

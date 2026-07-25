@@ -220,9 +220,14 @@ function crearRoster(S, n = 3, clases = ['GRUNT', 'HEAVY', 'ENGINEER']) {
 /* Arranca unha batalla de campaña. `op` simula cantas operacións leva a
    partida: newBattle escolle mapa segundo iso (0 -> MAP1, 1 -> MAP2,
    >=2 -> procedural). */
-function novaBatalla(S, { roster = null, op = 0 } = {}) {
+function novaBatalla(S, { roster = null, op = 0, semente = null } = {}) {
   const escuadron = roster || crearRoster(S);
   S.aval('DATA').opCount = op;
+  /* (v0.78) A semente faise explícita: sen ela, un fallo do fuzz non se
+     pode repetir. Se non se pasa, xérase unha e queda en g.semente para
+     que as probas a poidan citar no erro. */
+  S.aval('(function(s){ window._semente = s; })')(
+    semente == null ? (Math.random() * 0x100000000) >>> 0 : (semente >>> 0));
   /* `game` é unha ligazón léxica de script: só se pode asignar avaliando
      código dentro do sandbox. O motor usa o global en varios sitios. */
   const arrancar = S.aval('(function(r){ game = newBattle(r); return game; })');

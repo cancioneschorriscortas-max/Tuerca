@@ -84,8 +84,8 @@ for (const op of [0, 1, 2]) {
     const g = novaBatalla(S, { op });
     afirmar(g.units.length > 0, 'a batalla arrancou sen unidades');
     revisarInvariantes(S, g, 'ao arrancar');
-    avanzarRevisando(S, g, 120000, `op=${op}`);
-    afirmar(g.over, `a batalla non rematou en 120000 pasos (33 min de xogo)`);
+    avanzarRevisando(S, g, 120000, `op=${op} semente=${g.semente}`);
+    afirmar(g.over, `a batalla non rematou en 120000 pasos (semente=${g.semente})`);
   });
 }
 
@@ -93,8 +93,8 @@ proba('fuzz: 12 batallas procedurais seguidas manteñen os invariantes', () => {
   const S = cargarXogo();
   for (let i = 0; i < 12; i++) {
     const g = novaBatalla(S, { op: 2 });
-    avanzarRevisando(S, g, 120000, `batalla ${i + 1}`, 120);
-    afirmar(g.over, `a batalla ${i + 1} non rematou`);
+    avanzarRevisando(S, g, 120000, `batalla ${i + 1} semente=${g.semente}`, 120);
+    afirmar(g.over, `a batalla ${i + 1} non rematou (semente=${g.semente})`);
   }
 });
 
@@ -103,9 +103,9 @@ proba('toda batalla remata cun resultado declarado', () => {
   for (let i = 0; i < 6; i++) {
     const g = novaBatalla(S, { op: 2 });
     avanzar(S, g, 120000);
-    afirmar(g.over, `a batalla ${i + 1} quedou colgada`);
+    afirmar(g.over, `a batalla ${i + 1} quedou colgada (semente=${g.semente})`);
     afirmar(g.result === 'victory' || g.result === 'defeat',
-      `resultado inesperado na batalla ${i + 1}: ${JSON.stringify(g.result)}`);
+      `resultado inesperado na batalla ${i + 1}: ${JSON.stringify(g.result)} (semente=${g.semente})`);
   }
 });
 

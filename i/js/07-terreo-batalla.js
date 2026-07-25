@@ -103,9 +103,9 @@ function buildDefaultMap(){
   }
   /* Parches de tierra árida alrededor de los HQs y manchas dispersas para textura */
   for(let i=0; i<60; i++){
-    const cx = Math.floor(Math.random() * COLS);
-    const cy = Math.floor(Math.random() * ROWS);
-    const r  = 1 + Math.floor(Math.random()*2);
+    const cx = Math.floor(rnd() * COLS);
+    const cy = Math.floor(rnd() * ROWS);
+    const r  = 1 + Math.floor(rnd()*2);
     for(let y=cy-r; y<=cy+r; y++){
       for(let x=cx-r; x<=cx+r; x++){
         if(y<0||y>=ROWS||x<0||x>=COLS) continue;
@@ -116,12 +116,12 @@ function buildDefaultMap(){
   }
   /* Parches de escombros sueltos */
   for(let i=0; i<25; i++){
-    const cx = Math.floor(Math.random() * COLS);
-    const cy = Math.floor(Math.random() * ROWS);
+    const cx = Math.floor(rnd() * COLS);
+    const cy = Math.floor(rnd() * ROWS);
     if(cy<2||cy>=ROWS-2) continue;
     if(grid[cy][cx] === T.GRASS || grid[cy][cx] === T.DIRT){
       grid[cy][cx] = T.RUBBLE;
-      if(Math.random()<0.4 && cx+1<COLS && (grid[cy][cx+1]===T.GRASS||grid[cy][cx+1]===T.DIRT))
+      if(rnd()<0.4 && cx+1<COLS && (grid[cy][cx+1]===T.GRASS||grid[cy][cx+1]===T.DIRT))
         grid[cy][cx+1] = T.RUBBLE;
     }
   }
@@ -499,7 +499,7 @@ const CLIMAS = [
   {id:'NOITE',  label:'Operación nocturna', vis:0.75, tint:'rgba(8,8,28,0.30)',  p:0.15},
 ];
 function pickClima(){
-  let r = Math.random();
+  let r = rnd();
   for(const c of CLIMAS){ r -= c.p; if(r <= 0) return c; }
   return CLIMAS[0];
 }
@@ -530,6 +530,18 @@ function nudgeSpawn(g, team, x, y){
   return {x: Math.round(x), y: Math.round(y)};
 }
 function newBattle(deployed){
+  /* (v0.78) SEMENTE DA BATALLA — o primeiro de todo.
+     O mapa constrúese antes de que exista o obxecto da batalla, así que
+     se non se semente AQUÍ, buildDefaultMap() e pickClima() caerían en
+     Math.random() e dúas partidas coa mesma semente xa arrancarían
+     distintas. Ponse un portador provisional en `game` para que rnd()
+     teña de onde tirar, e despois pásase o estado ao obxecto de verdade.
+     window._semente permite repetir unha partida exacta. */
+  const _semente = (typeof window._semente === 'number')
+    ? (window._semente >>> 0)
+    : (Math.random() * 0x100000000) >>> 0;
+  window._semente = null;   /* dun só uso: a seguinte batalla volve ser nova */
+  game = {rngEstado: _semente};
   try{ startMusic(); }catch(e){ console.warn('[música]', e); }   /* (v0.36) xamais no camiño crítico */
   /* (v0.60) bioma da batalla: o Mundial fixa a sede; a campaña vai en VERDE */
   if(typeof setBioma === 'function') setBioma(window._mundialArranque ? (window._mundialBioma || 'VERDE') : 'VERDE');
@@ -582,6 +594,10 @@ function newBattle(deployed){
      Importa no PvP, que resolve ocupantes de torretas e vehículos por id
      (pvpAplicarSnap): con ids repetidos, find() devolve a unidade
      equivocada. */
+  /* (v0.78) O estado do azar pasa do portador provisional ao obxecto de
+     verdade, e viaxa xa con el: gárdase, snapshotéase e reprodúcese. */
+  g.semente = _semente;
+  g.rngEstado = game.rngEstado;
   game = g;
   deployed.forEach((vu,i)=>{
     const _sp = nudgeSpawn(g, PT, PT===0 ? HQ[0].x + HQ[0].w + 30 : HQ[1].x - 30, HQ[PT].y - 28 + i*40);
@@ -623,12 +639,12 @@ function newBattle(deployed){
     /* Composición: 1 Engineer garantizado + resto mezcla */
     const enemyClasses = ['ENGINEER'];
     for(let i=1; i<playerInitial; i++){
-      const r = Math.random();
+      const r = rnd();
       enemyClasses.push(r<0.55 ? 'GRUNT' : r<0.85 ? 'HEAVY' : 'ENGINEER');
     }
     /* Mezclar para que el veterano enemigo no sea siempre el Engineer */
     for(let i=enemyClasses.length-1; i>0; i--){
-      const j = Math.floor(Math.random()*(i+1));
+      const j = Math.floor(rnd()*(i+1));
       [enemyClasses[i], enemyClasses[j]] = [enemyClasses[j], enemyClasses[i]];
     }
 
@@ -637,8 +653,8 @@ function newBattle(deployed){
     const pickEnemyVetName = () => {
       const free = ENEMY_VETERAN_NAMES.filter(n => !usedEnemyNames.has(n));
       const name = free.length
-        ? free[Math.floor(Math.random()*free.length)]
-        : ENEMY_VETERAN_NAMES[Math.floor(Math.random()*ENEMY_VETERAN_NAMES.length)];
+        ? free[Math.floor(rnd()*free.length)]
+        : ENEMY_VETERAN_NAMES[Math.floor(rnd()*ENEMY_VETERAN_NAMES.length)];
       usedEnemyNames.add(name);
       return name;
     };
@@ -653,11 +669,11 @@ function newBattle(deployed){
       const opsSince = DATA.opCount - (r.lastSeen||0);
       const baseP = 0.5;
       const p = Math.max(0.12, baseP - opsSince * 0.08);
-      return Math.random() < p;
+      return rnd() < p;
     });
     /* Mezclar y limitar al número de huecos disponibles */
     for(let i = recurringPool.length - 1; i > 0; i--){
-      const j = Math.floor(Math.random()*(i+1));
+      const j = Math.floor(rnd()*(i+1));
       [recurringPool[i], recurringPool[j]] = [recurringPool[j], recurringPool[i]];
     }
     const recurringSlots = Math.min(recurringPool.length, playerVeterans);
@@ -749,7 +765,7 @@ const PERSONALIDAD_MODS = {
 function pickPersonalidad(cls){
   const pesos = PERSONALIDAD_PESOS[cls] || PERSONALIDAD_PESOS.GRUNT;
   const total = Object.values(pesos).reduce((a,b)=>a+b, 0);
-  let r = Math.random() * total;
+  let r = rnd() * total;
   for(const [p, w] of Object.entries(pesos)){
     r -= w;
     if(r <= 0) return p;

@@ -31,17 +31,17 @@ function genMap(seed){
   return _genMapImpl();
 }
 function _genMapImpl(){
-  const arq = Math.random() < 0.55 ? 'CUENCA' : 'LLANURA';
+  const arq = rnd() < 0.55 ? 'CUENCA' : 'LLANURA';
   /* (v0.61) MUNDIAL: campos GRANDES sempre (XI contra XI precisa aire;
      os combos de velocidade cobran sentido) */
   const _mun = !!window._mundialArranque;
-  const W = (_mun ? 2560 : 1792) + Math.floor(Math.random()*9)*64;
-  const H = (_mun ? 1408 : 1024) + Math.floor(Math.random()*5)*64;
-  const roadY = _snap(H*0.40 + Math.random()*H*0.18);
+  const W = (_mun ? 2560 : 1792) + Math.floor(rnd()*9)*64;
+  const H = (_mun ? 1408 : 1024) + Math.floor(rnd()*5)*64;
+  const roadY = _snap(H*0.40 + rnd()*H*0.18);
   const BRIDGE = {y1: roadY, y2: roadY + 64};
   let RIVER, BRIDGE_CENTER;
   if(arq === 'CUENCA'){
-    const rx = _snap(W*0.40 + Math.random()*W*0.20);
+    const rx = _snap(W*0.40 + rnd()*W*0.20);
     RIVER = {x1: rx, x2: rx + 64};
     BRIDGE_CENTER = {x: rx + 32, y: roadY + 32};
   } else {
@@ -49,8 +49,8 @@ function _genMapImpl(){
     BRIDGE_CENTER = {x: Math.round(W/2), y: roadY + 32};
   }
   const RADAR_DOME = {
-    x: _snap(W*0.40 + Math.random()*W*0.20),
-    y: (Math.random() < 0.7) ? 120 + Math.floor(Math.random()*60) : H - 200 + Math.floor(Math.random()*40),
+    x: _snap(W*0.40 + rnd()*W*0.20),
+    y: (rnd() < 0.7) ? 120 + Math.floor(rnd()*60) : H - 200 + Math.floor(rnd()*40),
     w: 48, h: 36, capRadius: 42,
   };
   const HQ = [
@@ -58,13 +58,13 @@ function _genMapImpl(){
     {team:1, x:W - 134, y:roadY - 22, w:74, h:84},
   ];
   /* Sectores: 6-9 puntos con separación mínima, fóra de río/estrada/HQs/radar */
-  const nomes = [...NOMES_LUGARES].sort(()=>Math.random()-0.5);
-  const nSec = 6 + Math.floor(Math.random()*4);
+  const nomes = [...NOMES_LUGARES].sort(()=>rnd()-0.5);
+  const nSec = 6 + Math.floor(rnd()*4);
   const SECTORS = [], PLACES = [];
   let intentos = 0;
   while(SECTORS.length < nSec && intentos++ < 400){
-    const x = 260 + Math.random()*(W - 520);
-    const y = 140 + Math.random()*(H - 280);
+    const x = 260 + rnd()*(W - 520);
+    const y = 140 + rnd()*(H - 280);
     if(arq==='CUENCA' && x > RIVER.x1 - 90 && x < RIVER.x2 + 90) continue;   /* fóra do río */
     if(y > roadY - 100 && y < roadY + 164) continue;                          /* fóra da estrada */
     if(Math.hypot(x - (RADAR_DOME.x+24), y - (RADAR_DOME.y+18)) < 130) continue;
@@ -82,28 +82,28 @@ function _genMapImpl(){
   PLACES.push({id:'HQ_ROJO', x:W-100, y:roadY+20, r:110, label:'el HQ Rojo'});
   /* Torretas e jeeps: 2+2 por bando preto dos HQs, con jitter */
   const TURRETS = [
-    {id:'T_AZUL',  x:_snap(280 + Math.random()*80),  y:_snap(roadY + 80 + Math.random()*60),  angle:-Math.PI/2},
-    {id:'T_AZUL2', x:_snap(280 + Math.random()*80),  y:_snap(roadY - 120 - Math.random()*60), angle:-Math.PI/2},
-    {id:'T_ROJO',  x:_snap(W - 360 + Math.random()*80), y:_snap(roadY + 80 + Math.random()*60),  angle:Math.PI/2},
-    {id:'T_ROJO2', x:_snap(W - 360 + Math.random()*80), y:_snap(roadY - 120 - Math.random()*60), angle:Math.PI/2},
+    {id:'T_AZUL',  x:_snap(280 + rnd()*80),  y:_snap(roadY + 80 + rnd()*60),  angle:-Math.PI/2},
+    {id:'T_AZUL2', x:_snap(280 + rnd()*80),  y:_snap(roadY - 120 - rnd()*60), angle:-Math.PI/2},
+    {id:'T_ROJO',  x:_snap(W - 360 + rnd()*80), y:_snap(roadY + 80 + rnd()*60),  angle:Math.PI/2},
+    {id:'T_ROJO2', x:_snap(W - 360 + rnd()*80), y:_snap(roadY - 120 - rnd()*60), angle:Math.PI/2},
   ];
-  const nJeeps = Math.random() < 0.5 ? 1 : 2;
+  const nJeeps = rnd() < 0.5 ? 1 : 2;
   const JEEPS = [];
   for(let i=0; i<nJeeps; i++){
-    JEEPS.push({id:'J_AZUL'+(i?i+1:''), x:_snap(340 + Math.random()*60), y:_snap(roadY - 40 + i*90)});
-    JEEPS.push({id:'J_ROJO'+(i?i+1:''), x:_snap(W - 400 + Math.random()*60), y:_snap(roadY - 40 + i*90)});
+    JEEPS.push({id:'J_AZUL'+(i?i+1:''), x:_snap(340 + rnd()*60), y:_snap(roadY - 40 + i*90)});
+    JEEPS.push({id:'J_ROJO'+(i?i+1:''), x:_snap(W - 400 + rnd()*60), y:_snap(roadY - 40 + i*90)});
   }
   /* Portas de muro na estrada */
   const WALLS = [];
   if(arq === 'CUENCA'){
-    WALLS.push({x:_snap(HQ[0].x + 340 + Math.random()*(RIVER.x1 - HQ[0].x - 520)), yStart:roadY, yEnd:roadY+64});
-    WALLS.push({x:_snap(RIVER.x2 + 180 + Math.random()*(HQ[1].x - RIVER.x2 - 520)), yStart:roadY, yEnd:roadY+64});
+    WALLS.push({x:_snap(HQ[0].x + 340 + rnd()*(RIVER.x1 - HQ[0].x - 520)), yStart:roadY, yEnd:roadY+64});
+    WALLS.push({x:_snap(RIVER.x2 + 180 + rnd()*(HQ[1].x - RIVER.x2 - 520)), yStart:roadY, yEnd:roadY+64});
   } else {
     for(const f of [0.28, 0.50, 0.72]){
-      WALLS.push({x:_snap(W*f + (Math.random()*120-60)), yStart:roadY, yEnd:roadY+64});
+      WALLS.push({x:_snap(W*f + (rnd()*120-60)), yStart:roadY, yEnd:roadY+64});
     }
   }
-  const zona = NOMES_ZONAS[Math.floor(Math.random()*NOMES_ZONAS.length)];
+  const zona = NOMES_ZONAS[Math.floor(rnd()*NOMES_ZONAS.length)];
   const apelido = nomes[nSec] || NOMES_LUGARES[0];
   return {W, H, RIVER, BRIDGE, BRIDGE_CENTER, RADAR_DOME, PLACES, SECTORS, HQ, TURRETS, JEEPS, WALLS,
           NAME: `${zona}, zona de ${apelido}`, ARQ: arq};

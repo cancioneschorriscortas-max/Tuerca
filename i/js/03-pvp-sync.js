@@ -933,8 +933,8 @@ function pickName(data, battleUnits){
   const used = new Set(data.units.map(u=>u.name));
   battleUnits.forEach(u=>{ if(u.team===PT) used.add(u.name); });
   const free = NAMES.filter(n=>!used.has(n));
-  return free.length ? free[Math.floor(Math.random()*free.length)]
-                     : NAMES[Math.floor(Math.random()*NAMES.length)];
+  return free.length ? free[Math.floor(rnd()*free.length)]
+                     : NAMES[Math.floor(rnd()*NAMES.length)];
 }
 
 /* ---------- Clases de unidad ---------- */

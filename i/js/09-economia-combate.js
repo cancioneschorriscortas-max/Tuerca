@@ -34,7 +34,7 @@ function dropScrap(g, x, y, amount){
       }
     }
   }
-  g.scrap.push({x: x + (Math.random()*16-8), y: y + (Math.random()*16-8),
+  g.scrap.push({x: x + (rnd()*16-8), y: y + (rnd()*16-8),
                 amount, timer: 90*60, collected: false});
 }
 
@@ -472,8 +472,8 @@ function tickProd(g){
       const spots = t===0
         ? [[hq.w+35, hq.h/2], [hq.w/2, -34], [hq.w/2, hq.h+34]]
         : [[-35, hq.h/2], [hq.w/2, -34], [hq.w/2, hq.h+34]];
-      const spot = spots[Math.floor(Math.random()*spots.length)];
-      let sx = hq.x + spot[0] + (Math.random()*24-12), sy = hq.y + spot[1] + (Math.random()*24-12);
+      const spot = spots[Math.floor(rnd()*spots.length)];
+      let sx = hq.x + spot[0] + (rnd()*24-12), sy = hq.y + spot[1] + (rnd()*24-12);
       if(typeof nudgeSpawn === 'function'){ const _ns = nudgeSpawn(g, t, sx, sy); sx = _ns.x; sy = _ns.y; }
       if(p.cls === 'TORRETA'){
         if(t === PT){
@@ -503,21 +503,21 @@ function tickProd(g){
       } else {
         const u = mkUnit(t, p.cls, sx, sy, null);
         /* (v0.14) BOTÍN: 12% dos inimigos producidos levan unha peza de equipo */
-        if(t === ET && Math.random() < 0.12){
+        if(t === ET && rnd() < 0.12){
           const lootables = ['mochila','blindaxe','mira'];
-          const eq = lootables[Math.floor(Math.random()*lootables.length)];
+          const eq = lootables[Math.floor(rnd()*lootables.length)];
           u.equipment.push(eq);
           if(eq==='mochila') u.spd *= 1.15;
           if(eq==='blindaxe'){ u.hp = Math.round(u.hp*1.2); u.max = Math.round(u.max*1.2); }
           if(eq==='mira') u.rng = Math.round(u.rng*1.2);
         }
         /* (v0.24.1) VETERANO DE VOLT: 25% de que a produción sexa un dos seus con nome */
-        if(t === 1 && (DATA.voltRoster || []).length && Math.random() < 0.25){
+        if(t === 1 && (DATA.voltRoster || []).length && rnd() < 0.25){
           g._voltFielded = g._voltFielded || new Set();
           const dispo = DATA.voltRoster.filter(v => !g._voltFielded.has(v.id) && v.cls === u.cls);
           const anyCls = dispo.length ? dispo : DATA.voltRoster.filter(v => !g._voltFielded.has(v.id));
           if(anyCls.length){
-            const vet = anyCls[Math.floor(Math.random() * anyCls.length)];
+            const vet = anyCls[Math.floor(rnd() * anyCls.length)];
             g._voltFielded.add(vet.id);
             u.name = vet.name;
             u._voltVet = vet;
@@ -528,11 +528,11 @@ function tickProd(g){
           }
         }
         /* (v0.19 R2) PORTADOR: 10% de sacar ao campo unha peza TÚA do pool inimigo */
-        if(t === 1 && (DATA.piezasEnemigas||[]).length && Math.random() < 0.10){
+        if(t === 1 && (DATA.piezasEnemigas||[]).length && rnd() < 0.10){
           g._pezasEnCampo = g._pezasEnCampo || new Set();
           const libres = DATA.piezasEnemigas.filter(p => !g._pezasEnCampo.has(p.id));
           if(libres.length){
-            const p = libres[Math.floor(Math.random()*libres.length)];
+            const p = libres[Math.floor(rnd()*libres.length)];
             g._pezasEnCampo.add(p.id);
             u._pezaPortada = p;
             /* (v0.23) O RADAR detecta a intel: sen el, o portador pasa ás túas costas */
@@ -563,9 +563,9 @@ function tickAI(g){
   /* (v0.11) Producción: independente da reasignación, mantén ritmo */
   if(g.aiProdTimer === undefined) g.aiProdTimer = 0;
   if(--g.aiProdTimer <= 0){
-    g.aiProdTimer = 300 + Math.random()*200;
+    g.aiProdTimer = 300 + rnd()*200;
     if(!g.prod[ET]){
-      const r=Math.random();
+      const r=rnd();
       if(DATA.opCount >= 2 && r > 0.92) queueUnit(ET, 'TANQUE');
       else queueUnit(ET, r<0.42?'GRUNT': r<0.66?'HEAVY': r<0.80?'ENGINEER': r<0.91?'SNIPER':'BOMBARDERO');
     }
@@ -644,12 +644,12 @@ function tickAI(g){
     if(u.intentEnterTurret || u.intentEnterVehicle) continue;  /* Respectar intents */
     if(u.role === 'DEFEND_HQ'){
       /* Ir cara o HQ propio, con dispersión arredor del */
-      const offX = (Math.random() - 0.5) * 80;
-      const offY = (Math.random() - 0.5) * 80;
+      const offX = (rnd() - 0.5) * 80;
+      const offY = (rnd() - 0.5) * 80;
       orderMove(u, hqRedCenter.x + offX, hqRedCenter.y + offY);
     } else if(u.role === 'CAPTURE' && u.roleTarget){
       const sec = g.sectors.find(s => s.id === u.roleTarget);
-      if(sec) orderMove(u, sec.x + (Math.random()*40-20), sec.y + (Math.random()*40-20));
+      if(sec) orderMove(u, sec.x + (rnd()*40-20), sec.y + (rnd()*40-20));
     } else if(u.role === 'ASSAULT'){
       orderMove(u, g.hq[PT].x + 60, g.hq[PT].y + 40);
     }
@@ -791,8 +791,8 @@ function chooseTarget(u, g){
         if(v.inside) continue;
         if((v.ops||0) < 3 && dist(u, v) < defaultD * 1.4) altFoes.push(v);
       }
-      if(altFoes.length > 0 && Math.random() < 0.5){
-        return altFoes[Math.floor(Math.random()*altFoes.length)];
+      if(altFoes.length > 0 && rnd() < 0.5){
+        return altFoes[Math.floor(rnd()*altFoes.length)];
       }
     }
     return defaultFoe;
@@ -839,8 +839,8 @@ function chooseTarget(u, g){
         if(d < pd){ pd = d; protector = a; }
       }
       if(protector){
-        u.tx = protector.x + (Math.random()*30 - 15);
-        u.ty = protector.y + (Math.random()*30 - 15);
+        u.tx = protector.x + (rnd()*30 - 15);
+        u.ty = protector.y + (rnd()*30 - 15);
       } else {
         /* Sin Heavy disponible: retirada al HQ propio */
         u.tx = g.hq[ET].x + g.hq[ET].w/2;
@@ -888,7 +888,7 @@ function tickUnits(g){
       }
       if(!st && dHq <= u.rng + 20){ st = hqFoe; stype = 'hq'; }
       if(st){
-        u.cool = u.fireCool || 46; if(u.act) u.act.shots++; u._revealT = g.t; if(u.team===PT||Math.random()<0.5) sfxT('shot_'+u.cls.toLowerCase(), 75);
+        u.cool = u.fireCool || 46; if(u.act) u.act.shots++; u._revealT = g.t; if(u.team===PT||rnd()<0.5) sfxT('shot_'+u.cls.toLowerCase(), 75);
         const killPilot = (host, cause) => {
           const dead = host.occupant;
           dead.dead = true; dead.deathCause = cause;
@@ -935,7 +935,7 @@ function tickUnits(g){
       }
     }
     if(foe && fd<=u.rng && u.cool<=0){
-      u.cool = u.fireCool || 46; if(u.act) u.act.shots++; u._revealT = g.t; if(u.team===PT||Math.random()<0.5) sfxT('shot_'+u.cls.toLowerCase(), 75);
+      u.cool = u.fireCool || 46; if(u.act) u.act.shots++; u._revealT = g.t; if(u.team===PT||rnd()<0.5) sfxT('shot_'+u.cls.toLowerCase(), 75);
       const _dmgCob = enCobertura(foe, u, g) ? u.dmg * 0.75 : u.dmg;
       foe.hp -= _dmgCob;
       if(foe.act) foe.act.dmgTaken += _dmgCob;
@@ -948,7 +948,7 @@ function tickUnits(g){
           }
         }
         /* (v0.26) CRÁTER: a explosión deixa cicatriz no chan — e o burato é cobertura */
-        if(Math.random() < 0.35 && !inWater(foe.x, foe.y)){
+        if(rnd() < 0.35 && !inWater(foe.x, foe.y)){
           g.craters = g.craters || [];
           g.craters.push({x: foe.x, y: foe.y, r: 8});
           if(g.craters.length > 40) g.craters.shift();
@@ -1017,7 +1017,7 @@ function tickUnits(g){
       }
     } else if(!foe || fd>u.rng){
       if(dHq<=u.rng+20 && u.cool<=0){
-        u.cool = u.fireCool || 46; if(u.act) u.act.shots++; u._revealT = g.t; if(u.team===PT||Math.random()<0.5) sfxT('shot_'+u.cls.toLowerCase(), 75); if(hqEscudado(g, u.team===PT?1:0)){ avisoEscudo(g, u.team===PT?1:0, u.team); } else { hqFoe.hp-=u.dmg * (u.habilidades && u.habilidades.antimuro ? 2 : 1); }
+        u.cool = u.fireCool || 46; if(u.act) u.act.shots++; u._revealT = g.t; if(u.team===PT||rnd()<0.5) sfxT('shot_'+u.cls.toLowerCase(), 75); if(hqEscudado(g, u.team===PT?1:0)){ avisoEscudo(g, u.team===PT?1:0, u.team); } else { hqFoe.hp-=u.dmg * (u.habilidades && u.habilidades.antimuro ? 2 : 1); }
         /* (v0.11) Tracking de ameaza: marcar que o HQ foi atacado neste frame */
         hqFoe.lastDamageT = g.t;
         g.tracers.push({x1:u.x,y1:u.y,x2:hqFoe.x+hqFoe.w/2,y2:hqFoe.y+hqFoe.h/2,t:6,team:u.team});
@@ -1030,7 +1030,7 @@ function tickUnits(g){
         if(tu.destroyed || tu.team===u.team || tu.team===-1) continue;
         const dT = Math.hypot(tu.x-u.x, tu.y-u.y);
         if(dT <= u.rng + 5){
-          u.cool = u.fireCool || 46; if(u.act) u.act.shots++; u._revealT = g.t; if(u.team===PT||Math.random()<0.5) sfxT('shot_'+u.cls.toLowerCase(), 75);
+          u.cool = u.fireCool || 46; if(u.act) u.act.shots++; u._revealT = g.t; if(u.team===PT||rnd()<0.5) sfxT('shot_'+u.cls.toLowerCase(), 75);
           if(tu.occupant && !tu.occupant.dead){
             /* (v0.14) SNIPER mata pilotos a través da cúpula: 30/70. Resto 70/30 */
             const spT = u.cls==='SNIPER' ? 0.30 : (u.habilidades && u.habilidades.cazapilotos ? 0.50 : 0.70);
@@ -1083,7 +1083,7 @@ function tickUnits(g){
         if(veh.destroyed || veh.team===u.team || veh.team===-1) continue;
         const dV = Math.hypot(veh.x-u.x, veh.y-u.y);
         if(dV <= u.rng + 5){
-          u.cool = u.fireCool || 46; if(u.act) u.act.shots++; u._revealT = g.t; if(u.team===PT||Math.random()<0.5) sfxT('shot_'+u.cls.toLowerCase(), 75);
+          u.cool = u.fireCool || 46; if(u.act) u.act.shots++; u._revealT = g.t; if(u.team===PT||rnd()<0.5) sfxT('shot_'+u.cls.toLowerCase(), 75);
           if(veh.occupant && !veh.occupant.dead){
             /* (v0.14) Split por atacante e vehículo:
                normal→jeep 70/30 · normal→tanque 85/15 (blindado)
@@ -1135,7 +1135,7 @@ function tickUnits(g){
     if(u.cool<=0 && u._blockingWall && !u._blockingWall.destroyed){
       const dw = Math.hypot(u._blockingWall.x-u.x, u._blockingWall.y-u.y);
       if(dw <= u.rng + 12){
-        u.cool = u.fireCool || 46; if(u.act) u.act.shots++; u._revealT = g.t; if(u.team===PT||Math.random()<0.5) sfxT('shot_'+u.cls.toLowerCase(), 75);
+        u.cool = u.fireCool || 46; if(u.act) u.act.shots++; u._revealT = g.t; if(u.team===PT||rnd()<0.5) sfxT('shot_'+u.cls.toLowerCase(), 75);
         /* (v0.27.1) A IA non roe muros mentres a cazas: primeiro intenta rodealos */
         if(u.team !== PT && u.cls !== 'BOMBARDERO' && (u._wallTries || 0) < 2){
           u._wallTries = (u._wallTries || 0) + 1;
@@ -1166,7 +1166,7 @@ function tickUnits(g){
         }
         if(best) orderMove(u, best.x, best.y);
         else if(Math.hypot(u.tx-u.x, u.ty-u.y) < 8){
-          orderMove(u, 100 + Math.random()*(W-200), 100 + Math.random()*(H-200));
+          orderMove(u, 100 + rnd()*(W-200), 100 + rnd()*(H-200));
         }
       }
     }
@@ -1261,7 +1261,7 @@ function tickUnits(g){
       if(reparoEsteFrame && u.team===PT){
         u.repairVoiceCool = (u.repairVoiceCool||0) - 1;
         if(u.repairVoiceCool <= 0){
-          if(Math.random() < 0.4) playVoice(u.cls, 'repair');
+          if(rnd() < 0.4) playVoice(u.cls, 'repair');
           u.repairVoiceCool = 60 * 8;  /* 8 segundos */
         }
       }
@@ -1512,18 +1512,18 @@ function tickUnits(g){
         g._wave++;
         g._waveClearT = g.t;
         const n = 2 + g._wave;
-        const dende = Math.random() < 0.5 ? 30 : H - 30;
-        const x0 = 150 + Math.random() * (W - 300);
+        const dende = rnd() < 0.5 ? 30 : H - 30;
+        const x0 = 150 + rnd() * (W - 300);
         g._greysN = g._greysN || 0;
         for(let i = 0; i < n; i++){
           const cls = (i === 0 && g._wave >= 3) ? 'HEAVY' : (i === 1 && g._wave >= 4) ? 'SNIPER' : 'GRUNT';
-          const u = mkUnit(2, cls, x0 + (i - n/2) * 26, dende + (Math.random()*16 - 8), null);
+          const u = mkUnit(2, cls, x0 + (i - n/2) * 26, dende + (rnd()*16 - 8), null);
           g._greysN++;
           u.name = 'VAL-' + String(g._greysN).padStart(2, '0');
           const f = 1 + 0.07 * g._wave;
           u.hp = Math.round(u.hp * f); u.max = u.hp;
           g.units.push(u);
-          orderMove(u, W/2 + (Math.random()*240 - 120), H/2 + (Math.random()*180 - 90));
+          orderMove(u, W/2 + (rnd()*240 - 120), H/2 + (rnd()*180 - 90));
         }
         radio('▣ ÓPTIMA: ' + TXT('optima.iteracion', {n: g._wave, u: n}), '#e8c060');
         sfxT('voice_blip', 200, 'OPTIMA');
@@ -1537,7 +1537,7 @@ function tickUnits(g){
   }
   if(g.modo !== 'crisol' && g.modo !== 'pvp' && !g._greysTried && g.t > 2700 && DATA.opCount >= 3){
     g._greysTried = true;
-    if(Math.random() < 0.30) spawnGreys(g);
+    if(rnd() < 0.30) spawnGreys(g);
   }
   /* (v0.21 R2) VÍNCULOS: buff activo se o compañeiro está preto */
   if(g.t % 20 === 0){
