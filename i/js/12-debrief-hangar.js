@@ -2,6 +2,12 @@
    FIN DE BATALLA → DEBRIEF → PERSISTENCIA
    ============================================================ */
 async function endBattle(g){
+  /* (v0.60) o Mundial ten o seu propio peche: non toca DATA nin o debrief */
+  if(g.modo === 'mundial' && typeof mundialFinPartido === 'function') return mundialFinPartido(g);
+  /* (v0.64) o arquiveiro pecha o capítulo se hai snapshot pendente */
+  try{ if(typeof diarioPecharBatalla === 'function') diarioPecharBatalla(g); }catch(e){}
+  /* (v0.63) voz de mando ao pechar operación de campaña */
+  try{ if(typeof vozMando === 'function') vozMando(g.result === 'victory' ? 'op.vitoria' : 'op.derrota'); }catch(e){}
   stopMusic();
   if(g.finished) return; g.finished=true;
   if(g.modo === 'pvp' && window._pvp){
@@ -22,6 +28,7 @@ async function endBattle(g){
   }
   game=null;
   DATA.opCount++;
+  try{ if(typeof diarioFinActo === 'function') diarioFinActo(); }catch(e){}   /* (v0.65) */
   /* (v0.12) ECONOMÍA: bonus do HQ na vitoria + acreditar o recollido */
   if(g.result === 'victory'){
     g.chatarraGanada = (g.chatarraGanada||0) + CHATARRA_VALUES.HQ;
@@ -128,7 +135,8 @@ async function endBattle(g){
     const reactor = survivors.find(u => u.personalidad);
     if(reactor){
       const est = estadoConfianza(reactor);
-      const arr = REACCIONS_COMUNICADO[est] || REACCIONS_COMUNICADO.SARCASTICO;
+      const _RC = REACCIONS_COMUNICADO_ML[I18N.lang] || REACCIONS_COMUNICADO_ML.es;
+      const arr = _RC[est] || _RC.SARCASTICO;
       const rx = arr[Math.floor(Math.random()*arr.length)];
       if(rx !== '...'){
         const col = est === 'LEAL' ? '#7fdc7f' : est === 'SARCASTICO' ? '#cfe0ff' : est === 'DESCONFIADO' ? '#ffd24a' : '#ff5340';
@@ -296,9 +304,9 @@ async function endBattle(g){
     const ctx = {endIntegrity: u.hp/u.max};
     const newMedals = checkMedals(rec, ctx);
 
-    let line = `<div class="ok">✔ ${rec.id} '${rec.name}' — op nº${rec.ops}, +${u.kills} bajas`;
-    if(newTraits.length) line += ` · NUEVO RASGO: ${newTraits.join(', ')}`;
-    if(newMedals.length) line += ` <span class="gold">· ✪ ${newMedals.map(m=>m.label).join(', ')}</span>`;
+    let line = `<div class="ok">✔ ${TXT('deb.opLine', {id: rec.id, n: rec.name, ops: rec.ops, k: u.kills})}`;
+    if(newTraits.length) line += TXT('deb.novoRasgo') + newTraits.map(t=>tagLabel(t)).join(', ');
+    if(newMedals.length) line += ` <span class="gold">· ✪ ${newMedals.map(m=>medalLabel(m.id)).join(', ')}</span>`;
     line += '</div>';
     /* (v0.11) Frase de peche segundo HP final + personalidade + confianza */
     const hpRatio = u.hp / u.max;
@@ -316,7 +324,7 @@ async function endBattle(g){
     if(u._lvlUps && u._lvlUps.length){
       for(const lu of u._lvlUps){
         const roman = ['','I','II','III'][lu.lv];
-        line += `<div style="margin-left:24px; color:#9fd0ff;">▲ ${SKILLS[lu.id].label} ${roman} — +${Math.round(lu.bonus*100)}% ${lu.stat}</div>`;
+        line += `<div style="margin-left:24px; color:#9fd0ff;">${TXT('deb.skillUp', {sk: skillLabel(lu.id), r: roman, b: Math.round(lu.bonus*100), stat: statName(lu.stat)})}</div>`;
       }
     }
     lines.push(line);
@@ -389,14 +397,14 @@ async function endBattle(g){
     if(!rec.traits.includes('RECONSTRUIDO')) rec.traits.push('RECONSTRUIDO');
     const ctx = {endIntegrity: 0.5};
     checkMedals(rec, ctx);
-    lines.push(`<div class="gold">✚ ${rec.id} '${rec.name}' — RECUPERADO en ${placeLabel(r.place)}. Vuelve al roster.</div>`);
+    lines.push(`<div class="gold">${TXT('deb.recuperado', {id: rec.id, n: rec.name, l: placeLabel(r.place)})}</div>`);
     if(u._lvlDowns && u._lvlDowns.length){
       for(const ld of u._lvlDowns){
         const roman = ['—','I','II','III'][ld.lv];
-        lines.push(`<div style="margin-left:24px; color:#a05a50;">▼ Reconstrución imperfecta: ${SKILLS[ld.id].label} baixa a ${roman}</div>`);
+        lines.push(`<div style="margin-left:24px; color:#a05a50;">${ld.lv > 0 ? TXT('deb.reconBaixa', {sk: skillLabel(ld.id), r: roman}) : TXT('deb.reconPerdida', {sk: skillLabel(ld.id)})}</div>`);
       }
     } else {
-      lines.push(`<div style="margin-left:24px; color:#777;" class="small">Reconstrución imperfecta: parte do aprendido quedou nos restos.</div>`);
+      lines.push(`<div style="margin-left:24px; color:#777;" class="small">${TXT('deb.reconImperfecta')}</div>`);
     }
   }
 
@@ -406,8 +414,8 @@ async function endBattle(g){
     const rec = DATA.units.find(rr=>rr.id===u.id);
     const ops = rec?rec.ops:0;
     const kl = (rec?rec.kills:0) + u.kills;
-    const reason = r.expired ? 'restos perdidos' : 'restos no recuperados';
-    DATA.fallen.push(`${u.id} '${u.name}' — ${ops} ops, ${kl} bajas. Caído en ${placeLabel(r.place)}, Operación ${DATA.opCount} (${reason}).`);
+    const reason = r.expired ? TXT('deb.restosPerdidos') : TXT('deb.restosNoRec');
+    DATA.fallen.push(TXT('deb.fallenLine', {id: u.id, n: u.name, ops, k: kl, l: placeLabel(r.place), op: DATA.opCount, reason}));
     /* (v0.26) ÚLTIMA TRANSMISIÓN: os veteranos non marchan calados */
     if(ops >= 3){
       const ULTIMAS_ML = {
@@ -437,22 +445,22 @@ async function endBattle(g){
       const pool = ULTIMAS[u.personalidad] || ULTIMAS.ESTOICO;
       lines.push(`<div style="margin-left:24px; font-style:italic; color:#8a97a8;" class="small">📻 ${TXT('deb.ultima', {nome: u.name})} «${pool[Math.floor(Math.random()*pool.length)]}»</div>`);
     }
-    lines.push(`<div class="bad">✝ ${u.id} '${u.name}' — caído en ${placeLabel(r.place)}. ${reason.charAt(0).toUpperCase()+reason.slice(1)}.</div>`);
+    lines.push(`<div class="bad">${TXT('deb.caido', {id: u.id, n: u.name, l: placeLabel(r.place), reason: reason.charAt(0).toUpperCase()+reason.slice(1)})}</div>`);
     /* (v0.11) Mensaxe do sistema baixo o caído (neutral, sen pool novo) */
-    lines.push(`<div style="margin-left:24px; margin-bottom:8px; font-style:italic; color:#666;">[ Comunicación perdida con ${u.name} en ${placeLabel(r.place)}. ]</div>`);
+    lines.push(`<div style="margin-left:24px; margin-bottom:8px; font-style:italic; color:#666;">${TXT('deb.comPerdida', {n: u.name, l: placeLabel(r.place)})}</div>`);
     /* (v0.19) DESPECE: das perdas sacan pezas — o campo é do gañador */
     {
       const pzs = xerarPezas(rec, u, DATA.opCount);
       if(pzs.length){
         if(g.result === 'victory'){
           DATA.piezas = (DATA.piezas || []).concat(pzs);
-          lines.push(`<div style="margin-left:24px; margin-bottom:8px; color:#c8a86a;" class="small">⚙ Despece recuperado: ${pzs.map(p=>PEZA_LABEL[p.tipo]).join(', ')} → inventario (⚙ Despiece no hangar: serven para RECONSTRUIR caídos).</div>`);
+          lines.push(`<div style="margin-left:24px; margin-bottom:8px; color:#c8a86a;" class="small">${TXT('deb.despece', {p: pzs.map(p=>pezaLabel(p.tipo)).join(', ')})}</div>`);
         } else {
           DATA.piezasEnemigas = (DATA.piezasEnemigas || []).concat(pzs);
-          lines.push(`<div style="margin-left:24px; margin-bottom:8px; color:#a05a50;" class="small">⚙ O inimigo controlou o campo: ${pzs.map(p=>PEZA_LABEL[p.tipo]).join(', ')} de ${u.name} en mans inimigas.</div>`);
+          lines.push(`<div style="margin-left:24px; margin-bottom:8px; color:#a05a50;" class="small">${TXT('deb.inimigoCampo', {p: pzs.map(p=>pezaLabel(p.tipo)).join(', '), n: u.name})}</div>`);
         }
       } else {
-        lines.push(`<div style="margin-left:24px; margin-bottom:8px; color:#555;" class="small">⚙ Nada aproveitable nos restos.</div>`);
+        lines.push(`<div style="margin-left:24px; margin-bottom:8px; color:#555;" class="small">${TXT('deb.nadaAproveitable')}</div>`);
       }
       /* Gardar a ficha da IA para o Reconstructor (R2) */
       if(rec){
@@ -578,13 +586,13 @@ async function endBattle(g){
     setTimeout(() => sfx('levelup'), 400);
   }
   $('dbTitle').textContent = g.result==='victory'
-    ? '// VICTORIA — HQ enemigo destruido'
-    : '// DERROTA — operación fallida';
+    ? TXT('deb.vitoria')
+    : TXT('deb.derrota');
   if(g.result==='victory') playSysVoice('victory');
   else                     playSysVoice('defeat');
   $('dbBody').innerHTML =
-    `<p>Operación nº${DATA.opCount} · Bajas enemigas: ${g.kills[PT]} · Bajas propias: ${lostRemains.length} · Recuperados: ${recovered.length} · <span style="color:#c8a86a;">Chatarra: +${g.chatarraGanada||0} (total ${DATA.chatarra||0})</span>${g._pvpBotinInfo || ''}${(g.lootGanado&&g.lootGanado.length)?` · <span style="color:#ffd700;">★ BOTÍN: ${g.lootGanado.map(l=>EQUIPOS[l]?EQUIPOS[l].label:l).join(', ')}</span>`:''}</p><br>`+
-    (lines.length?lines.join(''):'<div>Sin supervivientes que registrar.</div>');
+    `<p>${TXT('deb.stats', {op: DATA.opCount, be: g.kills[PT], bp: lostRemains.length, r: recovered.length})}<span style="color:#c8a86a;">${TXT('deb.chatarra', {g: g.chatarraGanada||0, t: DATA.chatarra||0})}</span>${g._pvpBotinInfo || ''}${(g.lootGanado&&g.lootGanado.length)?` · <span style="color:#ffd700;">${TXT('deb.botin', {l: g.lootGanado.map(l=>eqLabel(l)).join(', ')})}</span>`:''}</p><br>`+
+    (lines.length?lines.join(''):`<div>${TXT('deb.senSuperviventes')}</div>`);
   $('battle').style.display='none';
   $('debrief').style.display='block';
 }
@@ -599,7 +607,7 @@ async function showHangar(){
   $('hangar').style.display='block';
   /* (v0.12) Display de chatarra */
   const chd = $('chatarraDisplay');
-  if(chd) chd.textContent = `⚙ CHATARRA: ${DATA.chatarra||0}`;
+  if(chd) chd.textContent = TXT('hg.chatarra', {n: DATA.chatarra||0});
   /* (v0.11) Asegurar que veteranos antigos teñen personalidade asignada */
   for(const u of DATA.units){
     if(!u.personalidad) u.personalidad = pickPersonalidad(u.cls);
@@ -612,7 +620,7 @@ async function showHangar(){
     });
   }, 0);
   if(DATA.units.length===0){
-    list.innerHTML='<div>Roster vacío. Las unidades que sobrevivan a una operación aparecerán aquí.</div>';
+    list.innerHTML=`<div>${TXT('hg.rosterVacio')}</div>`;
   } else {
     /* Panel de briefing onde fala a unidade marcada */
     const briefingPanelHTML = `
@@ -634,14 +642,14 @@ async function showHangar(){
     for(const r of DATA.units) window._rosterStats[r.id] = statsPreview(r);
     window._rosterSort = window._rosterSort || 'ops';
     const SORTS = {
-      ops:  {label:'Ops',  val:(u)=>u.ops||0},
-      dmg:  {label:'⚔ Dano', val:(u)=>window._rosterStats[u.id].dmg},
-      hp:   {label:'♥ Vida', val:(u)=>window._rosterStats[u.id].hp},
-      spd:  {label:'» Vel.', val:(u)=>window._rosterStats[u.id].spd},
-      rng:  {label:'◎ Rango', val:(u)=>window._rosterStats[u.id].rng},
-      kills:{label:'✕ Baixas', val:(u)=>u.kills||0},
+      ops:  {label:TXT('hg.sOps'),    val:(u)=>u.ops||0},
+      dmg:  {label:TXT('hg.sDano'),   val:(u)=>window._rosterStats[u.id].dmg},
+      hp:   {label:TXT('hg.sVida'),   val:(u)=>window._rosterStats[u.id].hp},
+      spd:  {label:TXT('hg.sVel'),    val:(u)=>window._rosterStats[u.id].spd},
+      rng:  {label:TXT('hg.sRango'),  val:(u)=>window._rosterStats[u.id].rng},
+      kills:{label:TXT('hg.sBaixas'), val:(u)=>u.kills||0},
     };
-    const sortBarHTML = `<div style="margin-bottom:8px;" class="small">Ordenar: ` +
+    const sortBarHTML = `<div style="margin-bottom:8px;" class="small">${TXT('hg.ordenar')} ` +
       Object.entries(SORTS).map(([k, s]) =>
         `<button data-rsort="${k}" style="background:#111; color:${window._rosterSort===k?'#ffd700':'#8fbf8f'}; border:1px solid ${window._rosterSort===k?'#ffd700':'#3f5f3f'}; font-family:inherit; font-size:10px; padding:2px 8px; cursor:pointer;">${s.label}</button>`
       ).join(' ') + `</div>`;
@@ -653,34 +661,34 @@ async function showHangar(){
       const medalsHtml = (u.medals||[]).map(mid=>{
         const m = MEDAL_DEFS.find(x=>x.id===mid);
         const sub = (m && m.subtitle) ? m.subtitle(u) : null;
-        return `<span class="medal" title="${m?m.label:mid}${sub?' ('+sub+')':''}">✪ ${m?m.label:mid}</span>`;
+        return `<span class="medal" title="${medalLabel(mid)}${sub?' ('+sub+')':''}">✪ ${medalLabel(mid)}</span>`;
       }).join('');
       /* Stats específicas por clase */
       let statsLine;
       if(u.cls === 'ENGINEER'){
         const reps = Math.round(u.totalRepairs||0);
         const recovered = u.unitsRecovered||0;
-        statsLine = `· ${u.ops} ops · ${recovered} recuperados · ${reps} HP reparados${u.kills?' · '+u.kills+' bajas':''}${u.recoveries?' · ✚'+u.recoveries:''}`;
+        statsLine = TXT('hg.lineEng', {o: u.ops, r: recovered, h: reps}) + (u.kills?TXT('hg.lineBajas', {k: u.kills}):'') + (u.recoveries?' · ✚'+u.recoveries:'');
       } else {
-        statsLine = `· ${u.ops} ops · ${u.kills} bajas${u.recoveries?' · ✚'+u.recoveries:''}`;
+        statsLine = TXT('hg.lineStd', {o: u.ops, k: u.kills}) + (u.recoveries?' · ✚'+u.recoveries:'');
       }
       const isUpgraded = (DATA.pendingUpgraded||[]).includes(u.id);
       const enFolga = u.folga && u.folga.ops > 0;   /* (v0.28) négase a despregar */
       return `<label class="roster-item"${enFolga?' style="opacity:0.72;"':''}>
-        <input type="checkbox" data-i="${i}" ${enFolga?'disabled title="En folga: négase a despregar"':(isUpgraded?'checked disabled title="Vai fixo: acaba de ser equipado"':'')}>
+        <input type="checkbox" data-i="${i}" ${enFolga?`disabled title="${TXT('hg.folgaTitle')}"`:(isUpgraded?`checked disabled title="${TXT('hg.fixoTitle')}"`:'')}>
         <b>${u.id} '${nomeCompleto(u)}'</b> <span>${u.cls}</span>
         <span class="small" style="color:#9ab0c8;">⚔${st.dmg} ♥${st.hp} »${st.spd} ◎${st.rng}</span>
         <span class="small">${statsLine}</span>
-        ${(u.traits||[]).map(t=>`<span class="tag">${t}</span>`).join('')}
+        ${(u.traits||[]).map(t=>`<span class="tag">${tagLabel(t)}</span>`).join('')}
         ${medalsHtml}
-        ${(u.equipment||[]).map(e=>`<span class="tag" style="color:#c8a86a; border-color:#c8a86a;">⚙ ${EQUIPOS[e]?EQUIPOS[e].label:e}</span>`).join('')}
+        ${(u.equipment||[]).map(e=>`<span class="tag" style="color:#c8a86a; border-color:#c8a86a;">⚙ ${eqLabel(e)}</span>`).join('')}
         ${skillTagsHTML(u)}
-        ${u.renacido ? '<span class="tag" style="color:#ff9a3c; border-color:#ff9a3c;">⟲ RENACIDO</span>' : ''}
-        ${u.folga && u.folga.ops>0 ? `<span class="tag" style="color:#ff5340; border-color:#ff5340;">✊ EN FOLGA ${u.folga.ops} op${u.folga.ops>1?'s':''} — por ${u.folga.por}</span>` : ''}
+        ${u.renacido ? `<span class="tag" style="color:#ff9a3c; border-color:#ff9a3c;">${TXT('hg.renacido')}</span>` : ''}
+        ${u.folga && u.folga.ops>0 ? `<span class="tag" style="color:#ff5340; border-color:#ff5340;">${TXT('hg.folga', {ops: u.folga.ops+' op'+(u.folga.ops>1?'s':''), por: u.folga.por})}</span>` : ''}
         ${u.sinergia && SINERXIAS[u.sinergia] ? `<span class="tag" style="color:#ffd700; border-color:#ffd700;">✦ ${SINERXIAS[u.sinergia].label}</span>` : ''}
-        <button class="bio-btn" data-bio="${i}">▸ biografía</button>
-        <button class="rename-btn" data-ren="${i}">✎ renombrar</button>
-        <button class="bio-btn" data-equip="${i}" style="color:#c8a86a;">⚙ mellorar</button>
+        <button class="bio-btn" data-bio="${i}">${TXT('hg.biografia')}</button>
+        <button class="rename-btn" data-ren="${i}">${TXT('hg.renombrar')}</button>
+        <button class="bio-btn" data-equip="${i}" style="color:#c8a86a;">${TXT('hg.mellorar')}</button>
       </label>`;
     }).join('');
     list.querySelectorAll('input').forEach(cb=>{
@@ -719,7 +727,10 @@ async function showHangar(){
         }
       });
     });
-    list.querySelectorAll('.bio-btn').forEach(b=>{
+    /* (v0.42 FIX) só os botóns con data-bio abren a biografía — .bio-btn é
+       clase COMPARTIDA (mellorar, fundir, reconstruír...) e disparaba
+       showBiography(undefined) → TypeError reading 'id' */
+    list.querySelectorAll('[data-bio]').forEach(b=>{
       b.addEventListener('click',e=>{
         e.preventDefault(); e.stopPropagation();
         showBiography(DATA.units[+b.dataset.bio]);
@@ -741,7 +752,7 @@ async function showHangar(){
   const mem=$('memorial');
   mem.innerHTML = DATA.fallen.length
     ? '<b>MEMORIAL:</b><br>'+DATA.fallen.map(f=>`<div class="dead">✝ ${f}</div>`).join('')
-    : '<b>MEMORIAL:</b> sin caídos registrados.';
+    : `<b>MEMORIAL:</b> ${TXT('hg.senCaidos')}`;
 }
 
 /* ============================================================
@@ -862,80 +873,75 @@ function showDespiece(){
   let body = '';
   /* (v0.28.1) Relato dun desmantelamento acabado de executar: render único, sen mutacións posteriores */
   if(window._desmRelato){ body += window._desmRelato; window._desmRelato = null; }
-  body += `<div class="small" style="color:#c8a86a; margin-bottom:10px;">⚙ CHATARRA: <b>${DATA.chatarra||0}</b> · Pezas no inventario: <b>${pzs.length}</b></div>`;
+  body += `<div class="small" style="color:#c8a86a; margin-bottom:10px;">${TXT('dp.cab', {c: DATA.chatarra||0, p: pzs.length})}</div>`;
   /* (v0.21.1) Explicar O CICLO antes de ensinar o botón de fundir */
-  body += `<div class="small" style="border:1px solid #444; padding:8px 12px; margin-bottom:10px; color:#9fb8d0; line-height:1.5;">
-    As pezas son a materia prima do <b>RECONSTRUCTOR</b>: con elas reconstrúes as IAs en arquivo (máis abaixo).
-    <b style="color:#ff9a3c;">FUNDIR é irreversible.</b><br>
-    Non necesitas as 7 pezas dun robot — a reconstrución pide só <b>5 slots</b> (cabeza, chasis, núcleo, brazo, perna)
-    e os ocos cóbrense con recambio xenérico (+20⚙). As pezas reais valen máis: <b>herdan a experiencia e as
-    habilidades do doador</b>, aínda que fose doutra clase.</div>`;
+  body += `<div class="small" style="border:1px solid #444; padding:8px 12px; margin-bottom:10px; color:#9fb8d0; line-height:1.5;">${TXT('dp.ciclo')}</div>`;
   /* Cobertura de slots co inventario actual (se hai IAs que reconstruír) */
   if((DATA.iaArquivo||[]).length){
     const cobre = (tipos) => pzs.some(p => tipos.includes(p.tipo));
     const slots = [
-      ['CABEZA', cobre(['CABEZA'])], ['CHASIS', cobre(['CHASIS'])], ['NÚCLEO', cobre(['NUCLEO'])],
+      ['CABEZA', cobre(['CABEZA'])], ['CHASIS', cobre(['CHASIS'])], ['NUCLEO', cobre(['NUCLEO'])],
       ['BRAZO', cobre(['BRAZO_DER','BRAZO_ESQ'])], ['PERNA', cobre(['PERNA_DER','PERNA_ESQ'])],
     ];
-    body += `<div class="small" style="margin-bottom:10px; color:#888;">Slots cubertos co inventario:
-      ${slots.map(([n, ok]) => ok ? `<b style="color:#7fdc7f;">${n} ✓</b>` : `<span style="color:#666;">${n} — (recambio +20⚙)</span>`).join(' · ')}</div>`;
+    body += `<div class="small" style="margin-bottom:10px; color:#888;">${TXT('dp.slots')}
+      ${slots.map(([n, ok]) => ok ? `<b style="color:#7fdc7f;">${pezaLabel(n).toUpperCase()} ✓</b>` : `<span style="color:#666;">${pezaLabel(n).toUpperCase()} ${TXT('dp.recambio')}</span>`).join(' · ')}</div>`;
   }
   if(pzs.length === 0){
-    body += `<div class="small" style="color:#666; margin-bottom:10px;">Ningunha peza no inventario. As pezas recupéranse dos caídos cando controlas o campo (vitoria).</div>`;
+    body += `<div class="small" style="color:#666; margin-bottom:10px;">${TXT('dp.ningunha')}</div>`;
   } else {
     for(const p of pzs){
       body += `<div style="display:flex; align-items:center; gap:10px; padding:5px 0; border-bottom:1px solid #333;">
         <div style="flex:1;">${pezaDesc(p)} <span class="small" style="color:#555;">· Op ${p.op}</span></div>
-        <button class="bio-btn" data-fundir="${p.id}" title="Fundir en chatarra — IRREVERSIBLE: a peza deixa de existir para reconstrucións">FUNDIR ${valorFundicion(p)}⚙</button>
+        <button class="bio-btn" data-fundir="${p.id}" title="${TXT('dp.fundirTitle')}">${TXT('dp.fundir', {v: valorFundicion(p)})}</button>
       </div>`;
     }
   }
   /* Pool inimigo: sabes o que che falta e quen o ten */
   if(enemigas.length){
-    body += `<div style="margin-top:14px; color:#a05a50;"><b>EN MANS INIMIGAS (${enemigas.length}):</b></div>`;
+    body += `<div style="margin-top:14px; color:#a05a50;"><b>${TXT('dp.enMans', {n: enemigas.length})}</b></div>`;
     for(const p of enemigas){
-      body += `<div class="small" style="color:#8a5a50; padding:2px 0;">✖ ${PEZA_LABEL[p.tipo].toUpperCase()} DE ${p.deNome} (${p.deCls}) · perdida na Op ${p.op}</div>`;
+      body += `<div class="small" style="color:#8a5a50; padding:2px 0;">${TXT('dp.perdida', {peza: pezaLabel(p.tipo).toUpperCase(), n: p.deNome, cls: p.deCls, op: p.op})}</div>`;
     }
-    body += `<div class="small" style="color:#666; margin-top:6px;">Os portadores inimigos poden sacalas ao campo. Mata, recolle, recupera.</div>`;
+    body += `<div class="small" style="color:#666; margin-top:6px;">${TXT('dp.portadores')}</div>`;
   }
   /* IAs arquivadas (adianto do Reconstructor) */
   const ias = DATA.iaArquivo || [];
   if(ias.length){
-    body += `<div style="margin-top:14px; color:#9fd0ff;"><b>IAs EN ARQUIVO (${ias.length}):</b></div>`;
+    body += `<div style="margin-top:14px; color:#9fd0ff;"><b>${TXT('dp.iasArquivo', {n: ias.length})}</b></div>`;
     if(DATA.reconstruccion){
-      body += `<div class="small" style="color:#ff9a3c; margin:4px 0;">⚙ Taller OCUPADO: reconstruíndo a ${DATA.reconstruccion.rec.name}. Estará lista tras a próxima operación.</div>`;
+      body += `<div class="small" style="color:#ff9a3c; margin:4px 0;">${TXT('dp.tallerRec', {n: DATA.reconstruccion.rec.name})}</div>`;
     }
     for(let i=0; i<ias.length; i++){
       const r = ias[i];
       body += `<div style="display:flex; align-items:center; gap:10px; padding:4px 0;">
-        <div style="flex:1;" class="small">${r.id} '${r.name}' (${r.cls}, ${r.ops||0} ops) — caído Op ${r.deathOp||'?'} por ${causaLabel(r.deathCause)}</div>
-        ${DATA.reconstruccion ? '' : `<button class="bio-btn" data-rebuild="${i}" style="color:#9fd0ff;">▸ RECONSTRUIR</button>`}
+        <div style="flex:1;" class="small">${TXT('dp.iaLine', {id: r.id, n: r.name, cls: clsLabel(r.cls), ops: r.ops||0, op: r.deathOp||'?', causa: causaLabel(r.deathCause)})}</div>
+        ${DATA.reconstruccion ? '' : `<button class="bio-btn" data-rebuild="${i}" style="color:#9fd0ff;">${TXT('dp.reconstruir')}</button>`}
       </div>`;
     }
   }
   /* (v0.28) MONTAXE DESDE CERO */
   body += `<div style="margin-top:16px; border-top:1px solid #444; padding-top:10px;">
-    <b style="color:#7fdc7f;">⚒ MONTAXE DESDE CERO</b>
-    <div class="small" style="color:#888; margin:4px 0 8px;">Robot novo no taller: ${MONTAXE_COST}⚙ + pezas nos 5 slots (recambio +${RECON_RECAMBIO}⚙ por slot). IA en branco: nome novo, sen memorias, confianza baixa. <b>O CHASIS decide a clase.</b></div>
+    <b style="color:#7fdc7f;">${TXT('dp.montaxeTit')}</b>
+    <div class="small" style="color:#888; margin:4px 0 8px;">${TXT('dp.montaxeDesc', {c: MONTAXE_COST, r: RECON_RECAMBIO})}</div>
     ${DATA.reconstruccion
-      ? `<div class="small" style="color:#ff9a3c;">⚙ Taller OCUPADO.</div>`
-      : `<button class="bio-btn" id="btnMontaxe" style="color:#7fdc7f; border-color:#7fdc7f;">▸ MONTAR ROBOT NOVO</button>`}
+      ? `<div class="small" style="color:#ff9a3c;">${TXT('dp.tallerCurto')}</div>`
+      : `<button class="bio-btn" id="btnMontaxe" style="color:#7fdc7f; border-color:#7fdc7f;">${TXT('dp.montarBtn')}</button>`}
   </div>`;
   /* (v0.28) DESMANTELAMENTO DE VIVOS — a única morte elixida polo comandante */
   if((DATA.units||[]).length){
     body += `<div style="margin-top:16px; border-top:1px solid #a05a50; padding-top:10px;">
-      <b style="color:#ff7a5a;">⚠ DESMANTELAR UNIDADE VIVA</b>
-      <div class="small" style="color:#888; margin:4px 0 8px;">As súas 7 pezas completas (de nivel se era veterana) van ao inventario. O equipamento pérdese co corpo. <b style="color:#ff7a5a;">A súa IA bórrase PARA SEMPRE</b>: non vai ao arquivo, non se reconstrúe.<br>Con confianza ≥70 é <b style="color:#c8a86a;">DOAZÓN</b> (despedida digna; os camaradas paran 1 op; −15 conf. aos compañeiros de op). Con menos é <b style="color:#ff7a5a;">REQUISA</b> (sen despedida; os camaradas négan­se a despregar 2 ops; a confianza dos que compartiron ≥2 ops CAE a 20).</div>
+      <b style="color:#ff7a5a;">${TXT('dp.desmTit')}</b>
+      <div class="small" style="color:#888; margin:4px 0 8px;">${TXT('dp.desmDesc')}</div>
       <select id="desmSel" style="background:#111; color:#cfe0ff; border:1px solid #555; font-family:inherit; max-width:100%;">
         ${DATA.units.map(r => {
           const cam = DATA.units.filter(o => o!==r && (o.vinculos||[]).some(v=>v.con===r.id)).length;
-          return `<option value="${r.id}">${nomeCompleto(r)} (${r.cls}, ${r.ops||0} ops, conf. ${r.confianza||50} → ${(r.confianza||50)>=70?'DOAZÓN':'REQUISA'}${cam?`, ${cam} camarada${cam>1?'s':''} reaccionarán`:''})</option>`;
+          return `<option value="${r.id}">${nomeCompleto(r)} (${clsLabel(r.cls)}, ${r.ops||0} ops, conf. ${r.confianza||50} → ${TXT((r.confianza||50)>=70?'dp.doazon':'dp.requisa')}${cam?TXT('dp.camReac', {n: cam, s: cam>1?'s':''}):''})</option>`;
         }).join('')}
       </select>
-      <button class="bio-btn" id="desmBtn" style="color:#ff7a5a; border-color:#ff7a5a;">DESMANTELAR</button>
+      <button class="bio-btn" id="desmBtn" style="color:#ff7a5a; border-color:#ff7a5a;">${TXT('dp.desmBtn')}</button>
     </div>`;
   }
-  $('bioTitle').innerHTML = `⚙ DESPIECE — banco de pezas`;
+  $('bioTitle').innerHTML = TXT('dp.titulo');
   $('bioBody').innerHTML = body;
   $('bioModal').style.display = 'flex';
   $('bioBody').querySelectorAll('[data-rebuild]').forEach(b=>{
@@ -1001,8 +1007,8 @@ function showDespiece(){
     /* (v0.28.1) SEN carreiras: hangar primeiro (await), e o relato vai DENTRO do
        render único de showDespiece vía window._desmRelato — cero mutacións extra do DOM */
     window._desmRelato = `<div style="border:1px solid ${out.doazon?'#c8a86a':'#a05a50'}; padding:10px 14px; margin-bottom:12px;">
-      <b style="color:${out.doazon?'#c8a86a':'#ff7a5a'};">${out.doazon?'✝ DOAZÓN':'⚠ REQUISA'} — ${out.rec.name} desmantelado por orde do comandante.</b>
-      <div class="small" style="color:#888;">7 pezas ao inventario. A súa IA foi borrada para sempre.</div>
+      <b style="color:${out.doazon?'#c8a86a':'#ff7a5a'};">${TXT(out.doazon?'desm.doazonHdr':'desm.requisaHdr', {n: out.rec.name})}</b>
+      <div class="small" style="color:#888;">${TXT('desm.pezasIA')}</div>
       ${out.frase ? `<div style="font-style:italic; color:#cfe0ff; margin-top:6px;">«${out.frase}»</div>` : ''}
       ${out.optima ? `<div class="small" style="color:#e8c060; margin-top:6px;">▣ ÓPTIMA: ${out.optima}</div>` : ''}
       ${out.reaccions.length ? `<div class="small" style="margin-top:6px; color:#9ab0c8; line-height:1.5;">${out.reaccions.join('<br>')}</div>` : ''}
@@ -1222,6 +1228,8 @@ function entregarReconstruccion(lines){
     rec.recoveries = (rec.recoveries||0) + 1;
   }
   DATA.units.push(rec);
+  /* (v0.65) o arquiveiro anota o primeiro reensamblado con pezas alleas */
+  try{ if(typeof diarioReensamblado === 'function') diarioReensamblado(rec, [...doadores], !!R.desdeCero); }catch(e){}
   DATA.reconstruccion = null;
   /* Debrief */
   lines.push(`<div style="border:1px solid ${R.desdeCero?'#5a8a5a':'#5a80a8'}; padding:10px 14px; margin:12px 0; color:${R.desdeCero?'#7fdc7f':'#9fd0ff'};">
@@ -1326,29 +1334,29 @@ const CANTINA_CHARLAS_ML = {
 function showCantina(){
   const roster = (DATA.units || []).filter(r => r.personalidad || (r.personalidad = pickPersonalidad(r.cls)));
   if(roster.length < 2){
-    $('bioTitle').innerHTML = '🍺 CANTINA';
-    $('bioBody').innerHTML = '<div class="small">A cantina está baleira. Fan falla polo menos dous no roster para que haxa conversa.</div>';
+    $('bioTitle').innerHTML = TXT('ct.titulo');
+    $('bioBody').innerHTML = `<div class="small">${TXT('ct.baleira')}</div>`;
     $('bioModal').style.display = 'flex';
     return;
   }
   const presentes = roster.slice().sort(() => Math.random() - 0.5).slice(0, Math.min(5, roster.length));
   const estCol = (r) => { const e = estadoConfianza(r);
     return e === 'LEAL' ? '#7fdc7f' : e === 'SARCASTICO' ? '#cfe0ff' : e === 'DESCONFIADO' ? '#ffd24a' : '#ff8a70'; };
-  let body = `<div class="small" style="color:#c8a86a; margin-bottom:8px;">Na barra: ${presentes.map(r => nomeCompleto(r)).join(' · ')}</div>
+  let body = `<div class="small" style="color:#c8a86a; margin-bottom:8px;">${TXT('ct.naBarra')}${presentes.map(r => nomeCompleto(r)).join(' · ')}</div>
     <div id="cantinaFeed" style="min-height:120px; border:1px solid #333; padding:8px 12px; line-height:1.7;"></div>
     <div style="margin-top:10px;">
       <button class="bio-btn" id="btnRonda" style="color:#c8a86a; border-color:#c8a86a;"
-        ${DATA._rondaOp === DATA.opCount ? 'disabled style="opacity:0.4;"' : ''}>🍺 Invitar a unha rolda (−8⚙ · +2 confianza a todos)</button>
+        ${DATA._rondaOp === DATA.opCount ? 'disabled style="opacity:0.4;"' : ''}>${TXT('ct.rolda')}</button>
     </div>
     <div style="margin-top:8px;">
       <select id="selInvitado" style="background:#111; color:#cfe0ff; border:1px solid #555; font-family:inherit;">
         ${roster.slice().sort((a,b)=>(a.confianza||50)-(b.confianza||50)).map(r =>
-          `<option value="${r.id}">${nomeCompleto(r)} (conf. ${r.confianza||50}${r.renacido?' · RENACIDO':''})</option>`).join('')}
+          `<option value="${r.id}">${nomeCompleto(r)} (${TXT('ct.conf', {c: r.confianza||50})}${r.renacido?' · '+TXT('ct.renacido'):''})</option>`).join('')}
       </select>
       <button class="bio-btn" id="btnInvitar" style="color:#9fd0ff;"
-        ${DATA._invOp === DATA.opCount ? 'disabled style="opacity:0.4;"' : ''}>🥃 Invitar a un trago (−5⚙ · +6 confianza)</button>
+        ${DATA._invOp === DATA.opCount ? 'disabled style="opacity:0.4;"' : ''}>${TXT('ct.trago')}</button>
     </div>`;
-  $('bioTitle').innerHTML = '🍺 CANTINA';
+  $('bioTitle').innerHTML = TXT('ct.titulo');
   $('bioBody').innerHTML = body;
   $('bioModal').style.display = 'flex';
 
@@ -1364,8 +1372,8 @@ function showCantina(){
     const m = DATA.fallen[DATA.fallen.length - 1].match(/'([^']+)'/);
     if(m){
       const quen = presentes[0];
-      setTimeout(() => engadir(quen.name, estCol(quen), `Por ${m[1]}. Onde queira que estean os seus tornillos.`), atraso);
-      setTimeout(() => engadir(presentes[1].name, estCol(presentes[1]), 'Por todos.'), atraso + 1100);
+      setTimeout(() => engadir(quen.name, estCol(quen), TXT('ct.brinde1', {n: m[1]})), atraso);
+      setTimeout(() => engadir(presentes[1].name, estCol(presentes[1]), TXT('ct.brinde2')), atraso + 1100);
       atraso += 2600;
     }
   }
@@ -1393,33 +1401,33 @@ function showCantina(){
   }
   $('btnInvitar').addEventListener('click', async () => {
     if(DATA._invOp === DATA.opCount) return;
-    if((DATA.chatarra || 0) < 5){ engadir('BARMAN', '#888', 'Sin chatarra no hay trago. Normativa.'); return; }
+    if((DATA.chatarra || 0) < 5){ engadir('BARMAN', '#888', TXT('ct.senChatarraTrago')); return; }
     const r = DATA.units.find(x => x.id === $('selInvitado').value);
     if(!r) return;
     DATA.chatarra -= 5;
     DATA._invOp = DATA.opCount;
     r.confianza = Math.min(100, (r.confianza || 50) + 6);
     $('btnInvitar').disabled = true; $('btnInvitar').style.opacity = 0.4;
-    engadir('BARMAN', '#c8a86a', `Un trago para ${r.name}. Invita el comandante.`);
+    engadir('BARMAN', '#c8a86a', TXT('ct.tragoPara', {n: r.name}));
     const est = estadoConfianza(r);
     const resposta = r.renacido ? fraseRenacida(r)
-      : est === 'LEAL' ? 'Gracias, jefe. Esto... esto ayuda.'
-      : est === 'SARCASTICO' ? '¿Soborno líquido? Acepto. Pero lo apunto.'
-      : est === 'DESCONFIADO' ? '¿Qué quiere a cambio? ...Da igual. Salud.'
-      : 'Un trago no compra nada. Pero se agradece.';
+      : est === 'LEAL' ? TXT('ct.respLeal')
+      : est === 'SARCASTICO' ? TXT('ct.respSarc')
+      : est === 'DESCONFIADO' ? TXT('ct.respDesc')
+      : TXT('ct.respAuto');
     setTimeout(() => engadir(r.name, estCol(r), resposta), 1200);
     sfx('loot_pick');
     await saveData(DATA);
   });
   $('btnRonda').addEventListener('click', async () => {
     if(DATA._rondaOp === DATA.opCount) return;
-    if((DATA.chatarra || 0) < 8){ engadir('BARMAN', '#888', 'Sin chatarra no hay ronda. Normativa.'); return; }
+    if((DATA.chatarra || 0) < 8){ engadir('BARMAN', '#888', TXT('ct.senChatarraRolda')); return; }
     DATA.chatarra -= 8;
     DATA._rondaOp = DATA.opCount;
     for(const r of DATA.units) r.confianza = Math.min(100, (r.confianza || 50) + 2);
     $('btnRonda').disabled = true; $('btnRonda').style.opacity = 0.4;
-    engadir('BARMAN', '#c8a86a', 'Rolda da casa... pagada polo comandante. Whisky sintético para todos.');
-    setTimeout(() => engadir(presentes[0].name, estCol(presentes[0]), '¡Polo comandante, que polo menos paga!'), 1200);
+    engadir('BARMAN', '#c8a86a', TXT('ct.roldaCasa'));
+    setTimeout(() => engadir(presentes[0].name, estCol(presentes[0]), TXT('ct.roldaResp')), 1200);
     sfx('loot_pick');
     await saveData(DATA);
   });
@@ -1430,36 +1438,36 @@ function showEquipShop(idx){
   if(!u) return;
   /* (v0.19 R2) Taller ocupado pola reconstrución: nin compras nin botín */
   if(DATA.reconstruccion){
-    $('bioTitle').innerHTML = `⚙ Taller — OCUPADO`;
-    $('bioBody').innerHTML = `<div class="small" style="color:#ff9a3c;">O taller está dedicado por completo á reconstrución de <b>${DATA.reconstruccion.rec.name}</b>.<br><br>Nin compras, nin botín, nin outra reconstrución ata que remate — estará lista tras a próxima operación.</div>`;
+    $('bioTitle').innerHTML = `⚙ ${TXT('tl.taller')} — ${TXT('tl.ocupado')}`;
+    $('bioBody').innerHTML = `<div class="small" style="color:#ff9a3c;">${TXT('tl.ocupadoDesc', {n: DATA.reconstruccion.rec.name})}</div>`;
     $('bioModal').style.display = 'flex';
     return;
   }
   u.equipment = u.equipment || [];
   DATA.pendingUpgraded = DATA.pendingUpgraded || [];
   const yaMaximo = DATA.pendingUpgraded.length >= 2 && !DATA.pendingUpgraded.includes(u.id);
-  let body = `<div class="small" style="margin-bottom:10px; color:#c8a86a;">⚙ CHATARRA dispoñible: <b>${DATA.chatarra||0}</b></div>`;
+  let body = `<div class="small" style="margin-bottom:10px; color:#c8a86a;">${TXT('tl.chatarraDisp', {n: DATA.chatarra||0})}</div>`;
   if(yaMaximo){
-    body += `<div class="small" style="color:#ff8a70; margin-bottom:8px;">O taller só pode equipar 2 unidades por operación. Xa están ocupados.</div>`;
+    body += `<div class="small" style="color:#ff8a70; margin-bottom:8px;">${TXT('tl.max2')}</div>`;
   }
-  body += `<div class="small" style="color:#888; margin-bottom:12px;">Por cada unidade mellorada, un slot de despregue pasa a ser asignado polo HQ (aleatorio).</div>`;
+  body += `<div class="small" style="color:#888; margin-bottom:12px;">${TXT('tl.slotHQ')}</div>`;
   for(const [id, eq] of Object.entries(EQUIPOS)){
     if(eq.soCls && eq.soCls !== u.cls) continue;
     const owned = u.equipment.includes(id);
     const canBuy = !owned && !yaMaximo && (DATA.chatarra||0) >= eq.prezo;
     body += `<div style="display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid #333;">
       <div style="flex:1;">
-        <b style="color:#c8a86a;">${eq.label}</b> <span class="small" style="color:#666;">[${eq.grupo}]</span><br>
-        <span class="small">${eq.desc}</span>
+        <b style="color:#c8a86a;">${eqLabel(id)}</b> <span class="small" style="color:#666;">[${eqGrupo(eq.grupo)}]</span><br>
+        <span class="small">${eqDesc(id)}</span>
       </div>
       ${owned
-        ? '<span class="small" style="color:#7fdc7f;">EQUIPADO</span>'
+        ? `<span class="small" style="color:#7fdc7f;">${TXT('tl.equipado')}</span>`
         : ((DATA.lootInventory||[]).includes(id) && !yaMaximo
-            ? `<button class="bio-btn" data-loot="${id}" style="color:#ffd700; border-color:#ffd700;">★ BOTÍN</button>`
+            ? `<button class="bio-btn" data-loot="${id}" style="color:#ffd700; border-color:#ffd700;">${TXT('tl.botin')}</button>`
             : `<button class="bio-btn" data-buy="${id}" ${canBuy?'':'disabled style="opacity:0.4;"'}>${eq.prezo} ⚙</button>`)}
     </div>`;
   }
-  $('bioTitle').innerHTML = `⚙ Taller — ${u.id} '${u.name}' <span class="small">${u.cls}</span>`;
+  $('bioTitle').innerHTML = `⚙ ${TXT('tl.taller')} — ${u.id} '${u.name}' <span class="small">${clsLabel(u.cls)}</span>`;
   $('bioBody').innerHTML = body;
   $('bioModal').style.display = 'flex';
   $('bioBody').querySelectorAll('[data-loot]').forEach(b=>{
@@ -1493,19 +1501,19 @@ function showEquipShop(idx){
 
 /* ---------- Modal de biografía ---------- */
 function showBiography(u){
-  $('bioTitle').innerHTML = `${u.id} '${nomeCompleto(u)}' · <span class="small">${u.cls}</span>`;
+  $('bioTitle').innerHTML = `${u.id} '${nomeCompleto(u)}' · <span class="small">${clsLabel(u.cls)}</span>`;
   const events = u.events || [];
   /* (v0.15) Stats reais calculados (base + veteranía + equipo + skills) */
   const tmp = mkUnit(0, u.cls, 0, 0, u);
   const base = CLS[u.cls];
   const statRow = (lbl, v, b, suf='') => {
     const dif = Math.round((v/b - 1) * 100);
-    return `<tr><td style="padding:1px 8px;">${lbl}</td><td style="color:#9fd0ff;">${typeof v==='number'&&v%1!==0?v.toFixed(2):v}${suf}</td><td class="small" style="color:${dif>0?'#7fdc7f':'#666'};">${dif>0?'+'+dif+'%':'base'}</td></tr>`;
+    return `<tr><td style="padding:1px 8px;">${lbl}</td><td style="color:#9fd0ff;">${typeof v==='number'&&v%1!==0?v.toFixed(2):v}${suf}</td><td class="small" style="color:${dif>0?'#7fdc7f':'#666'};">${dif>0?'+'+dif+'%':TXT('bio.base')}</td></tr>`;
   };
   let statsHtml = `<table class="small" style="margin:8px 0; border-collapse:collapse;">
-    ${statRow('VELOCIDADE', tmp.spd, base.spd)}
-    ${statRow('DANO', Math.round(tmp.dmg), base.dmg)}
-    ${statRow('RANGO', tmp.rng, base.rng)}
+    ${statRow(TXT('stat.vel'), tmp.spd, base.spd)}
+    ${statRow(TXT('stat.dano'), Math.round(tmp.dmg), base.dmg)}
+    ${statRow(TXT('stat.rango'), tmp.rng, base.rng)}
     ${statRow('HP', tmp.max, base.hp)}
   </table>`;
   const act = u.activity || {};
@@ -1515,34 +1523,34 @@ function showBiography(u){
     const v = act[sk.track] || 0;
     const lv = skillLevel(act, id);
     const next = lv < 3 ? sk.th[lv] : null;
-    skillsHtml += `<div class="small" style="margin:2px 0;">◆ ${sk.label} <span style="color:#9fd0ff;">${['—','I','II','III'][lv]}</span>${next?` <span style="color:#666;">(${Math.round(v)}/${next})</span>`:' <span style="color:#ffd24a;">MÁX</span>'}</div>`;
+    skillsHtml += `<div class="small" style="margin:2px 0;">◆ ${skillLabel(id)} <span style="color:#9fd0ff;">${['—','I','II','III'][lv]}</span>${next?` <span style="color:#666;">(${Math.round(v)}/${next})</span>`:` <span style="color:#ffd24a;">${TXT('bio.max')}</span>`}</div>`;
   }
   statsHtml += `<div style="margin:6px 0;">${skillsHtml}</div>`;
   let body = `
     <div class="small" style="margin-bottom:10px;">
-      ${u.ops} operaciones · ${u.kills} bajas
-      ${u.recoveries?' · '+u.recoveries+' reconstrucciones':''}
-      ${u.crossings?' · '+u.crossings+' cruces de río':''}
+      ${u.ops} ${TXT('bio.operacions')} · ${u.kills} ${TXT('ui.bajas')}
+      ${u.recoveries?' · '+u.recoveries+' '+TXT('bio.reconsW'):''}
+      ${u.crossings?' · '+u.crossings+' '+TXT('bio.crucesW'):''}
     </div>
-    ${u.rival ? `<div class="small" style="color:#ff9a3c; margin:6px 0;">⚡ Rival: ${u.rival.conNome} (desde a Op ${u.rival.op})</div>` : ''}
-    ${u.vinculos && u.vinculos.length ? `<div class="small" style="color:#ffd700; margin:6px 0;">★ Vínculos: ${u.vinculos.map(v => (v.tipo==='CAMARADA' ? `camarada de ${v.conNome}` : `en débeda con ${v.conNome}`) + ` (Op ${v.op})`).join(' · ')}</div>` : ''}
-    ${u.piezasDe && u.piezasDe.length ? `<div class="small" style="color:#ff9a3c; margin:6px 0;">⟲ Reensamblado na Op ${u.reconstruidoOp||'?'} con pezas de ${u.piezasDe.join(', ')}${u.sinergia && SINERXIAS[u.sinergia] ? ` · <span style="color:#ffd700;">✦ ${SINERXIAS[u.sinergia].label}</span>` : ''}</div>` : ''}
+    ${u.rival ? `<div class="small" style="color:#ff9a3c; margin:6px 0;">${TXT('bio.rival', {n: u.rival.conNome, op: u.rival.op})}</div>` : ''}
+    ${u.vinculos && u.vinculos.length ? `<div class="small" style="color:#ffd700; margin:6px 0;">${TXT('bio.vinculos')}${u.vinculos.map(v => TXT(v.tipo==='CAMARADA' ? 'bio.camarada' : 'bio.debeda', {n: v.conNome}) + ` (Op ${v.op})`).join(' · ')}</div>` : ''}
+    ${u.piezasDe && u.piezasDe.length ? `<div class="small" style="color:#ff9a3c; margin:6px 0;">${TXT('bio.reensamblado', {op: u.reconstruidoOp||'?', l: u.piezasDe.join(', ')})}${u.sinergia && SINERXIAS[u.sinergia] ? ` · <span style="color:#ffd700;">✦ ${SINERXIAS[u.sinergia].label}</span>` : ''}</div>` : ''}
     ${statsHtml}
   `;
   if((u.traits||[]).length){
-    body += `<div style="margin-bottom:8px;"><b class="small">RASGOS:</b> ${u.traits.map(t=>`<span class="tag">${t}</span>`).join('')}</div>`;
+    body += `<div style="margin-bottom:8px;"><b class="small">${TXT('ui.rasgos')}:</b> ${u.traits.map(t=>`<span class="tag">${tagLabel(t)}</span>`).join('')}</div>`;
   }
   if((u.medals||[]).length){
-    body += `<div style="margin-bottom:12px;"><b class="small">MEDALLAS:</b> `+
+    body += `<div style="margin-bottom:12px;"><b class="small">${TXT('ui.medallas')}:</b> `+
       u.medals.map(mid=>{
         const m = MEDAL_DEFS.find(x=>x.id===mid);
         const sub = (m && m.subtitle) ? m.subtitle(u) : null;
-        return `<span class="medal">✪ ${m?m.label:mid}${sub?` <span class="small">(${sub})</span>`:''}</span>`;
+        return `<span class="medal">✪ ${medalLabel(mid)}${sub?` <span class="small">(${sub})</span>`:''}</span>`;
       }).join(' ')+`</div>`;
   }
-  body += `<div><b class="small">HISTORIAL:</b></div>`;
+  body += `<div><b class="small">${TXT('bio.historial')}</b></div>`;
   if(events.length===0){
-    body += `<div class="small" style="padding:8px 0;">Sin eventos registrados todavía.</div>`;
+    body += `<div class="small" style="padding:8px 0;">${TXT('bio.senEventos')}</div>`;
   } else {
     /* Agrupar por operación */
     const byOp = {};
@@ -1556,13 +1564,14 @@ function showBiography(u){
   $('bioModal').style.display='block';
 }
 function formatEvent(e){
+  const l = `<span class="lugar">${placeLabel(e.place)}</span>`;
   switch(e.type){
-    case 'CAPTURO_SECTOR': return `Capturó <span class="lugar">${placeLabel(e.place)}</span>`;
-    case 'DEFENDIO':       return `Defendió <span class="lugar">${placeLabel(e.place)}</span> durante ${fmtTime(e.duration)}`;
-    case 'MATO_EN':        return `Eliminó a ${e.target} en <span class="lugar">${placeLabel(e.place)}</span>`;
-    case 'CAYO_EN':        return `Cayó en <span class="lugar">${placeLabel(e.place)}</span>`;
-    case 'RECUPERADO_EN':  return `Recuperado por '${e.byUnit}' en <span class="lugar">${placeLabel(e.place)}</span>`;
-    case 'RECUPERO_A':     return `Recuperó a '${e.target}' en <span class="lugar">${placeLabel(e.place)}</span>`;
+    case 'CAPTURO_SECTOR': return TXT('ev.capturou', {l});
+    case 'DEFENDIO':       return TXT('ev.defendeu', {l, t: fmtTime(e.duration)});
+    case 'MATO_EN':        return TXT('ev.eliminou', {l, t: e.target});
+    case 'CAYO_EN':        return TXT('ev.caeu', {l});
+    case 'RECUPERADO_EN':  return TXT('ev.recuperado', {l, b: e.byUnit});
+    case 'RECUPERO_A':     return TXT('ev.recuperou', {l, t: e.target});
     default:               return e.type;
   }
 }
@@ -1571,18 +1580,19 @@ function formatEvent(e){
 async function renameUnit(idx){
   const u = DATA.units[idx];
   if(!u) return;
-  const input = prompt(`Renombrar a '${u.name}':\n(máximo 14 caracteres, en mayúsculas)`, u.name);
+  const input = prompt(TXT('rn.prompt', {n: u.name}), u.name);
   if(input===null) return;  /* cancelado */
   const clean = input.trim().toUpperCase().slice(0,14);
-  if(!clean){ alert('El nombre no puede estar vacío.'); return; }
+  if(!clean){ alert(TXT('rn.vacio')); return; }
   if(clean === u.name) return;  /* sin cambio */
   /* Duplicado dentro del roster vivo */
   if(DATA.units.some((other, i) => i!==idx && other.name === clean)){
-    alert(`Ya hay otra unidad en el roster con el nombre '${clean}'.`);
+    alert(TXT('rn.dup', {n: clean}));
     return;
   }
   const oldName = u.name;
   u.name = clean;
+  try{ if(typeof diarioEixos === 'function') diarioEixos({apego: 1}); }catch(e){}   /* (v0.65) bautizar é apegarse */
   await saveData(DATA);
   /* Nota: los eventos pasados conservan referencias al nombre antiguo
      intencionadamente — los registros históricos no se reescriben. */
@@ -1604,10 +1614,10 @@ $('importFile').addEventListener('change', async (e)=>{
   const r = await importPartidaTexto(txt);
   e.target.value = '';
   if(r.ok){
-    alert(`Partida importada: operación ${r.ops}, ${r.unidades} unidades no roster.`);
+    alert(TXT('imp.ok', {ops: r.ops, u: r.unidades}));
     showHangar();
   } else {
-    alert(`Erro: ${r.erro}`);
+    alert(TXT('imp.erro', {e: r.erro}));
   }
 });
 $('btnMemorial').onclick=()=>{
@@ -1622,7 +1632,7 @@ $('btnOnline').onclick=()=>{ showLobby(); };
 $('btnLado').onclick=()=>{
   window._lado = window._lado ? 0 : 1;
   const b = $('btnLado');
-  b.textContent = window._lado ? '⚑ FACCIÓN: VERMELLA' : '⚑ FACCIÓN: AZUL';
+  b.textContent = TXT(window._lado ? 'hg.faccionVermella' : 'hg.faccionAzul');
   b.style.color = b.style.borderColor = window._lado ? '#ff5340' : '#4f8aff';
 };
 $('btnCrisol').onclick=()=>{ window._modoCrisol = true; $('btnStart').onclick(); };

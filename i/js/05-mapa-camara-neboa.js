@@ -32,8 +32,11 @@ function genMap(seed){
 }
 function _genMapImpl(){
   const arq = Math.random() < 0.55 ? 'CUENCA' : 'LLANURA';
-  const W = 1792 + Math.floor(Math.random()*9)*64;   /* 1792–2304 */
-  const H = 1024 + Math.floor(Math.random()*5)*64;   /* 1024–1280 */
+  /* (v0.61) MUNDIAL: campos GRANDES sempre (XI contra XI precisa aire;
+     os combos de velocidade cobran sentido) */
+  const _mun = !!window._mundialArranque;
+  const W = (_mun ? 2560 : 1792) + Math.floor(Math.random()*9)*64;
+  const H = (_mun ? 1408 : 1024) + Math.floor(Math.random()*5)*64;
   const roadY = _snap(H*0.40 + Math.random()*H*0.18);
   const BRIDGE = {y1: roadY, y2: roadY + 64};
   let RIVER, BRIDGE_CENTER;
@@ -119,12 +122,14 @@ let CURRENT_MAP = MAP1;
    ============================================================ */
 const CAM_VW = 1280, CAM_VH = 720;      /* tamaño máximo do viewport */
 let cam = {x: 0, y: 0};
+/* (v0.50.2) ZOOM lixeiro da cámara (roda do rato sobre o mapa), 1x-1.8x */
+let camZoom = 1;
 let _mmRect = null;                      /* rect do minimapa en coords de pantalla */
 let _mouseScr = {x: 0, y: 0, inside: false};
 
 function camClamp(){
-  cam.x = Math.max(0, Math.min(cam.x, W - cv.width));
-  cam.y = Math.max(0, Math.min(cam.y, H - cv.height));
+  cam.x = Math.max(0, Math.min(cam.x, W - cv.width / camZoom));
+  cam.y = Math.max(0, Math.min(cam.y, H - cv.height / camZoom));
 }
 function camJumpTo(x, y){
   cam.x = x - cv.width/2;
@@ -201,6 +206,17 @@ function drawMinimap(g){
     if(u.team === ET && !foeVisible(u, g)) continue;   /* (v0.20) néboa */
     ctx.fillStyle = u.team===0 ? '#8ac0ff' : (u.team===2 ? '#d8d8d8' : '#ff8a70');
     ctx.fillRect(mx + u.x*sx - 1, my + u.y*sy - 1, 2, 2);
+  }
+  /* (v0.54) PINGS de combate: cada explosión brilla e esvaece no minimapa —
+     lees onde está a pelexa sen mover a cámara */
+  if(g.booms) for(const b of g.booms){
+    if(b.t <= 0) continue;
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, Math.min(1, b.t / 14));
+    ctx.fillStyle = '#ffd24a';
+    const pr = b.big ? 2 : 1;
+    ctx.fillRect(mx + b.x*sx - pr, my + b.y*sy - pr, pr*2 + 1, pr*2 + 1);
+    ctx.restore();
   }
   /* Rectángulo do viewport */
   ctx.strokeStyle = '#ffd24a'; ctx.lineWidth = 1;
@@ -302,8 +318,12 @@ function placeAt(x, y){
   return best ? best.id : 'CAMPO_ABIERTO';
 }
 function placeLabel(id){
+  /* (v0.41) Lugares fixos → clave i18n; sectores con nome propio quedan tal cal */
+  const FIX = {PUENTE_CENTRAL:'lugar.ponte', CRUCE_CENTRAL:'lugar.cruce',
+               RADAR_DOME:'lugar.radar', HQ_AZUL:'lugar.hqAzul', HQ_ROJO:'lugar.hqVermello'};
+  if(FIX[id]) return TXT(FIX[id]);
   const p = PLACES.find(x=>x.id===id);
-  return p ? p.label : 'campo abierto';
+  return p ? p.label : TXT('lugar.campo');
 }
 
 /* ---------- Utilidades ---------- */
@@ -313,6 +333,7 @@ function fmtTime(s){ return Math.floor(s/60)+'m '+String(Math.floor(s%60)).padSt
 
 /* ---------- Radio ---------- */
 function radio(text, color, pos){
+  if(typeof glNorm === 'function') text = glNorm(text);
   const box=document.getElementById('radio');
   const d=document.createElement('div');
   d.className='line'; d.textContent='> '+text;

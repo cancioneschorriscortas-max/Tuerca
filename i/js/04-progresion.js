@@ -24,7 +24,7 @@ function skillTagsHTML(rec){
   let out = '';
   for(const id of Object.keys(SKILLS)){
     const lv = skillLevel(a, id);
-    if(lv > 0) out += `<span class="tag" style="color:#9fd0ff; border-color:#5a80a8;">◆ ${SKILLS[id].label} ${'I'.repeat(lv).replace('III','III').replace('II','II')}</span>`;
+    if(lv > 0) out += `<span class="tag" style="color:#9fd0ff; border-color:#5a80a8;">◆ ${skillLabel(id)} ${'I'.repeat(lv).replace('III','III').replace('II','II')}</span>`;
   }
   return out.replace(/I{3}/g,'III');
 }
@@ -234,7 +234,7 @@ function valorFundicion(p){
 function pezaDesc(p){
   const sk = SKILLS[PEZA_SKILL[p.tipo]];
   const nivel = p.act >= sk.th[1] ? '★★' : (p.act >= sk.th[0] ? '★' : '');
-  return `${PEZA_LABEL[p.tipo].toUpperCase()} DE ${p.deNome} <span class="small" style="color:#888;">(${p.deCls}${nivel ? ' ' + nivel : ''})</span>`;
+  return `${TXT('dp.pezaDesc', {peza: pezaLabel(p.tipo).toUpperCase(), n: p.deNome})} <span class="small" style="color:#888;">(${p.deCls}${nivel ? ' ' + nivel : ''})</span>`;
 }
 
 /* ============================================================
@@ -242,18 +242,46 @@ function pezaDesc(p){
    A única morte que elixe o comandante. E o escuadrón toma nota:
    desmantelar vivos é facer de ÓPTIMA.
    ============================================================ */
-const DESPEDIDAS_DOAZON = {
-  ESTOICO:  ['Es una orden. Las órdenes no se lloran.', 'Que mis piezas aguanten más que yo.'],
-  IRONICO:  ['Por fin un ascenso: a repuestos.', 'Decidles a los nuevos que el brazo derecho tira a la izquierda.'],
-  LEAL:     ['Si sirve al escuadrón, sirvo yo. Hasta el último tornillo.', 'Ha sido un honor, comandante. Úsame bien.'],
-  NERVIOSO: ['¿D-duele? No contestéis. Hacedlo rápido.', 'Vale. Vale. Está bien. Apagad la luz al salir.'],
-  CINICO:   ['Al menos tú avisas antes de desguazar. ÓPTIMA ni eso.', 'Reciclado por el jefe. Qué manera tan honesta de morir.'],
+const DESPEDIDAS_DOAZON_ML = {
+  es: {
+    ESTOICO:  ['Es una orden. Las órdenes no se lloran.', 'Que mis piezas aguanten más que yo.'],
+    IRONICO:  ['Por fin un ascenso: a repuestos.', 'Decidles a los nuevos que el brazo derecho tira a la izquierda.'],
+    LEAL:     ['Si sirve al escuadrón, sirvo yo. Hasta el último tornillo.', 'Ha sido un honor, comandante. Úsame bien.'],
+    NERVIOSO: ['¿D-duele? No contestéis. Hacedlo rápido.', 'Vale. Vale. Está bien. Apagad la luz al salir.'],
+    CINICO:   ['Al menos tú avisas antes de desguazar. ÓPTIMA ni eso.', 'Reciclado por el jefe. Qué manera tan honesta de morir.'],
+  },
+  gl: {
+    ESTOICO:  ['É unha orde. As ordes non se choran.', 'Que as miñas pezas aguanten máis ca min.'],
+    IRONICO:  ['Por fin un ascenso: a recambios.', 'Dicídelles aos novos que o brazo dereito tira á esquerda.'],
+    LEAL:     ['Se serve ao escuadrón, sirvo eu. Ata o último tornillo.', 'Foi unha honra, comandante. Úsame ben.'],
+    NERVIOSO: ['D-doe? Non contestedes. Facédeo axiña.', 'Vale. Vale. Está ben. Apagade a luz ao saír.'],
+    CINICO:   ['Polo menos ti avisas antes de desguazar. ÓPTIMA nin iso.', 'Reciclado polo xefe. Que maneira tan honesta de morrer.'],
+  },
+  en: {
+    ESTOICO:  ["It's an order. Orders aren't mourned.", 'May my parts last longer than I did.'],
+    IRONICO:  ['Finally a promotion: to spare parts.', 'Tell the new ones the right arm pulls left.'],
+    LEAL:     ['If it serves the squad, I serve. Down to the last screw.', "It's been an honor, commander. Use me well."],
+    NERVIOSO: ["D-does it hurt? Don't answer. Do it quick.", 'Okay. Okay. Fine. Turn off the light on your way out.'],
+    CINICO:   ["At least you warn before scrapping. OPTIMA doesn't even do that.", 'Recycled by the boss. What an honest way to die.'],
+  },
 };
-const OPTIMA_REQUISA = [
-  'Requisición de material vivo tramitada correctamente. Su eficiencia administrativa ha sido anotada. ÓPTIMA le felicita.',
-  'Formulario D-77 (desmantelamiento no consentido) sellado sin incidencias. Es un placer trabajar con profesionales.',
-  'La unidad ha sido reclasificada como inventario. El inventario no opina. Excelente gestión.',
-];
+const OPTIMA_REQUISA_ML = {
+  es: [
+    'Requisición de material vivo tramitada correctamente. Su eficiencia administrativa ha sido anotada. ÓPTIMA le felicita.',
+    'Formulario D-77 (desmantelamiento no consentido) sellado sin incidencias. Es un placer trabajar con profesionales.',
+    'La unidad ha sido reclasificada como inventario. El inventario no opina. Excelente gestión.',
+  ],
+  gl: [
+    'Requisición de material vivo tramitada correctamente. A súa eficiencia administrativa foi anotada. ÓPTIMA felicítao.',
+    'Formulario D-77 (desmantelamento non consentido) selado sen incidencias. É un pracer traballar con profesionais.',
+    'A unidade foi reclasificada como inventario. O inventario non opina. Excelente xestión.',
+  ],
+  en: [
+    'Requisition of living materiel processed correctly. Your administrative efficiency has been noted. OPTIMA congratulates you.',
+    'Form D-77 (non-consented dismantling) stamped without incident. A pleasure to work with professionals.',
+    'The unit has been reclassified as inventory. Inventory does not have opinions. Excellent management.',
+  ],
+};
 /* As 7 pezas COMPLETAS dunha unidade viva (pezas de nivel se era veterana) */
 function xerarPezasCompletas(rec){
   const act = rec.activity || {};
@@ -270,6 +298,54 @@ function xerarPezasCompletas(rec){
     };
   });
 }
+/* ============================================================
+   (v0.47) MATCHMAKING PvP — valor de calidade dunha unidade e
+   orzamento de despregue por rolda de serie.
+   ============================================================ */
+const MM = {
+  BASE: 10,        /* toda unidade parte de aquí (un novato limpo vale 10) */
+  POR_OP: 4,       /* experiencia acumulada */
+  POR_KILL: 3,     /* efectividade demostrada */
+  POR_SKILL_LV: 8, /* por cada NIVEL de habilidade (skill II = 16) */
+  POR_MEDALLA: 12, /* condecoracións: pesan */
+  POR_EQUIPO: 6,   /* cada peza de equipo montada */
+  ORZAMENTO_BASE: 120,  /* tope da rolda 1 */
+  ORZAMENTO_RAMPA: 25,  /* +25 por cada rolda de serie (r2=145, r3=170...) */
+  MARXE: 0.15,     /* ±15%: fóra desta banda, o forte non pode dar LISTO */
+};
+/* Valor de calidade dunha unidade (rec do roster ou unidade nova/null=novato) */
+function valorUnidade(rec){
+  if(!rec) return MM.BASE;   /* novato que enche un oco */
+  let v = MM.BASE;
+  v += MM.POR_OP   * (rec.ops   || 0);
+  v += MM.POR_KILL * (rec.kills || 0);
+  if(typeof SKILLS !== 'undefined' && typeof skillLevel === 'function'){
+    for(const id of Object.keys(SKILLS)) v += MM.POR_SKILL_LV * skillLevel(rec.activity, id);
+  }
+  v += MM.POR_MEDALLA * ((rec.medals || []).length);
+  v += MM.POR_EQUIPO  * ((rec.equipment || []).length);
+  return Math.round(v);
+}
+/* Valor total dun despregue. `lista` = recs escollidos; `ocos` = novatos que engade o HQ */
+function valorDespregue(lista, ocos){
+  let v = 0;
+  for(const r of (lista || [])) v += valorUnidade(r);
+  v += MM.BASE * (ocos || 0);   /* os novatos dos ocos contan */
+  return v;
+}
+/* Orzamento (tope) desta rolda: base + rampa pola rolda da serie */
+function orzamentoRolda(n){
+  return MM.ORZAMENTO_BASE + MM.ORZAMENTO_RAMPA * (Math.max(1, n || 1) - 1);
+}
+/* ¿Está o meu despregue equilibrado co do rival? Devolve o estado para a UI. */
+function equilibrioDespregue(meu, rival){
+  if(rival == null) return {ok: true, esperando: true, meu, rival: null, delta: 0};
+  const ref = Math.max(meu, rival, 1);
+  const delta = (meu - rival) / ref;   /* +: eu vou por riba */
+  const ok = Math.abs(delta) <= MM.MARXE;
+  return {ok, esperando: false, meu, rival, delta, souForte: delta > MM.MARXE};
+}
+
 /* Desmantelar unha unidade VIVA do roster. Instantáneo, irreversible, con consecuencias.
    conf >= 70 -> DOAZÓN (despedida digna) · conf < 70 -> REQUISA (o escuadrón non o esquece).
    Devolve o relato para a UI (frase, reaccións, liña de ÓPTIMA). */
@@ -278,6 +354,11 @@ function desmantelarVivo(recId){
   if(ix < 0) return null;
   const rec = DATA.units[ix];
   const doazon = (rec.confianza || 50) >= 70;
+  /* (v0.65) eixos do diario: a doazón honra (piedade), a requisa aproveita (pragmatismo) */
+  try{
+    if(typeof diarioEixos === 'function') diarioEixos(doazon ? {piedade: 1} : {piedade: -1, pragmatismo: 1});
+    if(typeof diarioDestinoRestos === 'function') diarioDestinoRestos(rec.id, doazon);
+  }catch(e){}
   const out = {rec, doazon, frase: null, reaccions: [], optima: null, pezas: []};
   /* 1) As 7 pezas van ao inventario. O equipamento pérdese co corpo. */
   const pzs = xerarPezasCompletas(rec);
@@ -288,7 +369,7 @@ function desmantelarVivo(recId){
   DATA.pendingUpgraded = (DATA.pendingUpgraded || []).filter(id => id !== rec.id);
   /* 3) Memorial: a única morte elixida polo comandante */
   DATA.fallen = DATA.fallen || [];
-  DATA.fallen.push(`${rec.id} '${rec.name}' — ${rec.ops||0} ops, ${rec.kills||0} bajas. ⚠ DESMANTELADO POR ORDE DO COMANDANTE, Operación ${DATA.opCount} (${doazon ? 'doazón' : 'requisa'}). A súa IA foi borrada.`);
+  DATA.fallen.push(TXT('desm.memorial', {id: rec.id, n: rec.name, ops: rec.ops||0, k: rec.kills||0, op: DATA.opCount, tipo: doazon ? TXT('dp.doazon') : TXT('dp.requisa')}));
   /* 4) Consecuencias no escuadrón */
   const folgaOps = doazon ? 1 : 2;
   for(const r of DATA.units){
@@ -297,29 +378,31 @@ function desmantelarVivo(recId){
     if(doazon){
       if(eraCamarada){
         r.folga = {ops: folgaOps, por: rec.name};
-        out.reaccions.push(`✊ ${r.name} (camarada) declárase en folga 1 operación. Necesita dixerilo.`);
+        out.reaccions.push(TXT('desm.folga1', {n: r.name}));
       }
       if(opsXuntos >= 1){
         r.confianza = Math.max(0, Math.round((r.confianza || 50) - 15));
-        out.reaccions.push(`▾ ${r.name} compartiu ${opsXuntos} op${opsXuntos>1?'s':''} con ${rec.name}: confianza −15 (agora ${r.confianza}).`);
+        out.reaccions.push(TXT('desm.conf15', {n: r.name, ops: opsXuntos+' op'+(opsXuntos>1?'s':''), con: rec.name, c: r.confianza}));
       }
     } else {
       if(eraCamarada){
         r.folga = {ops: folgaOps, por: rec.name};
-        out.reaccions.push(`✊✊ ${r.name} (camarada) NÉGASE A DESPREGAR ${folgaOps} operacións.`);
+        out.reaccions.push(TXT('desm.folga2', {n: r.name, ops: folgaOps}));
       }
       if(opsXuntos >= 2){
         r.confianza = Math.min(r.confianza || 50, 20);
-        out.reaccions.push(`▾▾ ${r.name} compartiu ${opsXuntos} ops con ${rec.name}: a súa confianza CAE A ${r.confianza}.`);
+        out.reaccions.push(TXT('desm.confCae', {n: r.name, ops: opsXuntos, con: rec.name, c: r.confianza}));
       }
     }
   }
   /* 5) A despedida (só a doazón ten dereito a ela). Na requisa fala ÓPTIMA. */
   if(doazon){
-    const pool = DESPEDIDAS_DOAZON[rec.personalidad] || DESPEDIDAS_DOAZON.ESTOICO;
+    const _D = DESPEDIDAS_DOAZON_ML[I18N.lang] || DESPEDIDAS_DOAZON_ML.es;
+    const pool = _D[rec.personalidad] || _D.ESTOICO;
     out.frase = pool[Math.floor(Math.random() * pool.length)];
   } else {
-    out.optima = OPTIMA_REQUISA[Math.floor(Math.random() * OPTIMA_REQUISA.length)];
+    const _O = OPTIMA_REQUISA_ML[I18N.lang] || OPTIMA_REQUISA_ML.es;
+    out.optima = _O[Math.floor(Math.random() * _O.length)];
   }
   return out;
 }
@@ -470,11 +553,26 @@ const COMUNICADOS_POST_EN = {
   ],
 };
 
-const REACCIONS_COMUNICADO = {
-  LEAL:            ["Órdenes son órdenes. Supongo.", "El mando sabrá lo que hace. Supongo."],
-  SARCASTICO:      ["Qué manera tan bonita de decirlo.", "'Entusiasmo preinstalado'. El mío viene defectuoso.", "Inspirador. Casi lloro aceite."],
-  DESCONFIADO:     ["¿Alguien ha visto a ÓPTIMA pisar el barro alguna vez?", "'Oportunidad de aprendizaje'. Ya. Aprenderé a esquivar."],
-  AUTOPRESERVACION:["Que baje ÓPTIMA y lo haga.", "Reciclarán mis placas. Qué consuelo.", "..."],
+/* (v0.44) Reaccións do escuadrón ao comunicado de ÓPTIMA — multilingüe */
+const REACCIONS_COMUNICADO_ML = {
+  es: {
+    LEAL:            ["Órdenes son órdenes. Supongo.", "El mando sabrá lo que hace. Supongo."],
+    SARCASTICO:      ["Qué manera tan bonita de decirlo.", "'Entusiasmo preinstalado'. El mío viene defectuoso.", "Inspirador. Casi lloro aceite."],
+    DESCONFIADO:     ["¿Alguien ha visto a ÓPTIMA pisar el barro alguna vez?", "'Oportunidad de aprendizaje'. Ya. Aprenderé a esquivar."],
+    AUTOPRESERVACION:["Que baje ÓPTIMA y lo haga.", "Reciclarán mis placas. Qué consuelo.", "..."],
+  },
+  gl: {
+    LEAL:            ["Ordes son ordes. Supoño.", "O mando saberá o que fai. Supoño."],
+    SARCASTICO:      ["Que maneira tan bonita de dicilo.", "'Entusiasmo preinstalado'. O meu vén defectuoso.", "Inspirador. Case choro aceite."],
+    DESCONFIADO:     ["Alguén viu a ÓPTIMA pisar a lama algunha vez?", "'Oportunidade de aprendizaxe'. Xa. Aprenderei a esquivar."],
+    AUTOPRESERVACION:["Que baixe ÓPTIMA e o faga.", "Reciclarán as miñas placas. Que consolo.", "..."],
+  },
+  en: {
+    LEAL:            ["Orders are orders. I suppose.", "Command must know what it's doing. I suppose."],
+    SARCASTICO:      ["What a lovely way to put it.", "'Pre-installed enthusiasm'. Mine came defective.", "Inspiring. I almost cry oil."],
+    DESCONFIADO:     ["Has anyone ever seen OPTIMA set foot in the mud?", "'A learning opportunity'. Sure. I'll learn to dodge."],
+    AUTOPRESERVACION:["Let OPTIMA come down and do it.", "They'll recycle my plates. What a comfort.", "..."],
+  },
 };
 
 function pickComunicadoPre(){

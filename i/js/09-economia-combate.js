@@ -121,6 +121,7 @@ function tickBaseAlarm(g){
   if(recente && (!g._alarmT || g.t - g._alarmT > 60*6)){
     g._alarmT = g.t;
     radio(TXT('r.baseAtaque'), '#ff5340', {x: hq.x + hq.w/2, y: hq.y + hq.h/2});
+    if(typeof vozMando === 'function') vozMando('r.baseAtaque', TXT('r.baseAtaque'));   /* (v0.63) */
     playAlarm();
     if(typeof playSysVoice === 'function') playSysVoice('base_attack');
   }
@@ -319,6 +320,9 @@ function emitSelectionFrase(u){
   sfxT('voice_blip', 260, u.cls);
   window._lastSelFrase = {uid: u.id, time: Date.now()};
   u._lastFrase = {text: frase, color: col, time: now};
+  if(typeof vozRobot === 'function') vozRobot(u, frase, 4, 'sel');   /* (v0.63) */
+  if(!window._falaU) window._falaU = {};
+  window._falaU[u.id] = u._lastFrase;   /* (v0.57) sobrevive aos snaps do guest */
   u._fraseShownInOp = true;
   _lastFraseTime = now;
 }
@@ -423,6 +427,7 @@ function prodFactor(g, team){
 }
 function queueUnit(team, cls){
   const g=game; if(!g||g.over) return;
+  if(g.modo === 'mundial') return;   /* (v0.60) o Mundial xógase co XI: sen produción */
   if(g.prod[team]) return;
   const myCount = g.units.filter(u=>u.team===team && !u.dead).length;
   if(myCount>=9){ if(team===PT) radio(TXT('r.capMax'), '#ff8'); return; }
@@ -454,6 +459,7 @@ function queueUnit(team, cls){
   g.prod[team] = {cls, left:total, total};
 }
 function tickProd(g){
+  if(g.modo === 'mundial') return;   /* (v0.60) sen fábrica no Mundial */
   /* (v0.25.4) Colapso: as fábricas inimigas non producen máis */
   if((g._colapso || g.modo === 'crisol') && g.prod[ET]) g.prod[ET] = null;
   for(let t=0;t<2;t++){
@@ -467,7 +473,8 @@ function tickProd(g){
         ? [[hq.w+35, hq.h/2], [hq.w/2, -34], [hq.w/2, hq.h+34]]
         : [[-35, hq.h/2], [hq.w/2, -34], [hq.w/2, hq.h+34]];
       const spot = spots[Math.floor(Math.random()*spots.length)];
-      const sx = hq.x + spot[0] + (Math.random()*24-12), sy = hq.y + spot[1] + (Math.random()*24-12);
+      let sx = hq.x + spot[0] + (Math.random()*24-12), sy = hq.y + spot[1] + (Math.random()*24-12);
+      if(typeof nudgeSpawn === 'function'){ const _ns = nudgeSpawn(g, t, sx, sy); sx = _ns.x; sy = _ns.y; }
       if(p.cls === 'TORRETA'){
         if(t === PT){
           g.turretPending = (g.turretPending || 0) + 1;
@@ -885,6 +892,17 @@ function tickUnits(g){
         const killPilot = (host, cause) => {
           const dead = host.occupant;
           dead.dead = true; dead.deathCause = cause;
+          /* (v0.60/61) MUNDIAL: explotar dentro dun vehículo = TARXETA VERMELLA
+             — mesmo regulamento para os DOUS equipos */
+          if(g.modo === 'mundial' && window._mundial){
+            if(dead.team === PT){
+              window._mundial.vermellas.push(dead.id);
+              radio(TXT('mun.vermella', {n: dead.name}), '#ff5340');
+            } else if(dead.team === ET){
+              window._mundial.vermellasRival.push(dead.id);
+              radio(TXT('mun.vermellaRival', {n: dead.name}), '#7fd0ff');
+            }
+          }
           u.kills++; g.kills[u.team]++;
           host.occupant = null;
           if(dead.team !== PT) dropScrap(g, host.x, host.y, CHATARRA_VALUES[dead.cls] || 5);
@@ -1061,6 +1079,7 @@ function tickUnits(g){
     /* (v0.10) Atacar vehículos (jeeps) inimigos en rango — só se non disparou xa */
     if(u.cool<=0 && g.vehicles){
       for(const veh of g.vehicles){
+        if(veh.team === 2 && !veh.occupant) continue;   /* (v0.62.1) o balón baleiro non é alvo */
         if(veh.destroyed || veh.team===u.team || veh.team===-1) continue;
         const dV = Math.hypot(veh.x-u.x, veh.y-u.y);
         if(dV <= u.rng + 5){
@@ -1169,7 +1188,7 @@ function tickUnits(g){
             sfx('loot_pick');
           } else if(u.team === PT){
             g.chatarraGanada = (g.chatarraGanada||0) + s.amount;
-            radio(`${u.name} recolleu chatarra (+${s.amount}).`, '#c8a86a', {x:s.x, y:s.y});
+            radio(TXT('r.recolleuChatarra', {n: u.name, a: s.amount}), '#c8a86a', {x:s.x, y:s.y});
             sfxT('scrap_pick', 180);
           } else {
             g._chatarraET = (g._chatarraET||0) + s.amount;   /* (v0.31) crédito do rival humano */
@@ -1295,7 +1314,7 @@ function tickUnits(g){
               sfx('loot_pick');
             } else if(u.team === PT){
               g.chatarraGanada = (g.chatarraGanada||0) + s.amount;
-              radio(`${u.name} recolleu chatarra (+${s.amount}).`, '#c8a86a', {x:s.x, y:s.y});
+              radio(TXT('r.recolleuChatarra', {n: u.name, a: s.amount}), '#c8a86a', {x:s.x, y:s.y});
               sfxT('scrap_pick', 180);
             } else {
               g._chatarraET = (g._chatarraET||0) + s.amount;   /* (v0.31) crédito do rival humano */
@@ -1441,7 +1460,7 @@ function tickUnits(g){
         const outro = g.units.find(o => o.id === u.rival.con && !o.dead);
         if(outro && (!g._rivalT || g.t - g._rivalT > 1500)){
           g._rivalT = g.t;
-          const vai = u.kills > outro.kills ? 'Vas perdiendo.' : u.kills === outro.kills ? 'Empate. De momento.' : 'Aún respiras.';
+          const vai = u.kills > outro.kills ? TXT('r.rivalPerdendo') : u.kills === outro.kills ? TXT('r.rivalEmpate') : TXT('r.rivalRespiras');
           radio(`${u.name}: «${u.kills}. ${outro.name}: ${outro.kills}. ${vai}»`, '#ff9a3c', {x:u.x, y:u.y});
           sfxT('voice_blip', 180, u.cls);
         }

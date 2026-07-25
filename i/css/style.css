@@ -131,11 +131,15 @@
   .rename-btn{margin-left:2px;}
   #bioModal{
     display:none; position:fixed; inset:0; background:rgba(0,0,0,.85);
-    z-index:100; padding:20px; overflow:auto;
+    z-index:100; padding:20px; overflow-y:auto;
+    align-items:flex-start;   /* (v0.48.3) que o flex NON estire .inner a toda a altura */
   }
   #bioModal .inner{
     max-width:680px; margin:30px auto; background:#0d0d0a;
     border:2px solid var(--phos); padding:24px;
+    /* (v0.48.3) listas longas (44 pezas, moitas baixas) scrollean DENTRO da caixa,
+       co bordo sempre arredor, en vez de saírse polo fondo */
+    max-height:calc(100vh - 60px); overflow-y:auto;
   }
   #bioModal h2{font-size:18px; margin-bottom:14px;}
   #bioModal .ev{padding:4px 0; border-bottom:1px dotted #2a2200; font-size:12px;}

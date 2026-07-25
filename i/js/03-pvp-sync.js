@@ -17,6 +17,7 @@ function pvpLog(msg){
 /* (v0.39) Desmontaxe SÓ da batalla: morren os listeners de snap/orden/fin
    e o estado de combate, pero a SALA e o LOBBY seguen vivos — a serie continúa. */
 function pvpDesmontarBatalla(){
+  window._pvpValPub = null;   /* (v0.47) recalcular calidade na vindeira rolda */
   pvpLog('desmontaxe de batalla (a serie segue)');
   const P = window._pvp;
   if(P && P.unsub) P.unsub.forEach(f => { try{ f && f(); }catch(e){} });
@@ -64,11 +65,36 @@ function showPvpRevancha(datos, rol){
     return;
   }
   const seg = Math.max(0, Math.ceil((window._pvpRevDeadline - Date.now()) / 1000));
+  /* (v0.47) MATCHMAKING: valor do meu despregue e do rival + orzamento da rolda */
+  const meuVal = pvpValorLocal();
+  const orz = (typeof orzamentoRolda === 'function') ? orzamentoRolda(n) : 999;
+  /* publico o meu valor na sala (barato, idempotente) para que o rival o vexa */
+  if(window._pvpValPub !== meuVal){
+    window._pvpValPub = meuVal;
+    if(window._pvpNet) window._pvpNet.update(`salas/${_lobby.sala}/${rol}`, {val: meuVal}).catch(()=>{});
+  }
+  const rivalVal = (rol === 'host' ? (datos.guest && datos.guest.val) : (datos.host && datos.host.val));
+  const eq = (typeof equilibrioDespregue === 'function') ? equilibrioDespregue(meuVal, rivalVal == null ? null : rivalVal) : {ok:true, esperando:true};
+  const sobreOrz = meuVal > orz;                 /* pasa do tope da rolda */
+  const bloqueado = sobreOrz || (!eq.esperando && !eq.ok && eq.souForte);
+  /* barra de calidade */
+  const pctTxt = eq.esperando ? TXT('mm.agardandoRival')
+    : (eq.ok ? TXT('mm.equilibrado')
+      : (eq.souForte ? TXT('mm.vasForte', {pct: Math.round(eq.delta*100)})
+        : TXT('mm.vasFeble', {pct: Math.round(-eq.delta*100)})));
+  const colBar = eq.esperando ? '#9ab0c8' : (eq.ok ? '#7fdc7f' : (eq.souForte ? '#ff7a5a' : '#ffd24a'));
+  const mmHTML = `<div class="small" style="margin:6px 0; color:${colBar};">`+
+    `${TXT('mm.calidade', {meu: meuVal, orz})}` +
+    `${rivalVal!=null ? ' · ' + TXT('mm.rival', {v: rivalVal}) : ''}<br>${pctTxt}` +
+    (sobreOrz ? '<br>' + TXT('mm.sobreOrz', {orz}) : '') + `</div>`;
   el.innerHTML = `<b style="color:#ffd24a;">${TXT('serie.vs', {rival: rival || '?'})}</b> — ${TXT('serie.proxima', {n})}<br>
-    <span class="small">${TXT('serie.elixe', {s: `<b id="pvpRevSeg">${seg}</b>`})}</span><br>
-    <button id="pvpRevListo" style="margin-top:8px;" ${eu.listo ? 'disabled' : ''}>${eu.listo ? TXT('serie.agardando') : TXT('serie.listo')}</button>
+    <span class="small">${TXT('serie.elixe', {s: `<b id="pvpRevSeg">${seg}</b>`})}</span>
+    ${mmHTML}
+    <button id="pvpRevListo" style="margin-top:8px;" ${(eu.listo || bloqueado) ? 'disabled' : ''}>${eu.listo ? TXT('serie.agardando') : (bloqueado ? TXT('mm.axusta') : TXT('serie.listo'))}</button>
     <button id="pvpRevSair" style="margin-top:8px; color:#ff8a70;">${TXT('serie.sair')}</button>`;
-  document.getElementById('pvpRevListo').onclick = function(){
+  const bListo = document.getElementById('pvpRevListo');
+  if(bListo) bListo.onclick = function(){
+    if(bloqueado) return;   /* (v0.47) o forte non pode arrancar unha batalla inxusta */
     this.disabled = true; this.textContent = TXT('serie.agardando');
     if(_lobby) _lobby.listo();
   };
@@ -84,6 +110,8 @@ function hidePvpRevancha(){
 /* (v0.37) LIMPEZA TOTAL tras cada duelo — sen isto, o estado global pegado
    (window._pvp, listeners, vixía) impedía crear unha SEGUNDA sala sen recargar */
 function pvpLimpar(){
+  window._pvpLastSnapMs = null; window._pvpSnapWarn = false;
+  window._pvpValPub = null;   /* (v0.47) recalcular calidade na vindeira rolda */
   pvpLog('limpeza de estado pvp');
   const P = window._pvp;
   if(P && P.unsub) P.unsub.forEach(f => { try{ f && f(); }catch(e){} });
@@ -130,7 +158,10 @@ function pvpSerU(u){
   return {id:u.id, name:u.name, cls:u.cls, team:u.team,
     x:Math.round(u.x), y:Math.round(u.y), hp:Math.round(u.hp), max:u.max,
     dead:!!u.dead, inside:u.inside?1:0, warned:u.warned?1:0, eng:u.eng?1:0,
-    medalsN:u.medalsN||0, reensamblado:u.reensamblado?1:0, ops:u.ops||0};
+    medalsN:u.medalsN||0, reensamblado:u.reensamblado?1:0, ops:u.ops||0,
+    k:(u.pastKills||0)+(u.kills||0),   /* (v0.56) muescas de kills no guest */
+    cf:Math.round(u.confianza ?? 50),   /* (v0.57) confianza */
+    a:u.act ? [u.act.dist|0, u.act.shots|0, u.act.kills|0, u.act.dmgTaken|0, u.act.caps|0, u.act.veh|0] : null};   /* (v0.58) contribución */
 }
 function pvpSerFinU(u){
   return {id:u.id, name:u.name, cls:u.cls, team:u.team, x:Math.round(u.x), y:Math.round(u.y),
@@ -164,6 +195,10 @@ function pvpSnapshot(g){
     kills: g.kills, chatET: g._chatarraET || 0,
     tPendET: g._turretPendingET || 0,
     radioET: g._radioET || [],
+    /* (v0.56) FIX preexistente: booms/tracers NON viaxaban → o convidado vía
+       as unidades perder vida SEN disparos nin explosións desde a v0.31. */
+    booms: (g.booms||[]).filter(b=>b.t>0).map(b => ({x:Math.round(b.x), y:Math.round(b.y), t:Math.round(b.t), big:b.big?1:0})),
+    tracers: (g.tracers||[]).filter(t=>t.t>0).map(t => ({x1:Math.round(t.x1), y1:Math.round(t.y1), x2:Math.round(t.x2), y2:Math.round(t.y2), t:Math.round(t.t), team:t.team})),
   };
 }
 function pvpHostFrame(g){
@@ -220,7 +255,7 @@ function pvpHostFrame(g){
         if((g._turretPendingET||0) > 0 && comoEquipo(ET, () => validTurretSpot(o.x, o.y, g))){
           placeTurret(o.x, o.y, g, ET);
         } else {
-          pvpRadioET(g, '⌂ Posición inválida para a torreta (territorio teu, chan libre).', '#ff8');
+          pvpRadioET(g, TXT('r.torretaInvalida'), '#ff8');
         }
       } else if(o.tipo === 'movJeep' && o.tid){
         const v = (g.vehicles||[]).find(x => x.id === o.tid && x.team === ET && x.occupant && !x.destroyed);
@@ -287,6 +322,8 @@ function pvpAplicarSnap(g){
   const P = window._pvp;
   if(!P || !P.snapPend) return;
   const s = P.snapPend; P.snapPend = null;
+  window._pvpLastSnapMs = Date.now();   /* (v0.51.1) watchdog: último snap recibido */
+  window._pvpSnapWarn = false;
   const sel = new Set(g.units.filter(u => u.sel).map(u => u.id));
   const prev = new Map(g.units.map(u => [u.id, u]));
   g.units = s.units.map(u => {
@@ -294,8 +331,15 @@ function pvpAplicarSnap(g){
     return {...u, sel: sel.has(u.id) && !u.dead, inside: u.inside ? {} : null,
       rng: (CLS[u.cls] && CLS[u.cls].rng) || 60, spd: 1, act: null, traits: [], waypoints: [],
       /* (v0.32) interpolación: renderizamos desde a posición previa cara ao obxectivo do snap */
+      pastKills: u.k || 0, kills: 0,   /* (v0.56) para as muescas */
+      confianza: (typeof u.cf === 'number') ? u.cf : 50,   /* (v0.57) */
+      act: Array.isArray(u.a) ? {dist:u.a[0], shots:u.a[1], kills:u.a[2], dmgTaken:u.a[3], caps:u.a[4], veh:u.a[5]} : {dist:0,shots:0,kills:0,dmgTaken:0,caps:0,veh:0},   /* (v0.58) */
       x: (p0 && !u.dead) ? p0.x : u.x, y: (p0 && !u.dead) ? p0.y : u.y, _sx: u.x, _sy: u.y};
   });
+  /* (v0.56) efectos de combate do host: o dedup de partículas (_fxDedup por
+     posición) xa evita refachos duplicados cando o mesmo boom chega en varios snaps */
+  g.booms = (s.booms || []).map(b => ({x:b.x, y:b.y, t:b.t, big:!!b.big}));
+  g.tracers = (s.tracers || []).map(t => ({x1:t.x1, y1:t.y1, x2:t.x2, y2:t.y2, t:t.t, team:t.team}));
   if(g.vehicles) (s.vehicles||[]).forEach((sv, i) => { const v = g.vehicles.find(x=>x.id===sv.id) || g.vehicles[i];
     if(v){ v._sx=sv.x; v._sy=sv.y; if(sv.destroyed){ v.x=sv.x; v.y=sv.y; } v.hp=sv.hp; v.team=sv.team; v.destroyed=sv.destroyed; v.angle=sv.angle;
       v.occupant = sv.occ ? (g.units.find(u=>u.id===sv.occ) || v.occupant) : null; } });
@@ -416,15 +460,25 @@ function _pvpEnvolver(){
 /* --- spawn dos rivais no host, cos veteranos REAIS do convidado --- */
 function pvpSpawnRivais(g, deployRival){
   const _edx = (d) => ET === 1 ? HQ[1].x - d : HQ[0].x + HQ[0].w + d;
+  const _nudge = (x, y) => (typeof nudgeSpawn === 'function') ? nudgeSpawn(g, ET, x, y) : {x, y};
   (deployRival || []).forEach((rec, i) => {
-    g.units.push(mkUnit(ET, rec.cls, _edx(30), HQ[ET].y - 28 + i*40, rec));
+    const s = _nudge(_edx(30), HQ[ET].y - 28 + i*40);
+    g.units.push(mkUnit(ET, rec.cls, s.x, s.y, rec));
   });
-  g.units.push(mkUnit(ET, 'GRUNT',    _edx(35), HQ[ET].y + HQ[ET].h + 20, null));
-  g.units.push(mkUnit(ET, 'ENGINEER', _edx(40), HQ[ET].y + HQ[ET].h + 60, null));
+  { const s = _nudge(_edx(35), HQ[ET].y + HQ[ET].h + 20); g.units.push(mkUnit(ET, 'GRUNT', s.x, s.y, null)); }
+  { const s = _nudge(_edx(40), HQ[ET].y + HQ[ET].h + 60); g.units.push(mkUnit(ET, 'ENGINEER', s.x, s.y, null)); }
 }
 /* --- arranque desde o lobby --- */
+/* (v0.47) Valor de calidade do despregue local actual + nº de ocos que enche o HQ */
+function pvpValorLocal(){
+  const lista = pvpDeployLocal();
+  const ocos = Math.max(0, 3 - lista.length);   /* o HQ enche ata 3 con novatos */
+  return (typeof valorDespregue === 'function') ? valorDespregue(lista, ocos) : 0;
+}
 function pvpDeployLocal(){
-  const checked = [...$('rosterList').querySelectorAll('input:checked')];
+  const rl = $('rosterList');
+  if(!rl) return [];   /* (v0.48.1) o roster pode non estar no DOM ao valorar o despregue */
+  const checked = [...rl.querySelectorAll('input:checked')];
   return checked.map(cb => DATA.units[+cb.dataset.i])
     .filter(r => r && !(r.folga && r.folga.ops > 0))
     .slice(0, 3);
@@ -464,12 +518,12 @@ function pvpArrancar(datos, rol){
       lista = JSON.parse(JSON.stringify(pvpDeployLocal().map(pvpSerRec)));
     }catch(e){
       console.error('[pvp deploy]', e);
-      radio('⚠ Non puiden serializar os veteranos (' + (e.message||e) + ') — despregas con novatos.', '#ff9a3c');
+      radio(TXT('r.errSerializar', {e: (e.message||e)}), '#ff9a3c');
     }
     net.update(`salas/${_lobby.sala}/${rol}`, {deploy: {ok: true, j: (lista && lista.length) ? JSON.stringify(lista) : null}})
       .catch(e => {
         console.error('[pvp deploy]', e);
-        radio('⚠ Erro ao publicar o despregue: ' + (e.message||e), '#ff5340');
+        radio(TXT('r.errPublicar', {e: (e.message||e)}), '#ff5340');
         window._pvpDeployFeito = null;   /* permitir reintento no seguinte update da sala */
       });
   }
@@ -684,6 +738,7 @@ function showLobby(){
   }));
 }
 function pintarSala(datos, rol){
+  try{
   const cont = $('lbSala');
   if(!cont) return;
   const chat = datos.chat ? Object.values(datos.chat).sort((a,b)=>a.ts-b.ts).slice(-8) : [];
@@ -704,6 +759,27 @@ function pintarSala(datos, rol){
     window._pvpRivalFoi = true;
     radio(TXT('pvp.desconectou'), '#ff9a3c');
   }
+  /* (v0.47) MATCHMAKING no lobby (rolda 1): mesmo cálculo ca na entrebatallas */
+  let mmLobbyHTML = '', mmLobbyBloq = false;
+  if(datos.host && datos.guest && datos.estado !== 'batalla' && datos.estado !== 'listo'){
+    const meuVal = pvpValorLocal();
+    const orz = (typeof orzamentoRolda === 'function') ? orzamentoRolda(1) : 999;
+    if(window._pvpValPub !== meuVal){
+      window._pvpValPub = meuVal;
+      if(window._pvpNet) window._pvpNet.update(`salas/${_lobby.sala}/${rol}`, {val: meuVal}).catch(()=>{});
+    }
+    const rivalVal = (rol === 'host' ? datos.guest.val : datos.host.val);
+    const eq = (typeof equilibrioDespregue === 'function') ? equilibrioDespregue(meuVal, rivalVal == null ? null : rivalVal) : {ok:true, esperando:true};
+    const sobreOrz = meuVal > orz;
+    mmLobbyBloq = sobreOrz || (!eq.esperando && !eq.ok && eq.souForte);
+    const pctTxt = eq.esperando ? TXT('mm.agardandoRival')
+      : (eq.ok ? TXT('mm.equilibrado')
+        : (eq.souForte ? TXT('mm.vasForte', {pct: Math.round(eq.delta*100)}) : TXT('mm.vasFeble', {pct: Math.round(-eq.delta*100)})));
+    const colBar = eq.esperando ? '#9ab0c8' : (eq.ok ? '#7fdc7f' : (eq.souForte ? '#ff7a5a' : '#ffd24a'));
+    mmLobbyHTML = `<div class="small" style="margin-top:8px; border-top:1px dashed #444; padding-top:6px; color:${colBar};">`+
+      `${TXT('mm.calidade', {meu: meuVal, orz})}${rivalVal!=null ? ' · ' + TXT('mm.rival', {v: rivalVal}) : ''}<br>${pctTxt}`+
+      (sobreOrz ? '<br>' + TXT('mm.sobreOrz', {orz}) : '') + `</div>`;
+  }
   cont.innerHTML = `
     <div style="border:1px solid #555; padding:10px 14px;">
       <div>CLAVE DA SALA: <b style="color:#ffd24a; font-size:18px; letter-spacing:4px;">${_lobby ? _lobby.sala : ''}</b></div>
@@ -720,11 +796,12 @@ function pintarSala(datos, rol){
       <div class="small" style="margin-top:8px; border-top:1px dashed #444; padding-top:6px; min-height:20px;">
         ${chat.map(m => `<div><b style="color:#c8a86a;">${m.de}:</b> ${m.txt}</div>`).join('') || '<span style="color:#666;">— canal aberto —</span>'}
       </div>
+      ${(datos.host && datos.guest && datos.estado !== 'batalla' && datos.estado !== 'listo') ? mmLobbyHTML : ''}
       <div class="row" style="margin-top:6px;">
         <input id="lbChatIn" maxlength="80" placeholder="mensaxe…"
           style="background:#111; color:#cfe0ff; border:1px solid #555; font-family:inherit; padding:3px 6px; flex:1;">
         <button class="bio-btn" id="lbChatBtn">▸</button>
-        ${!eu || eu.listo ? '' : `<button class="bio-btn" id="lbListo" style="color:#7fdc7f; border-color:#7fdc7f;">✓ LISTO</button>`}
+        ${(!eu || eu.listo) ? '' : (mmLobbyBloq ? `<button class="bio-btn" id="lbListo" disabled style="opacity:0.5;">${TXT('mm.axusta')}</button>` : `<button class="bio-btn" id="lbListo" style="color:#7fdc7f; border-color:#7fdc7f;">✓ LISTO</button>`)}
         <button class="bio-btn" id="lbSair" style="color:#ff7a5a; border-color:#ff7a5a;">✕ SAÍR</button>
       </div>
     </div>`;
@@ -739,6 +816,9 @@ function pintarSala(datos, rol){
     else { try{ await _lobby.sair(); }catch(e){} _lobby = null; window._pvpDeployFeito = null; }
     $('bioModal').style.display = 'none';
   });
+  }catch(err){   /* (v0.48.2) o erro real, non o "Script error." de Firebase */
+    _tuercaOverlay('pintarSala: ' + (err && (err.stack || err.message) || err));
+  }
 }
 
 /* ============================================================
@@ -751,7 +831,7 @@ function setPlayerTeam(t){ PT = t ? 1 : 0; ET = 1 - PT; }
 
 /* (v0.36.1) VERSIÓN ÚNICA + OVERLAY DE ERROS: calquera excepción sen capturar
    píntase en pantalla coa versión — adeus a depurar builds rancias ás cegas. */
-const TUERCA_V = 'v0.40';
+const TUERCA_V = 'v0.65';
 function _tuercaOverlay(msg){
   try{
     let o = document.getElementById('tuercaErr');
@@ -766,7 +846,10 @@ function _tuercaOverlay(msg){
     o.textContent = '⚠ ERRO (' + TUERCA_V + ') — captura isto e mándallelo a Claude:\n' + String(msg).slice(0, 500);
   }catch(_){}
 }
-window.addEventListener('error', e => _tuercaOverlay((e.message||e) + (e.lineno ? ' @' + e.lineno : '')));
+window.addEventListener('error', e => _tuercaOverlay(
+  (e.error && e.error.stack) ? e.error.stack
+  : ((e.message||e) + (e.lineno ? ' @' + e.lineno : '')) + (e.message==='Script error.' ? '  (detalle oculto por cross-origin — ver consola do navegador F12)' : '')
+));
 window.addEventListener('unhandledrejection', e => _tuercaOverlay('Promise: ' + ((e.reason && (e.reason.stack||e.reason.message)) || e.reason)));
 setTimeout(() => { const v = document.getElementById('vHangar'); if(v) v.textContent = TUERCA_V; }, 0);
 

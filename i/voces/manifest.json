@@ -1,0 +1,30 @@
+{
+ "op.inicio": {
+  "gl": "voces/gl/op.inicio.ogg",
+  "es": "voces/es/op.inicio.ogg"
+ },
+ "op.vitoria": {
+  "gl": "voces/gl/op.vitoria.ogg",
+  "es": "voces/es/op.vitoria.ogg"
+ },
+ "r.baseAtaque": {
+  "gl": "voces/gl/r.baseAtaque.ogg",
+  "es": "voces/es/r.baseAtaque.ogg"
+ },
+ "r.canal": {
+  "gl": "voces/gl/r.canal.ogg",
+  "es": "voces/es/r.canal.ogg"
+ },
+ "br.comunicadoDe": {
+  "es": "voces/es/br.comunicadoDe.ogg"
+ },
+ "mun.saqueHQ": {
+  "es": "voces/es/mun.saqueHQ.ogg"
+ },
+ "op.derrota": {
+  "es": "voces/es/op.derrota.ogg"
+ },
+ "r.hqVermello": {
+  "es": "voces/es/r.hqVermello.ogg"
+ }
+}

@@ -76,6 +76,7 @@ function tickTurrets(g){
         let vf = null, vd = 1e9;
         for(const vv of g.vehicles){
           if(vv.destroyed || vv.team === tu.team || vv.team === -1) continue;
+          if(vv.team === 2 && !vv.occupant) continue;   /* (v0.62.1) balón neutro baleiro */
           const d = Math.hypot(vv.x - tu.x, vv.y - tu.y);
           if(d <= tu.rng && d < vd){ vf = vv; vd = d; }
         }
@@ -115,7 +116,7 @@ function tickTurrets(g){
         const u = tu.occupant;
         tu.occupant = null;
         tu.sel = false;
-        resolveEjection(u, tu.x, tu.y, 'da torreta', g);
+        resolveEjection(u, tu.x, tu.y, 'torreta', g);
       }
       tu.team = -1;
     }
@@ -225,16 +226,19 @@ function tickVehicles(g){
            pon o sprite sen rotación adicional e a metralleta apunta ao foe. */
       /* (v0.20.1) TANQUE anti-vehículo: o blindado inimigo é a prioridade máxima */
       let vfoe = null, vfd = 1e9;
-      if(v.tipo === 'TANQUE'){
+      /* (v0.62.2, regra de Agarfal ben lida agora): o JEEP tamén pode roer
+         vehículos e estruturas — POUCO dano e só se non hai infantería á vista */
+      if(v.tipo === 'TANQUE' || (v.tipo === 'JEEP' && !foe)){
         for(const w of g.vehicles){
           if(w === v || w.destroyed || w.team === v.team || w.team === -1) continue;
+          if(w.team === 2 && !w.occupant) continue;   /* (v0.62.1) o balón baleiro non se toca */
           const d = Math.hypot(w.x - v.x, w.y - v.y);
           if(d <= v.rng && d < vfd){ vfoe = w; vfd = d; }
         }
       }
       /* (v0.17.1) Obxectivo estructural do TANQUE se non hai foe de infantería */
       let structT = null, structType = null;
-      if(v.tipo === 'TANQUE' && !foe && !vfoe){
+      if((v.tipo === 'TANQUE' || v.tipo === 'JEEP') && !foe && !vfoe){
         let sd = 1e9;
         for(const tt of g.turrets){
           if(tt.destroyed || tt.team === v.team || tt.team === -1) continue;
@@ -299,10 +303,11 @@ function tickVehicles(g){
       /* (v0.20.1) Duelo de blindados: dano completo, split 85/15 ao piloto (70/30 se jeep) */
       if(vfoe && v.cool <= 0 && encarado){
         v.cool = Math.round(v.fireRate / (1 + ((v.occupant && v.occupant.skillVehFire) || 0)));
+        const _kJeep = v.tipo === 'JEEP' ? 0.3 : 1;   /* (v0.62.2) metralleta pica, non fura */
         const sp = vfoe.tipo === 'TANQUE' ? 0.85 : 0.70;
         if(vfoe.occupant && !vfoe.occupant.dead){
-          vfoe.hp -= v.dmg * sp;
-          vfoe.occupant.hp -= v.dmg * (1 - sp);
+          vfoe.hp -= v.dmg * _kJeep * sp;
+          vfoe.occupant.hp -= v.dmg * _kJeep * (1 - sp);
           if(vfoe.occupant.hp <= 0){
             const dead = vfoe.occupant;
             dead.dead = true; dead.deathCause = 'TANQUE';
@@ -312,7 +317,7 @@ function tickVehicles(g){
             if(dead.team === 0) radioSay('fallen', dead, {place: placeAt(dead.x, dead.y)}, '#ff5340');
           }
         } else {
-          vfoe.hp -= v.dmg * sp;
+          vfoe.hp -= v.dmg * _kJeep * sp;
         }
         const bx = v.x + Math.cos(v.angle) * 28, by = v.y + Math.sin(v.angle) * 28;
         g.tracers.push({x1:bx, y1:by, x2:vfoe.x, y2:vfoe.y, t:8, team:v.team});
@@ -323,7 +328,7 @@ function tickVehicles(g){
       /* Ataque a estructuras do TANQUE: 50% de dano */
       if(structT && v.cool <= 0 && encarado){
         v.cool = Math.round(v.fireRate / (1 + ((v.occupant && v.occupant.skillVehFire) || 0))); sfxT(v.tipo==='TANQUE'?'shot_tank':'shot_jeep', 110); v._revealT = g.t; if(v.tipo==='TANQUE') addShake(g, 2.2);
-        const dS = v.dmg * 0.5;
+        const dS = v.dmg * 0.5 * (v.tipo === 'JEEP' ? 0.3 : 1);   /* (v0.62.2) o jeep pica na chapa */
         if(structType === 'wall'){
           damageWall(g, structT, dS);
         } else if(structType === 'hq'){
@@ -382,7 +387,7 @@ function tickVehicles(g){
         v.occupant = null;
         v.sel = false;
         v.tx = v.x; v.ty = v.y;
-        resolveEjection(u, v.x, v.y, 'do jeep', g);
+        resolveEjection(u, v.x, v.y, 'jeep', g);
       }
       v.team = -1;
     }
@@ -527,17 +532,349 @@ function announceRecurring(g){
 
 function tickEnd(g){
   if(g.over) return;
-  if(g.hq[ET].hp<=0){ g.over=true; g.result='victory'; }
-  else if(g.hq[PT].hp<=0){ g.over=true; g.result='defeat'; }
+  if(typeof diarioVixiarBaixa === 'function') diarioVixiarBaixa(g);   /* (v0.64) o arquiveiro observa */
+  if(g.hq[ET].hp<=0){ g.over=true; g.result='victory'; g._munKO = g.modo === 'mundial'; }
+  else if(g.hq[PT].hp<=0){ g.over=true; g.result='defeat'; g._munKO = g.modo === 'mundial'; }
+  /* (v0.60) MUNDIAL: reloxo de 90', GOLES por manter a maioría de sectores */
+  if(!g.over && g.modo === 'mundial' && window._mundial){
+    const M = window._mundial;
+    M.matchT++;
+    /* (v0.61) comentarista: PRIMEIRO DERRIBO do partido */
+    if(!M._firstBlood && (g.kills[0] + g.kills[1]) > 0){
+      M._firstBlood = true;
+      const _txtFB = TXT(g.kills[PT] > 0 ? 'mun.primeiroNoso' : 'mun.primeiroSeu');
+      radio(_txtFB, '#7fd0ff');
+      if(typeof vozComentarista === 'function') vozComentarista('mun.primeiro', _txtFB);
+    }
+    /* (v0.61) aviso do último minuto */
+    if(!M._aviso85 && M.matchT >= 85 * MUN_MIN_TICKS){
+      M._aviso85 = true;
+      radio(TXT('mun.minuto85'), '#7fd0ff');
+      if(typeof vozComentarista === 'function') vozComentarista('mun.minuto85', TXT('mun.minuto85'));
+    }
+    /* (v0.61.1) SUBSTITUCIÓNS DA IA: mesmo regulamento — ata 3 cambios,
+       só repoñendo mortos, nunca as vermellas, tope de 11 vivos */
+    if(M.matchT % 240 === 0 && (M.subsRival || 0) < MUN_SUBS_MAX){
+      const vivosET = g.units.filter(u => u.team === ET && !u.dead).length;
+      const morto = g.units.find(u => u.team === ET && u.dead &&
+        !u._substituido && !M.vermellasRival.includes(u.id));
+      if(morto && vivosET < MUN_XI){
+        morto._substituido = true;
+        M.subsRival = (M.subsRival || 0) + 1;
+        const sp = nudgeSpawn(g, ET, ET === 0 ? g.hq[0].x + g.hq[0].w + 30 : g.hq[1].x - 30, g.hq[ET].y + 10);
+        const u = mkUnit(ET, morto.cls, sp.x, sp.y, null);
+        const k2 = 1 + 0.06 * M.ronda;
+        u.max = Math.round(u.max * k2); u.hp = u.max;
+        if(u.dmg) u.dmg = u.dmg * k2;
+        g.units.push(u);
+        radio(TXT('mun.cambioRival', {sae: morto.name, entra: u.name, n: M.subsRival}), '#7fd0ff');
+      }
+    }
+    let s0 = 0, s1 = 0;
+    for(const s of g.sectors){ if(s.owner === 0) s0++; else if(s.owner === 1) s1++; }
+    const lider = s0 > s1 ? 0 : s1 > s0 ? 1 : -1;
+    if(lider === -1){ M.golProg[0] = 0; M.golProg[1] = 0; }
+    else {
+      M.golProg[1 - lider] = 0;
+      /* (v0.62.1) A PALLIZADA MARCA MÁIS: o progreso escala coa DIFERENZA
+         de sectores (+1 → 45s por gol; +2 → 22s; dominancia total → ~11s).
+         Resposta ao 1-1 de Agarfal dominando todo o mapa. */
+      M.golProg[lider] += Math.min(4, Math.max(1, s0 > s1 ? s0 - s1 : s1 - s0));   /* teito ×4: gol cada ~11s como moito */
+      if(M.golProg[lider] >= MUN_GOL_TICKS){
+        M.golProg[lider] = 0;
+        const iaAtras = M.goles[lider] < M.goles[1 - lider];   /* ía perdendo antes deste gol? */
+        M.goles[lider]++;
+        const empataOuAdianta = iaAtras && M.goles[lider] >= M.goles[1 - lider];
+        const _txtGol = lider === PT ? TXT('mun.gol', {g: M.goles[PT], r: M.goles[1-PT]})
+                                     : TXT('mun.golRival', {g: M.goles[PT], r: M.goles[1-PT]});
+        radio(_txtGol, '#7fd0ff');
+        if(typeof vozComentarista === 'function') vozComentarista(lider === PT ? 'mun.gol' : 'mun.golRival', _txtGol);
+        if(empataOuAdianta){ radio(TXT('mun.remontada'), '#7fd0ff');
+          if(typeof vozComentarista === 'function') vozComentarista('mun.remontada', TXT('mun.remontada')); }
+      }
+    }
+    if(M.matchT >= MUN_MATCH_TICKS){
+      g.over = true;
+      const gf = M.goles[PT], gc = M.goles[1 - PT];
+      g.result = gf > gc ? 'victory' : gf < gc ? 'defeat' : 'draw';
+      const _txtFin = TXT('mun.final', {g: gf, r: gc});
+      radio(_txtFin, '#7fd0ff');
+      if(typeof vozComentarista === 'function') vozComentarista('mun.final', _txtFin);
+    }
+  }
   if(g.over) setTimeout(()=>endBattle(g), 700);
 }
 
 /* ---------- Render ---------- */
 const cv=$('cv'), ctx=cv.getContext('2d');
+/* ============================================================
+   (v0.50.1) SPRITES DE UNIDADE VOXEL — porte do banco de probas
+   (unit_lab/proto.py, validado visualmente). Sprite 16x18 centrado
+   en (u.x, u.y). 2 frames de andar. face=-1 espella horizontalmente.
+   ============================================================ */
+/* (v0.51) cores VIVAS + contorno: a betatester dixo que se vían pouco no mapa.
+   Estudo comparativo A/B/C/D sobre o terreo real: gañou contorno+vivas. */
+const ROBOT_TEAM = {
+  0: {base:'#4a8ad8', light:'#74b2ff', dark:'#2c5a94', side:'#1e3f68'},
+  1: {base:'#d84a3c', light:'#ff7862', dark:'#942e24', side:'#661f18'},
+  2: {base:'#9aa0a8', light:'#c8ced6', dark:'#5a5e64', side:'#404348'},
+};
+const ROBOT_METAL = {base:'#9aa0a8', light:'#c8ced6', dark:'#5a5e64', side:'#3d4045'};
+const ROBOT_OUTLINE = '#10160a';
+const ROBOT_EYE = '#7fe8e8';
+function drawRobot(ctx, ux, uy, cls, team, frame, face){
+  const p = ROBOT_TEAM[team] || ROBOT_TEAM[2], M = ROBOT_METAL;
+  const ox = ux - 8, oy = uy - 9, cx = ux, fy = oy + 17;
+  const _rects = [];
+  const R = (x, y, w, h, c) => {
+    if(face < 0) x = 2*cx - x - w;
+    _rects.push([x, y, w, h, c]);
+  };
+  const _flush = () => {
+    /* contorno: silueta desprazada nas 4 direccións, en escuro */
+    ctx.fillStyle = ROBOT_OUTLINE;
+    for(const [x, y, w, h] of _rects){
+      ctx.fillRect(x-1, y, w, h); ctx.fillRect(x+1, y, w, h);
+      ctx.fillRect(x, y-1, w, h); ctx.fillRect(x, y+1, w, h);
+    }
+    for(const [x, y, w, h, c] of _rects){ ctx.fillStyle = c; ctx.fillRect(x, y, w, h); }
+  };
+  const cube = (x, y, w, h, pal) => {
+    const sh = Math.max(1, (h/4)|0);
+    R(x, y, w, h-sh, pal.base); R(x, y+h-sh, w, sh, pal.side); R(x, y, w, 1, pal.light);
+  };
+  const legs = (wide) => {
+    const lw = wide ? 3 : 2;
+    if(frame === 0){
+      R(cx-2, fy-4, lw, 4, p.dark); R(cx-2, fy-4, lw, 1, p.light);   /* esq adiante+arriba */
+      R(cx+1, fy-2, lw, 3, p.side);                                   /* der apoiada */
+    } else {
+      R(cx-5, fy-2, lw, 3, p.side);
+      R(cx+4, fy-4, lw, 4, p.dark); R(cx+4, fy-4, lw, 1, p.light);
+    }
+  };
+  if(cls === 'GRUNT'){
+    legs(false);
+    cube(cx-4, oy+6, 8, 7, p);
+    R(cx-5, oy+8, 1, 3, p.dark);
+    cube(cx-3, oy+1, 6, 5, M);
+    R(cx-1, oy+3, 3, 1, ROBOT_EYE);
+    R(cx+4, oy+8, 4, 1, M.dark); R(cx+4, oy+7, 2, 1, M.base);
+  } else if(cls === 'HEAVY'){
+    legs(true);
+    cube(cx-6, oy+5, 12, 8, p);
+    R(cx-6, oy+4, 4, 2, p.light); R(cx+2, oy+4, 4, 2, p.light);
+    cube(cx-3, oy+0, 6, 5, M);
+    R(cx-1, oy+2, 3, 1, ROBOT_EYE);
+    R(cx+5, oy+7, 5, 2, M.dark); R(cx+5, oy+6, 2, 1, M.light);
+  } else if(cls === 'ENGINEER'){
+    legs(false);
+    cube(cx-3, oy+8, 6, 6, p);
+    R(cx-5, oy+7, 2, 5, '#c8a832'); R(cx-5, oy+7, 2, 1, '#e8cc60');
+    cube(cx-3, oy+3, 6, 5, M);
+    R(cx-1, oy+5, 3, 1, ROBOT_EYE);
+    R(cx+3, oy+10, 3, 1, '#c8a832'); R(cx+5, oy+9, 1, 3, '#c8a832');
+  } else if(cls === 'SNIPER'){
+    legs(false);
+    cube(cx-2, oy+5, 5, 9, p);
+    cube(cx-2, oy+0, 5, 5, M);
+    R(cx-1, oy+2, 4, 1, ROBOT_EYE);
+    R(cx+3, oy+7, 7, 1, M.dark); R(cx+8, oy+6, 2, 1, M.light);
+  } else if(cls === 'BOMBARDERO'){
+    legs(true);
+    cube(cx-5, oy+6, 10, 8, p);
+    R(cx-7, oy+4, 3, 3, '#e8883a'); R(cx-7, oy+4, 3, 1, '#ffb060');
+    R(cx+4, oy+4, 3, 3, '#e8883a'); R(cx+4, oy+4, 3, 1, '#ffb060');
+    cube(cx-3, oy+1, 6, 5, M);
+    R(cx-1, oy+3, 3, 1, ROBOT_EYE);
+    R(cx+4, oy+9, 4, 2, M.dark);
+  } else {   /* fallback: caixa co equipo */
+    R(cx-5, oy+4, 10, 12, p.base); R(cx-5, oy+13, 10, 3, p.side);
+  }
+  _flush();
+}
+/* ============================================================
+   (v0.49) FX DE RENDER — partículas puramente cosméticas.
+   Viven FÓRA da simulación: nin o host nin o convidado as
+   comparten; cada cliente xera as súas ao ver os eventos
+   (booms/tracers do estado). Actualízanse por TEMPO REAL
+   (px/segundo), así que duran igual a 60Hz ca a 144Hz.
+   ============================================================ */
+let _fx = [], _fxLastT = 0, _fxSeen = new Map();
+function _fxDedup(key, ms){
+  const now = performance.now();
+  const prev = _fxSeen.get(key);
+  if(prev && now - prev < ms) return false;
+  _fxSeen.set(key, now);
+  if(_fxSeen.size > 300){ for(const [k, t] of _fxSeen){ if(now - t > 2000) _fxSeen.delete(k); } }
+  return true;
+}
+function fxBurst(x, y, big){
+  /* cascallos + chispas + fume dunha explosión */
+  const n = big ? 14 : 7;
+  for(let i = 0; i < n; i++){
+    const a = Math.random() * Math.PI * 2, sp = 40 + Math.random() * (big ? 150 : 90);
+    _fx.push({t:'spark', x, y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp - 30, life:0.35+Math.random()*0.3, max:0.65,
+              col: Math.random()<0.5 ? '#ffd24a' : '#ff8a50'});
+  }
+  for(let i = 0; i < (big ? 6 : 3); i++){
+    const a = Math.random() * Math.PI * 2, sp = 14 + Math.random() * 30;
+    _fx.push({t:'smoke', x: x + (Math.random()*10-5), y: y + (Math.random()*8-4),
+              vx:Math.cos(a)*sp*0.4, vy:-14 - Math.random()*16, life:0.9+Math.random()*0.7, max:1.6,
+              r: (big ? 5 : 3) + Math.random()*3});
+  }
+  if(_fx.length > 420) _fx.splice(0, _fx.length - 420);
+}
+function fxSparks(x, y, team){
+  for(let i = 0; i < 3; i++){
+    const a = Math.random() * Math.PI * 2, sp = 30 + Math.random() * 60;
+    _fx.push({t:'spark', x, y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, life:0.16+Math.random()*0.14, max:0.3,
+              col: team === 0 ? '#bdf' : '#ffb08a'});
+  }
+}
+function fxSmokePuff(x, y){
+  _fx.push({t:'smoke', x: x + (Math.random()*6-3), y, vx:(Math.random()*8-4), vy:-10-Math.random()*8,
+            life:0.8+Math.random()*0.5, max:1.3, r:2+Math.random()*2});
+}
+function fxTick(){
+  /* (v0.55.1) reloxo separado do debuxo: o dt calcúlase ao PRINCIPIO do draw
+     (HQ/vehículos úsano antes da capa de partículas); as partículas debúxanse
+     despois na súa capa. Antes _fxDt declarábase tarde → TDZ. */
+  const now = performance.now();
+  let dt = _fxLastT ? (now - _fxLastT) / 1000 : 0.016;
+  _fxLastT = now;
+  if(dt > 0.1) dt = 0.1;
+  return dt;
+}
+function fxUpdateDraw(dt){
+  for(const p of _fx){
+    p.life -= dt;
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    if(p.t === 'spark'){ p.vy += 260 * dt; }             /* gravidade */
+    else { p.vx *= (1 - 1.6*dt); p.r += 5 * dt; }        /* o fume frea e medra */
+  }
+  _fx = _fx.filter(p => p.life > 0);
+  for(const p of _fx){
+    const a = Math.max(0, p.life / p.max);
+    if(p.t === 'spark'){
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = a;
+      ctx.fillStyle = p.col;
+      ctx.fillRect(p.x - 1, p.y - 1, 2, 2);
+      ctx.restore();
+    } else {
+      ctx.save();
+      ctx.globalAlpha = a * 0.30;
+      ctx.fillStyle = '#8a8a82';
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.fill();
+      ctx.restore();
+    }
+  }
+}
+/* (v0.52.1) IDADE DE OCUPACIÓN: cantos ticks leva o sector co dono actual.
+   Vive na capa de render (mapa externo por id — o snap do convidado recrea
+   os obxectos sector 10 veces/s e borraría calquera campo neles). Resetea
+   ao cambiar de dono ou de batalla. */
+let _secAge = {g: null, m: {}};
+/* (v0.55) FÁBRICA VIVA: detectar unidades NOVAS na capa de render (ids non
+   vistos) para os efectos de saída — vale igual para host e convidado. */
+let _seenU = {g: null, s: new Set()};
+function secAgeTicks(g, s){
+  if(_secAge.g !== g){ _secAge.g = g; _secAge.m = {}; }
+  const e = _secAge.m[s.id];
+  if(!e || e.owner !== s.owner){ _secAge.m[s.id] = {owner: s.owner, t0: g.t}; return 0; }
+  return g.t - e.t0;
+}
+/* (v0.52.1) DECORACIÓN DE OCUPACIÓN: canto máis tempo baixo o mesmo dono,
+   máis atrezzo aparece arredor da plataforma — o mapa conta a historia da
+   partida (idea de Agarfal). Só decoración, determinista polo id do sector.
+   Fases: 20s sacos terreiros · 45s caixas+bidón · 90s valla+bidón+saco extra. */
+function drawSectorProps(ctx, s, age, owner){
+  if(owner !== 0 && owner !== 1) return;
+  const hs = (s.id.charCodeAt ? s.id.charCodeAt(0)*31 : s.id*31) | 0;
+  const hr = (n) => { const v = Math.sin(hs + n*7)*10000; return v - Math.floor(v); };
+  const ang = (i) => hr(i)*Math.PI*2;
+  const at = (a, d) => [s.x + Math.cos(a)*(s.r + d), s.y + Math.sin(a)*(s.r + d)];
+  const saco = (x, y) => {   /* saco terreiro caqui */
+    ctx.fillStyle = '#8a7d4a'; ctx.fillRect(x, y, 7, 4);
+    ctx.fillStyle = '#a8985c'; ctx.fillRect(x, y, 7, 1);
+    ctx.fillStyle = '#5c5230'; ctx.fillRect(x, y+3, 7, 1);
+  };
+  const caixa = (x, y) => {
+    ctx.fillStyle = '#6a5230'; ctx.fillRect(x, y, 8, 6);
+    ctx.fillStyle = '#8a6f42'; ctx.fillRect(x, y, 8, 2);
+    ctx.fillStyle = '#4a3820'; ctx.fillRect(x, y+5, 8, 1); ctx.fillRect(x+4, y, 1, 6);
+  };
+  const bidon = (x, y, r2) => {
+    ctx.fillStyle = r2 ? '#7a3a30' : '#54585e'; ctx.fillRect(x, y, 5, 7);
+    ctx.fillStyle = r2 ? '#9a5a4a' : '#787e86'; ctx.fillRect(x, y, 5, 2);
+    ctx.fillStyle = '#26251f'; ctx.fillRect(x, y+3, 5, 1);
+  };
+  const valla = (x, y) => {
+    ctx.fillStyle = '#5a5a50';
+    ctx.fillRect(x, y, 12, 1); ctx.fillRect(x, y+3, 12, 1);
+    ctx.fillRect(x, y-1, 1, 6); ctx.fillRect(x+11, y-1, 1, 6); ctx.fillRect(x+5, y-1, 1, 6);
+  };
+  if(age > 1200){                                   /* ~20s: sacos */
+    let [x, y] = at(ang(1), 6); saco(x, y);
+    [x, y] = at(ang(2), 8); saco(x, y);
+  }
+  if(age > 2700){                                   /* ~45s: caixas + bidón */
+    let [x, y] = at(ang(3), 7); caixa(x, y);
+    [x, y] = at(ang(4), 9); bidon(x, y, hr(20) > 0.5);
+  }
+  if(age > 5400){                                   /* ~90s: valla + máis */
+    let [x, y] = at(ang(5), 10); valla(x, y);
+    [x, y] = at(ang(6), 7); bidon(x, y, hr(21) > 0.5);
+    [x, y] = at(ang(7), 8); saco(x, y);
+  }
+}
+/* (v0.52) Plataforma de sector: formigón circular con marcas, integrada no
+   terreo (vai BAIXO todo). O dono só cambia a capa dinámica tardía. */
+function drawSectorPad(ctx, s){
+  ctx.save();
+  /* base de formigón */
+  ctx.fillStyle = '#4d4c45';
+  ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 7); ctx.fill();
+  /* bordo exterior escuro */
+  ctx.strokeStyle = '#33322c'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.arc(s.x, s.y, s.r - 1, 0, 7); ctx.stroke();
+  /* centro de asfalto máis escuro */
+  ctx.fillStyle = '#3a3a34';
+  ctx.beginPath(); ctx.arc(s.x, s.y, s.r * 0.62, 0, 7); ctx.fill();
+  /* marca amarela descontinua no asfalto */
+  ctx.strokeStyle = '#b09a30'; ctx.lineWidth = 2;
+  ctx.setLineDash([9, 8]);
+  ctx.beginPath(); ctx.arc(s.x, s.y, s.r * 0.62, 0, 7); ctx.stroke();
+  ctx.setLineDash([]);
+  /* gretas e placas: liñas radiais tenues + parafusos */
+  ctx.strokeStyle = '#42413a'; ctx.lineWidth = 1;
+  for(let i = 0; i < 4; i++){
+    const a = i * Math.PI/2 + 0.4;
+    ctx.beginPath();
+    ctx.moveTo(s.x + Math.cos(a)*s.r*0.64, s.y + Math.sin(a)*s.r*0.64);
+    ctx.lineTo(s.x + Math.cos(a)*(s.r-3), s.y + Math.sin(a)*(s.r-3));
+    ctx.stroke();
+  }
+  /* franxa de perigo amarela/negra ao sur (entrada) */
+  const by = s.y + s.r - 7;
+  for(let i = 0; i < 5; i++){
+    ctx.fillStyle = i % 2 ? '#b09a30' : '#26251f';
+    ctx.fillRect(s.x - 15 + i*6, by, 6, 4);
+  }
+  ctx.restore();
+}
 function draw(g){
+  const _fxDt = fxTick();   /* (v0.55.1) dt real dispoñible desde o primeiro rect */
   /* Fondo: terreno por celdas (cache estático + ondas de agua animadas) */
   if(TERRAIN_CACHE){
     ctx.drawImage(TERRAIN_CACHE, 0, 0);
+    /* (v0.52) plataformas de sector: zona industrial integrada no chan */
+    if(g.sectors) for(const s of g.sectors){
+      drawSectorPad(ctx, s);
+      drawSectorProps(ctx, s, secAgeTicks(g, s), s.owner);   /* (v0.52.1) historia da ocupación */
+    }
     drawWaterRipples(ctx, TERRAIN_GRID, g);
   } else {
     ctx.fillStyle='#161d12';
@@ -545,9 +882,32 @@ function draw(g){
   }
   /* Sectores */
   for(const s of g.sectors){
-    ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,7);
-    ctx.strokeStyle = s.owner===0?'#4f8aff': s.owner===1?'#ff5340':'#777';
-    ctx.lineWidth=2; ctx.stroke(); ctx.lineWidth=1;
+    /* (v0.52) por riba das unidades só o DINÁMICO: aro do dono, luces, bandeira */
+    const ocol = s.owner===0?'#4f8aff': s.owner===1?'#ff5340':'#8a8a80';
+    if(s.owner===0 || s.owner===1){
+      /* aro do equipo en segmentos (fronte lexible sen tapar o xogo) */
+      ctx.save();
+      ctx.strokeStyle = ocol; ctx.lineWidth = 2.5;
+      ctx.setLineDash([14, 10]);
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r - 2, (g.t*0.002)%7, (g.t*0.002)%7 + 7);
+      ctx.stroke();
+      ctx.restore();
+      /* bandeiriña do equipo */
+      const fx = s.x + s.r*0.62, fy = s.y - s.r*0.62;
+      ctx.fillStyle = '#3a3a34'; ctx.fillRect(fx, fy-12, 1, 12);
+      ctx.fillStyle = ocol; ctx.fillRect(fx+1, fy-12, 7, 5);
+    }
+    /* 4 luces de perímetro (cor do dono; grises se neutral) con brillo */
+    for(let i = 0; i < 4; i++){
+      const a = i*Math.PI/2 + Math.PI/4;
+      const lx = s.x + Math.cos(a)*(s.r-4), ly = s.y + Math.sin(a)*(s.r-4);
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.5 + 0.3*Math.sin(g.t*0.06 + i*1.7);
+      ctx.fillStyle = ocol;
+      ctx.fillRect(lx-1, ly-1, 3, 3);
+      ctx.restore();
+    }
     ctx.fillStyle='#999'; ctx.font='bold 13px Courier New';
     ctx.fillText('SECTOR '+s.id, s.x-32, s.y-s.r-6);
     if(Math.abs(s.prog)>2 && Math.abs(s.prog)<100){
@@ -559,6 +919,98 @@ function draw(g){
   /* HQs */
   for(const h of g.hq){
     const cx = h.x + h.w/2, cy = h.y + h.h/2;
+    /* (v0.52) MANDIL DE BASE: formigón preparado arredor do HQ + atrezzo
+       (caixas, bidóns, valla) determinista pola posición — parece base militar,
+       non un edificio "pousado enriba" da herba. Vai baixo o sprite do HQ;
+       as unidades píntanse despois, así que camiñan por riba. */
+    {
+      const M = 14;
+      const ax = h.x - M, ay = h.y - M, aw = h.w + M*2, ah = h.h + M*2;
+      ctx.fillStyle = '#4a4a42'; ctx.fillRect(ax, ay, aw, ah);
+      ctx.fillStyle = '#3a3a34'; ctx.fillRect(ax, ay+ah-3, aw, 3); ctx.fillRect(ax+aw-3, ay, 3, ah);
+      ctx.fillStyle = '#5a5a50'; ctx.fillRect(ax, ay, aw, 1); ctx.fillRect(ax, ay, 1, ah);
+      /* esquinas amarelas de sinalización */
+      ctx.fillStyle = '#b09a30';
+      ctx.fillRect(ax+2, ay+2, 7, 2); ctx.fillRect(ax+2, ay+2, 2, 7);
+      ctx.fillRect(ax+aw-9, ay+2, 7, 2); ctx.fillRect(ax+aw-4, ay+2, 2, 7);
+      ctx.fillRect(ax+2, ay+ah-4, 7, 2); ctx.fillRect(ax+2, ay+ah-9, 2, 7);
+      ctx.fillRect(ax+aw-9, ay+ah-4, 7, 2); ctx.fillRect(ax+aw-4, ay+ah-9, 2, 7);
+      /* atrezzo determinista pola posición do HQ */
+      const hs = (h.x*7 + h.y*13) | 0;
+      const hr = (n) => { const s = Math.sin(hs + n*7)*10000; return s - Math.floor(s); };
+      const propSide = h.team === 0 ? ax + aw - 11 : ax + 3;   /* cara á retagarda */
+      /* caixas (madeira) */
+      for(let i = 0; i < 2; i++){
+        const bx2 = propSide + Math.floor(hr(10+i)*4), by2 = ay + 12 + i*13 + Math.floor(hr(20+i)*4);
+        ctx.fillStyle = '#6a5230'; ctx.fillRect(bx2, by2, 8, 6);
+        ctx.fillStyle = '#8a6f42'; ctx.fillRect(bx2, by2, 8, 2);
+        ctx.fillStyle = '#4a3820'; ctx.fillRect(bx2, by2+5, 8, 1); ctx.fillRect(bx2+4, by2, 1, 6);
+      }
+      /* bidóns */
+      for(let i = 0; i < 2; i++){
+        const dx2 = propSide + Math.floor(hr(30+i)*5), dy2 = ay + ah - 16 - i*9;
+        ctx.fillStyle = i ? '#7a3a30' : '#54585e'; ctx.fillRect(dx2, dy2, 5, 7);
+        ctx.fillStyle = i ? '#9a5a4a' : '#787e86'; ctx.fillRect(dx2, dy2, 5, 2);
+        ctx.fillStyle = '#26251f'; ctx.fillRect(dx2, dy2+3, 5, 1);
+      }
+      /* (v0.55) vida: un dos bidóns fumea de cando en vez */
+      if(Math.random() < _fxDt * 0.5){
+        fxSmokePuff(propSide + Math.floor(hr(30)*5) + 2, ay + ah - 17);
+      }
+      /* valla curta na fronte */
+      const vx = h.team === 0 ? ax + aw - 2 : ax, vy = ay + 8;
+      ctx.fillStyle = '#5a5a50';
+      for(let i = 0; i < 3; i++) ctx.fillRect(vx, vy + i*12, 2, 7);
+    }
+    /* (v0.55) FÁBRICA VIVA mentres produce: soldaduras dentro, porta acesa */
+    {
+      const prod = g.prod && g.prod[h.team];
+      if(prod){
+        /* porta cara á fronte, con luz laranxa pulsante */
+        const dx2 = h.team === 0 ? h.x + h.w - 2 : h.x - 4;
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = 0.30 + 0.22 * Math.sin(g.t * 0.11);
+        ctx.fillStyle = '#ff9a3c';
+        ctx.fillRect(dx2, cy - 8, 6, 16);
+        ctx.restore();
+        /* soldaduras: chispas breves en puntos aleatorios do interior */
+        if(Math.random() < _fxDt * 5){
+          fxSparks(h.x + 5 + Math.random() * (h.w - 10), h.y + 8 + Math.random() * (h.h - 16), h.team);
+        }
+        /* destello interior ocasional (o flash da soldadura ilumina a nave) */
+        if(Math.random() < _fxDt * 1.4){
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.globalAlpha = 0.18;
+          ctx.fillStyle = '#cfe8ff';
+          ctx.fillRect(h.x + 3, h.y + 4, h.w - 6, h.h - 8);
+          ctx.restore();
+        }
+      }
+    }
+    /* (v0.54) BANDEIRA do HQ ondeando — (v0.60) no Mundial, a do PAÍS */
+    {
+      const fx2 = h.team === 0 ? h.x - 8 : h.x + h.w + 6;
+      const fy2 = h.y - 4;
+      ctx.fillStyle = '#3a3a34'; ctx.fillRect(fx2, fy2 - 14, 1, 16);
+      ctx.fillStyle = '#26251f'; ctx.fillRect(fx2 - 1, fy2 + 1, 3, 1);
+      const fw = ((g.t >> 4) & 1);   /* frame de onda */
+      const _M = (g.modo === 'mundial' && window._mundial) ? window._mundial : null;
+      const _pais = _M ? (h.team === PT ? MUN_PAISES.find(x => x.id === MDATA.pais) : _M.rival) : null;
+      if(_pais && typeof drawBandeira === 'function'){
+        drawBandeira(ctx, fx2 + 1, fy2 - 14 + fw, 9, 6, _pais.band);
+      } else {
+        const fcol = h.team === 0 ? '#4a8ad8' : '#d84a3c';
+        const flit = h.team === 0 ? '#74b2ff' : '#ff7862';
+        ctx.fillStyle = fcol;
+        ctx.fillRect(fx2 + 1, fy2 - 14, 5, 5);
+        ctx.fillRect(fx2 + 6, fy2 - 14 + fw, 3, 5 - fw);
+        ctx.fillStyle = flit;
+        ctx.fillRect(fx2 + 1, fy2 - 14, 5, 1);
+        ctx.fillRect(fx2 + 6, fy2 - 14 + fw, 3, 1);
+      }
+    }
     const img = h.team===0 ? ASSETS.hqBlue : ASSETS.hqRed;
     if(img){
       /* Sprite escalado para que cuadre coa hitbox h.w x h.h, con un pouco máis de altura */
@@ -645,8 +1097,8 @@ function draw(g){
   if(g.wallPlacing){
     const r = cv.getBoundingClientRect();
     if(r.width > 0){
-      const mx = (_mouseClient.x - r.left) * (cv.width / r.width) + cam.x;
-      const my = (_mouseClient.y - r.top) * (cv.height / r.height) + cam.y;
+      const mx = (_mouseClient.x - r.left) * (cv.width / r.width) / camZoom + cam.x;
+      const my = (_mouseClient.y - r.top) * (cv.height / r.height) / camZoom + cam.y;
       const ok = validWallSpot(mx, my, g);
       ctx.save();
       ctx.globalAlpha = 0.6;
@@ -680,8 +1132,8 @@ function draw(g){
   if(g.turretPending > 0){
     const r = cv.getBoundingClientRect();
     if(r.width > 0){
-      const mx = (_mouseClient.x - r.left) * (cv.width / r.width) + cam.x;
-      const my = (_mouseClient.y - r.top) * (cv.height / r.height) + cam.y;
+      const mx = (_mouseClient.x - r.left) * (cv.width / r.width) / camZoom + cam.x;
+      const my = (_mouseClient.y - r.top) * (cv.height / r.height) / camZoom + cam.y;
       const ok = validTurretSpot(mx, my, g);
       ctx.save();
       ctx.globalAlpha = 0.55;
@@ -740,7 +1192,7 @@ function draw(g){
     ctx.beginPath(); ctx.ellipse(cx2, cy2, R, R * 0.8, 0, a1, a1 + 0.5); ctx.stroke();
     ctx.font = 'bold 9px Courier New';
     ctx.fillStyle = `rgba(${col},0.9)`;
-    ctx.fillText('⛨ ESCUDO DE SUMINISTRO', cx2 - 62, cy2 - R * 0.8 - 6);
+    ctx.fillText(TXT('hud.escudoCanvas'), cx2 - 62, cy2 - R * 0.8 - 6);
     ctx.restore();
   }
   /* (v0.26) Cráteres: as cicatrices do chan */
@@ -763,13 +1215,22 @@ function draw(g){
         continue;
       }
       const dmg = 1 - w.hp / w.max;
-      ctx.fillStyle = '#5a5a62';
-      ctx.fillRect(w.x-8, w.y-8, 16, 16);
-      ctx.fillStyle = '#43434a';
-      ctx.fillRect(w.x-8, w.y-8, 16, 4);
-      ctx.fillRect(w.x-8, w.y+4, 16, 4);
-      if(dmg > 0.3){ ctx.fillStyle = '#2a2a30'; ctx.fillRect(w.x-4, w.y-6, 3, 10); }
-      if(dmg > 0.6){ ctx.fillStyle = '#1a1a20'; ctx.fillRect(w.x+2, w.y-7, 4, 12); }
+      /* (v0.55) MURO BRANCO con altura de bloque (pedido de Agarfal) */
+      ctx.fillStyle = 'rgba(0,0,0,0.28)';
+      ctx.fillRect(w.x-8, w.y+8, 17, 3);
+      ctx.fillStyle = '#8a887c';
+      ctx.fillRect(w.x-8, w.y-2, 16, 10);
+      ctx.fillStyle = '#d8d5c8';
+      ctx.fillRect(w.x-8, w.y-9, 16, 8);
+      ctx.fillStyle = '#f0eee4';
+      ctx.fillRect(w.x-8, w.y-9, 16, 1);
+      ctx.fillStyle = '#6a685e';
+      ctx.fillRect(w.x-3, w.y-9, 1, 17);
+      ctx.fillRect(w.x+3, w.y-9, 1, 17);
+      ctx.fillStyle = '#10160a';
+      ctx.fillRect(w.x-8, w.y-9, 1, 17); ctx.fillRect(w.x+7, w.y-9, 1, 17);
+      if(dmg > 0.3){ ctx.fillStyle = '#5a584e'; ctx.fillRect(w.x-4, w.y-7, 2, 12); ctx.fillRect(w.x-5, w.y-3, 4, 2); }
+      if(dmg > 0.6){ ctx.fillStyle = '#3a382e'; ctx.fillRect(w.x+1, w.y-8, 3, 14); ctx.fillRect(w.x-1, w.y+1, 6, 2); }
     }
   }
   /* (v0.12) Chatarra no chan */
@@ -838,6 +1299,12 @@ function draw(g){
   /* Torretas (v0.8) — pequenas, rotan cara o obxectivo */
   for(const tu of g.turrets){
     if(tu.destroyed) continue;
+    /* (v0.49) sombra */
+    ctx.save();
+    ctx.globalAlpha = 0.24;
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.ellipse(tu.x, tu.y + 13, 13, 4, 0, 0, 7); ctx.fill();
+    ctx.restore();
     let img = null;
     if(tu.occupant && tu.team===0) img = ASSETS.turretBlueManned;
     else if(tu.occupant && tu.team===1) img = ASSETS.turretRedManned;
@@ -880,7 +1347,7 @@ function draw(g){
       ctx.textAlign = 'center';
       if(tu.team===-1){
         ctx.fillStyle = '#bbb';
-        ctx.fillText('LIBRE', tu.x, tu.y + 26);
+        ctx.fillText(TXT('hud.libre'), tu.x, tu.y + 26);
       } else {
         /* Pulsar a etiqueta para chamar a atención */
         const pulse = 0.5 + 0.5*Math.sin(g.t * 0.15);
@@ -895,6 +1362,12 @@ function draw(g){
     for(const v of g.vehicles){
       if(v.destroyed) continue;
       if(v.team === ET && !vehVisible(v, g)) continue;   /* (v0.20) néboa */
+      /* (v0.49) sombra do vehículo */
+      ctx.save();
+      ctx.globalAlpha = 0.26;
+      ctx.fillStyle = '#000';
+      ctx.beginPath(); ctx.ellipse(v.x, v.y + (v.tipo==='TANQUE'?15:12), v.tipo==='TANQUE'?20:16, 5, 0, 0, 7); ctx.fill();
+      ctx.restore();
       if(v.tipo === 'TANQUE'){
         /* (v0.17.2) Sprite do tanque: cañón cara ao SUR na imaxe →
            rotar por (v.angle - π/2) para que o cañón apunte na dirección real */
@@ -931,6 +1404,26 @@ function draw(g){
         ctx.fillStyle = v.team===0?'#27406e':(v.team===1?'#6e2a22':'#3a3a3a');
         ctx.fillRect(v.x-22, v.y-18, 44, 36);
       }
+      /* (v0.55) DETERIORO: os vehículos contan o combate no chasis.
+         Arañazos deterministas (pola matrícula do vehículo) + fume + faíscas. */
+      {
+        const vd = 1 - v.hp / v.max;
+        if(vd > 0.3){
+          const vs = ((v.id ? String(v.id).length * 31 : 7) + ((v.max|0) * 13)) | 0;
+          const vr = (n) => { const q = Math.sin(vs + n*7)*10000; return q - Math.floor(q); };
+          ctx.fillStyle = 'rgba(20,18,12,0.75)';
+          const nSc = vd > 0.6 ? 4 : 2;
+          for(let i = 0; i < nSc; i++){
+            ctx.fillRect(v.x - 14 + Math.floor(vr(i)*24), v.y - 10 + Math.floor(vr(10+i)*18), 5 + Math.floor(vr(20+i)*5), 1);
+          }
+          if(vd > 0.5){   /* pintura queimada: mancha escura */
+            ctx.fillStyle = 'rgba(30,22,14,0.6)';
+            ctx.fillRect(v.x - 6 + Math.floor(vr(30)*8), v.y - 6 + Math.floor(vr(31)*8), 8, 6);
+          }
+        }
+        if(vd > 0.6 && Math.random() < _fxDt * 2.2) fxSmokePuff(v.x + (Math.random()*10-5), v.y - 6);
+        if(vd > 0.8 && Math.random() < _fxDt * 1.5) fxSparks(v.x, v.y - 2, v.team);
+      }
       /* HP bar */
       const hpFrac = Math.max(0, v.hp/v.max);
       const empty = !v.occupant && v.team>=0;
@@ -951,7 +1444,7 @@ function draw(g){
         ctx.textAlign = 'center';
         if(v.team === -1){
           ctx.fillStyle = '#bbb';
-          ctx.fillText('LIBRE', v.x, v.y + 32);
+          ctx.fillText(TXT('hud.libre'), v.x, v.y + 32);
         } else {
           const pulse = 0.5 + 0.5*Math.sin(g.t * 0.15);
           ctx.fillStyle = v.team===0 ? `rgba(127,176,255,${0.55+0.45*pulse})` : `rgba(255,127,127,${0.55+0.45*pulse})`;
@@ -963,9 +1456,38 @@ function draw(g){
   }
   /* Tracers */
   /* (v0.25) Explosións: anel expansivo */
+  fxUpdateDraw(_fxDt);   /* (v0.49) partículas na súa capa */
+  /* (v0.55) FÁBRICA VIVA: unidade acabada de saír → refacho na porta */
+  {
+    if(_seenU.g !== g){ _seenU.g = g; _seenU.s = new Set(g.units.map(u => u.id)); }
+    for(const u of g.units){
+      if(_seenU.s.has(u.id)) continue;
+      _seenU.s.add(u.id);
+      if(u.dead || u.team === 2) continue;
+      /* saíu da fábrica: fume + chispas + mini-flash no punto de aparición */
+      fxSmokePuff(u.x - 3, u.y - 2); fxSmokePuff(u.x + 3, u.y - 4);
+      fxSparks(u.x, u.y, u.team);
+    }
+    if(_seenU.s.size > 600) _seenU.s = new Set(g.units.map(u => u.id));
+  }
+  /* (v0.53) camiños trillados: cada unidade en movemento desgasta o chan
+     baixo os pés (vehículos o dobre). Escalado por tempo real. */
+  if(typeof addWear === 'function' && _fxDt > 0){
+    for(const u of g.units){
+      if(u.dead || u.inside) continue;
+      if(Math.abs(u.x - (u.tx ?? u.x)) + Math.abs(u.y - (u.ty ?? u.y)) > 2) addWear(u.x, u.y + 7, _fxDt);
+    }
+    if(g.vehicles) for(const v of g.vehicles){
+      if(v.destroyed) continue;
+      if(Math.abs(v.x - (v.tx ?? v.x)) + Math.abs(v.y - (v.ty ?? v.y)) > 2) addWear(v.x, v.y + 8, _fxDt * 2);
+    }
+  }
   if(g.booms){
     for(const b of g.booms){
-      b.t--;
+      /* (v0.49) partículas ao nacer o boom (dedup por posición: o snap do
+         convidado re-entrega o mesmo boom en varios frames) */
+      if(b.t >= 13 && _fxDedup('b' + (b.x|0) + '_' + (b.y|0), 600)) fxBurst(b.x, b.y, b.big);
+      b.t -= _fxDt * 60;   /* (v0.49) decae por TEMPO, non por frame do monitor */
       const prog = 1 - b.t / 14;
       const r = prog * (b.big ? 34 : 16);
       ctx.save();
@@ -982,17 +1504,30 @@ function draw(g){
     g.booms = g.booms.filter(b => b.t > 0);
   }
   for(const t of g.tracers){
-    /* (v0.25) fogonazo de boca nos 2 primeiros frames */
-    if(t.t >= 7){
+    /* (v0.49) chispas no punto de impacto ao nacer o tracer */
+    if(t.t >= 6 && _fxDedup('t' + (t.x2|0) + '_' + (t.y2|0), 140)) fxSparks(t.x2, t.y2, t.team);
+    /* (v0.25) fogonazo de boca nos primeiros frames — (v0.49) con brillo aditivo */
+    if(t.t >= 6){
       ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = 0.85;
       ctx.fillStyle = '#fff7d0';
-      ctx.beginPath(); ctx.arc(t.x1, t.y1, 3, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.arc(t.x1, t.y1, 3.5, 0, 7); ctx.fill();
       ctx.restore();
     }
+    /* (v0.49) dobre pasada: halo groso aditivo + liña nítida enriba */
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.30 * Math.min(1, t.t / 6);
+    ctx.strokeStyle = t.team===0?'#6ab0ff':'#ff9a60';
+    ctx.lineWidth = 2.6;
+    ctx.beginPath(); ctx.moveTo(t.x1,t.y1); ctx.lineTo(t.x2,t.y2); ctx.stroke();
+    ctx.restore();
+    ctx.globalAlpha = Math.min(1, t.t / 5);
     ctx.strokeStyle = t.team===0?'#bdf':'#fb9';
     ctx.beginPath(); ctx.moveTo(t.x1,t.y1); ctx.lineTo(t.x2,t.y2); ctx.stroke();
-    t.t--;
+    ctx.globalAlpha = 1;
+    t.t -= _fxDt * 60;   /* (v0.49) por tempo real */
   }
   g.tracers=g.tracers.filter(t=>t.t>0);
   /* Unidades */
@@ -1000,7 +1535,40 @@ function draw(g){
     if(u.dead) continue;
     if(u.inside) continue;  /* dentro dunha torreta — non debuxar */
     if(u.team === ET && !foeVisible(u, g)) continue;   /* (v0.20) néboa */
+    /* (v0.49) SOMBRA elíptica no chan — profundidade (queda fixa, non boba) */
+    ctx.save();
+    ctx.globalAlpha = 0.26;
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.ellipse(u.x, u.y + 10, 8, 3, 0, 0, 7); ctx.fill();
+    ctx.restore();
+    /* (v0.49) FUME nas feridas graves (só se visible) */
+    if(u.hp < u.max * 0.4 && Math.random() < _fxDt * 2.5) fxSmokePuff(u.x, u.y - 6);
+    /* (v0.49.1) bob retirado: cos sprites rectangulares parecía un glitch (feedback de Agarfal) */
     const c = u.team===0?'#4f8aff':(u.team===2?'#b8bcc0':'#ff5340');
+    /* (v0.50.1) SPRITE voxel animado (2 frames de andar, espellado por dirección).
+       Vai ANTES dos acentos de identidade (medallas, soldadura, estrela, nome),
+       que pintan POR RIBA e seguen visibles — son sagrados en TUERCA. */
+    {
+      const _mv = Math.abs(u.x - (u.tx ?? u.x)) + Math.abs(u.y - (u.ty ?? u.y)) > 2;
+      const _fr = _mv ? ((g.t >> 3) & 1) : 0;
+      let _fc = u.team === 0 ? 1 : -1;
+      if(_mv && Math.abs((u.tx ?? u.x) - u.x) > 1) _fc = ((u.tx ?? u.x) > u.x) ? 1 : -1;
+      drawRobot(ctx, u.x, u.y, u.cls, u.team, _fr, _fc);
+      /* (v0.54) MUESCAS DE KILLS no torso (carreira completa): unha raia
+         branca por baixa (máx 4) e unha DOURADA por cada 5 (máx 3) — como
+         as marcas de vitoria nos avións. Recoñeces o veterano sen abrir a
+         ficha: o filtro de deseño de TUERCA en píxeles. */
+      const _kt = (u.pastKills || 0) + (u.kills || 0);
+      if(_kt > 0){
+        const _g5 = Math.min(3, (_kt / 5) | 0);
+        const _b1 = Math.min(4, _kt - _g5 * 5);
+        let _mx = u.x - 4;
+        ctx.fillStyle = '#e8c84a';
+        for(let i = 0; i < _g5; i++){ ctx.fillRect(_mx, u.y + 2, 1, 3); _mx += 2; }
+        ctx.fillStyle = '#e8e4d0';
+        for(let i = 0; i < _b1; i++){ ctx.fillRect(_mx, u.y + 3, 1, 2); _mx += 2; }
+      }
+    }
     ctx.fillStyle=c;
     /* (v0.24.1) Veterano de VOLT: nome vermello — sabes a quen estás matando */
     if(u._voltVet && !u.dead){
@@ -1036,24 +1604,7 @@ function draw(g){
       ctx.fillRect(u.x-3, u.y-16, 6, 4);
       ctx.fillStyle = c;
     }
-    if(u.cls==='HEAVY'){ ctx.fillRect(u.x-7,u.y-6,14,12); }
-    else if(u.cls==='ENGINEER'){ ctx.fillRect(u.x-5,u.y-5,10,10); ctx.fillRect(u.x+4,u.y-8,4,4); }
-    else if(u.cls==='SNIPER'){
-      /* Delgado e alto, con cañón longo e visor teal */
-      ctx.fillRect(u.x-3,u.y-8,6,16);
-      ctx.fillRect(u.x+3,u.y-5,11,2);          /* cañón longo */
-      ctx.fillStyle='#7fe8e8'; ctx.fillRect(u.x-1,u.y-7,3,3);  /* visor */
-      ctx.fillStyle=c;
-    }
-    else if(u.cls==='BOMBARDERO'){
-      /* Ancho, con mochila de bombas laranxa */
-      ctx.fillRect(u.x-6,u.y-5,12,11);
-      ctx.fillStyle='#ff9a3c';
-      ctx.fillRect(u.x-8,u.y-8,5,5); ctx.fillRect(u.x+3,u.y-8,5,5);  /* bombas */
-      ctx.fillStyle=c;
-    }
-    else { ctx.fillRect(u.x-5,u.y-6,10,12); }
-    ctx.fillStyle='#fff'; ctx.fillRect(u.x-2,u.y-9,4,4);
+
     if(u.sel){ ctx.strokeStyle='#fff'; ctx.strokeRect(u.x-10,u.y-12,20,24); }
     if(u.ops>=3){ ctx.fillStyle='#ffd24a'; ctx.fillRect(u.x-8,u.y-12,3,3); }
     /* Marca de enemigo recurrente: corona pequeña sobre la cabeza */
@@ -1067,7 +1618,23 @@ function draw(g){
     ctx.fillRect(u.x-8,u.y+9,16*Math.max(0,u.hp)/u.max,3);
     if(u.sel || (u.warned && u.team===PT && !u.dead)){
       ctx.fillStyle='#ffd24a'; ctx.font='10px Courier New';
-      ctx.fillText(u.name, u.x-u.name.length*3, u.y-16);
+      const _lbl2 = (g.modo === 'mundial' && u.dorsal) ? u.dorsal + '·' + u.name : u.name;
+      ctx.fillText(_lbl2, u.x - _lbl2.length*3, u.y-16);
+    }
+  }
+  /* (v0.49.1) luz ambiental retirada: ensuciaba a paleta fósforo (feedback de Agarfal) */
+  /* (v0.55) O TEMPO PASA: mañá lixeiramente fría → tarde lixeiramente cálida.
+     1 hora do mundo = 150s de sim (20 min ≈ 09:00→17:00). MOI sutil (alpha<=0.05)
+     — a tintura forte por mapa retirouse na v0.49.1 por "quedar rara"; isto é
+     progresivo e case subliminal, como pediu Agarfal. */
+  {
+    const _wh = Math.min(19, 9 + g.t / 9000);
+    if(_wh < 11){
+      ctx.fillStyle = `rgba(120,160,255,${(0.03 * (11 - _wh) / 2).toFixed(3)})`;
+      ctx.fillRect(0, 0, W, H);
+    } else if(_wh > 15){
+      ctx.fillStyle = `rgba(255,140,50,${(0.05 * Math.min(1, (_wh - 15) / 3)).toFixed(3)})`;
+      ctx.fillRect(0, 0, W, H);
     }
   }
   /* Caja de selección */
@@ -1079,8 +1646,8 @@ function draw(g){
   /* Info producción */
   const p=g.prod[PT];
   $('prodinfo').textContent = p
-    ? `Fabricando ${p.cls}… ${Math.ceil(p.left/60)}s  (sectores: ${g.sectors.filter(s=>s.owner===PT).length} → ${Math.round((1-prodFactor(g,PT))*100)}% más rápido)`
-    : `Cola libre · sectores propios: ${g.sectors.filter(s=>s.owner===PT).length}`;
+    ? TXT('hud.fabricando', {cls: clsLabel(p.cls), s: Math.ceil(p.left/60), n: g.sectors.filter(s=>s.owner===PT).length, pct: Math.round((1-prodFactor(g,PT))*100)})
+    : TXT('hud.colaLibre', {n: g.sectors.filter(s=>s.owner===PT).length});
   /* (v0.22) Botón de muro: só visible con ENGINEER seleccionado */
   $('pMuro').style.display = g.units.some(u => u.team===PT && !u.dead && !u.inside && u.sel && u.eng) ? '' : 'none';
   /* (v0.11) Indicador de formación */
@@ -1089,11 +1656,11 @@ function draw(g){
     if(formacionAtiva){
       formInfo.style.color = '#7fdc7f';
       formInfo.style.borderColor = '#7fdc7f';
-      formInfo.textContent = '⫷ FORMACIÓN: ON  (F)';
+      formInfo.textContent = TXT('hud.formOn');
     } else {
       formInfo.style.color = '#888';
       formInfo.style.borderColor = '#555';
-      formInfo.textContent = '⫷ FORMACIÓN: OFF  (F)';
+      formInfo.textContent = TXT('hud.formOff');
     }
   }
   /* Indicador del radar central */
@@ -1101,15 +1668,15 @@ function draw(g){
   if(g.radar.owner === PT){
     radarInfo.style.color = '#4f8aff';
     radarInfo.style.borderColor = '#4f8aff';
-    radarInfo.textContent = '◉ RADAR: TUYO';
+    radarInfo.textContent = TXT('hud.radarTeu');
   } else if(g.radar.owner === ET){
     radarInfo.style.color = '#ff5340';
     radarInfo.style.borderColor = '#ff5340';
-    radarInfo.textContent = '◉ RADAR: ENEMIGO — IA LEE TUS VETERANOS';
+    radarInfo.textContent = TXT('hud.radarInimigo');
   } else {
     radarInfo.style.color = '#8a6200';
     radarInfo.style.borderColor = '#8a6200';
-    radarInfo.textContent = '◉ RADAR: NEUTRAL';
+    radarInfo.textContent = TXT('hud.radarNeutral');
   }
 }
 

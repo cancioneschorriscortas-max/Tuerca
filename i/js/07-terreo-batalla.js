@@ -19,14 +19,47 @@ let ROWS = 34;  /* 540/16 ≈ 34 */
 const T = {GRASS:0, DIRT:1, WATER:2, ROAD:3, BRIDGE:4, RUBBLE:5};
 
 /* Paletas por tipo: base oscura, base media, base clara, acento */
-const TILE_PALETTES = {
-  [T.GRASS]:  {dark:'#0e1409', base:'#1a230f', light:'#2a3318', accent:'#3a4520'},
-  [T.DIRT]:   {dark:'#1f160e', base:'#2c1f12', light:'#3d2c18', accent:'#5a3e22'},
-  [T.WATER]:  {dark:'#0a1928', base:'#10283f', light:'#1a3850', accent:'#2a5070'},
-  [T.ROAD]:   {dark:'#1a1a16', base:'#2a2a24', light:'#3a3a30', accent:'#4a4a3a'},
-  [T.BRIDGE]: {dark:'#3a2818', base:'#5a4632', light:'#7a6244', accent:'#9a7e54'},
-  [T.RUBBLE]: {dark:'#2a2520', base:'#3d3530', light:'#5a4e44', accent:'#7a685a'},
+/* (v0.50) Paletas VOXEL: máis luminosas, con cara superior (base/top2) e
+   cara lateral (side) para a ilusión de bloque. Validadas nun banco de
+   probas visual á parte antes do porte. */
+/* (v0.60) BIOMAS: tres mundos coa mesma técnica voxel. Validados no lab
+   (terreo_lab/biomas.py). setBioma() cámbiaos; a campaña usa VERDE. */
+const BIOMA_PALETTES = {
+ VERDE: {
+  [T.GRASS]:  {dark:'#233312', base:'#4d6a2a', top2:'#55742f', side:'#2c3d16', light:'#688a3a', accent:'#7da548'},
+  [T.DIRT]:   {dark:'#332614', base:'#6a5236', top2:'#75603f', side:'#3d2e1c', light:'#8a6f4a', accent:'#a08558'},
+  [T.WATER]:  {dark:'#0a2836', base:'#1e5a72', top2:'#1a5069', side:'#0e3040', light:'#3a86a0', accent:'#63b7cc'},
+  [T.ROAD]:   {dark:'#2a2a26', base:'#585850', top2:'#605e55', side:'#333330', light:'#73736a', accent:'#8a8a80'},
+  [T.BRIDGE]: {dark:'#3a2a18', base:'#8a6a42', top2:'#93744a', side:'#4a3520', light:'#a88652', accent:'#c09a60'},
+  [T.RUBBLE]: {dark:'#3a3833', base:'#8a8578', top2:'#948e80', side:'#4d4a42', light:'#a8a294', accent:'#c2bcae'},
+ },
+ DESERTO: {
+  [T.GRASS]:  {dark:'#5a4a26', base:'#b89a5c', top2:'#c2a566', side:'#6e5a30', light:'#d4b878', accent:'#e0c98a'},
+  [T.DIRT]:   {dark:'#48351c', base:'#96703c', top2:'#a07a44', side:'#584022', light:'#b08c52', accent:'#c49e60'},
+  [T.WATER]:  {dark:'#0e343a', base:'#2a7a86', top2:'#248090', side:'#134048', light:'#48a8b4', accent:'#7ed4dc'},
+  [T.ROAD]:   {dark:'#36322a', base:'#6e665a', top2:'#786f60', side:'#403c34', light:'#8c8272', accent:'#a09684'},
+  [T.BRIDGE]: {dark:'#44341e', base:'#9a7a4c', top2:'#a48454', side:'#544026', light:'#b8945e', accent:'#ccaa6e'},
+  [T.RUBBLE]: {dark:'#4a4034', base:'#a89478', top2:'#b29e80', side:'#5c5040', light:'#c4b090', accent:'#d8c4a2'},
+ },
+ NEVE: {
+  [T.GRASS]:  {dark:'#687684', base:'#c8d2da', top2:'#d2dce4', side:'#7a8896', light:'#e4ecf2', accent:'#f4f8fc'},
+  [T.DIRT]:   {dark:'#3f4652', base:'#8a92a0', top2:'#949cab', side:'#4e5662', light:'#a8b0be', accent:'#bcc4d0'},
+  [T.WATER]:  {dark:'#16283c', base:'#3a5a7e', top2:'#34547a', side:'#1c3048', light:'#5e86ae', accent:'#8fb8d8'},
+  [T.ROAD]:   {dark:'#24272c', base:'#4e525c', top2:'#565a64', side:'#2c2f36', light:'#6a7080', accent:'#7e8494'},
+  [T.BRIDGE]: {dark:'#362a1e', base:'#7a6248', top2:'#846c50', side:'#443626', light:'#987e5c', accent:'#ac926a'},
+  [T.RUBBLE]: {dark:'#464e5a', base:'#9aa2ae', top2:'#a4acb8', side:'#565e6a', light:'#b8c0cc', accent:'#ccd4e0'},
+ },
 };
+let TILE_PALETTES = BIOMA_PALETTES.VERDE;
+function setBioma(b){
+  TILE_PALETTES = BIOMA_PALETTES[b] || BIOMA_PALETTES.VERDE;
+  window._bioma = BIOMA_PALETTES[b] ? b : 'VERDE';
+  if(typeof TERRAIN_CACHE !== 'undefined' && window._terrainGrid){
+    TERRAIN_CACHE = buildTerrainCache(window._terrainGrid);   /* repintar co bioma novo */
+  }
+}
+/* Altura visual de cada tipo (para as caras laterais dos bloques) */
+const TILE_HEIGHT = {[T.WATER]:0, [T.ROAD]:1, [T.DIRT]:1, [T.BRIDGE]:2, [T.GRASS]:2, [T.RUBBLE]:2};
 
 /* Jerarquía: cuál "gana" en transiciones. El de mayor número dibuja por encima.
    Esto permite que la carretera "monte" sobre la hierba sin parpadeos. */
@@ -111,147 +144,235 @@ function drawTile(ctx, grid, x, y){
   const px = x * TILE_SIZE;
   const py = y * TILE_SIZE;
   const here = grid[y][x];
-  const palette = TILE_PALETTES[here];
-
-  /* Fondo base: dibujar siempre con el color de la celda */
-  ctx.fillStyle = palette.base;
-  ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
-
-  /* Para cada vecino con menor rango (la celda actual está "encima" del vecino),
-     dibujar una pequeña "isla" de transición desde el lado del vecino.
-     Esto rompe la línea recta entre tipos. */
-  const N  = tileAt(grid, x,   y-1);
-  const S  = tileAt(grid, x,   y+1);
-  const E  = tileAt(grid, x+1, y);
-  const W  = tileAt(grid, x-1, y);
-  const NE = tileAt(grid, x+1, y-1);
-  const NW = tileAt(grid, x-1, y-1);
-  const SE = tileAt(grid, x+1, y+1);
-  const SW = tileAt(grid, x-1, y+1);
-
-  /* Para cada vecino DISTINTO al actual, "dentar" el borde con el color del vecino */
-  function denticulate(neighborType, side){
-    if(neighborType === here) return;
-    const np = TILE_PALETTES[neighborType];
-    ctx.fillStyle = np.base;
-    /* Dentado: 4 pequeñas mordeduras irregulares del color del vecino */
-    /* Seed determinista por celda+lado para que no parpadee entre frames */
-    const seed = (x * 73 + y * 31 + side) | 0;
-    const rnd = (n) => {
-      const s = Math.sin(seed + n) * 10000;
-      return s - Math.floor(s);
-    };
-    if(side === 0){ /* N */
-      for(let i=0; i<4; i++){
-        const dx = i * 4 + Math.floor(rnd(i)*2);
-        const dh = 1 + Math.floor(rnd(i+10)*3);
-        ctx.fillRect(px + dx, py, 4, dh);
-      }
-    } else if(side === 1){ /* S */
-      for(let i=0; i<4; i++){
-        const dx = i * 4 + Math.floor(rnd(i+1)*2);
-        const dh = 1 + Math.floor(rnd(i+11)*3);
-        ctx.fillRect(px + dx, py + TILE_SIZE - dh, 4, dh);
-      }
-    } else if(side === 2){ /* E */
-      for(let i=0; i<4; i++){
-        const dy = i * 4 + Math.floor(rnd(i+2)*2);
-        const dw = 1 + Math.floor(rnd(i+12)*3);
-        ctx.fillRect(px + TILE_SIZE - dw, py + dy, dw, 4);
-      }
-    } else if(side === 3){ /* W */
-      for(let i=0; i<4; i++){
-        const dy = i * 4 + Math.floor(rnd(i+3)*2);
-        const dw = 1 + Math.floor(rnd(i+13)*3);
-        ctx.fillRect(px, py + dy, dw, 4);
-      }
-    }
-  }
-  denticulate(N, 0);
-  denticulate(S, 1);
-  denticulate(E, 2);
-  denticulate(W, 3);
-
-  /* Esquinas: si dos lados adyacentes son del mismo tipo distinto, redondear */
-  function corner(corn, side1, side2, cx, cy){
-    if(corn === here) return;
-    if(side1 !== corn && side2 !== corn) return;
-    const cp = TILE_PALETTES[corn];
-    ctx.fillStyle = cp.base;
-    ctx.fillRect(px + cx, py + cy, 3, 3);
-  }
-  corner(NW, N, W, 0, 0);
-  corner(NE, N, E, TILE_SIZE-3, 0);
-  corner(SW, S, W, 0, TILE_SIZE-3);
-  corner(SE, S, E, TILE_SIZE-3, TILE_SIZE-3);
-
-  /* Acentos/textura interna para que no se vea plano */
-  /* Ruido determinista pequeño */
+  const p = TILE_PALETTES[here];
+  const N = tileAt(grid, x, y-1), S = tileAt(grid, x, y+1);
+  const E = tileAt(grid, x+1, y), W = tileAt(grid, x-1, y);
+  /* ruído determinista por cela (mesmo hash de sempre) */
   const sx = (x * 977 + y * 311) | 0;
-  const rnd2 = (n) => {
-    const s = Math.sin(sx + n * 7) * 10000;
-    return s - Math.floor(s);
+  const rnd2 = (n) => { const s = Math.sin(sx + n * 7) * 10000; return s - Math.floor(s); };
+  const R = (a,b,w,h,c) => { ctx.fillStyle = c; ctx.fillRect(a,b,w,h); };
+  /* cubo pequeno: cara superior + lateral + brillo (matas, pedras, árbores) */
+  const cube = (cx2, cy2, w, h, top, side, light) => {
+    const sh = Math.max(2, (h/3)|0);
+    R(cx2, cy2, w, h-sh, top); R(cx2, cy2+h-sh, w, sh, side); R(cx2, cy2, w, 1, light);
   };
-  if(here === T.GRASS){
-    /* Briznas oscuras */
-    ctx.fillStyle = palette.dark;
-    for(let i=0; i<3; i++){
-      ctx.fillRect(px + Math.floor(rnd2(i)*14), py + Math.floor(rnd2(i+5)*14), 1, 2);
+
+  if(here === T.WATER){
+    R(px, py, TILE_SIZE, TILE_SIZE, rnd2(1) < 0.6 ? p.base : p.top2);
+    /* sombra da beira: a terra proxecta sobre a auga */
+    if(N !== T.WATER) R(px, py, TILE_SIZE, 3, p.dark);
+    if(W !== T.WATER) R(px, py, 3, TILE_SIZE, p.dark);
+    if(E !== T.WATER) R(px+TILE_SIZE-2, py, 2, TILE_SIZE, p.side);
+    if(S !== T.WATER) R(px, py+TILE_SIZE-2, TILE_SIZE, 2, p.side);
+    /* ondas estáticas do cache (a animación vai en drawWaterRipples) */
+    ctx.fillStyle = p.light;
+    for(let i=0; i<2; i++){
+      const wy = Math.floor(rnd2(60+i)*10)+2;
+      ctx.fillRect(px + Math.floor(rnd2(65+i)*9)+2, py+wy, 3+Math.floor(rnd2(68+i)*3), 1);
     }
-    if(rnd2(20) > 0.85){
-      ctx.fillStyle = palette.accent;
-      ctx.fillRect(px + Math.floor(rnd2(30)*12)+2, py + Math.floor(rnd2(31)*12)+2, 1, 1);
+    if(rnd2(70) > 0.78) R(px+Math.floor(rnd2(71)*12)+2, py+Math.floor(rnd2(72)*12)+2, 2, 1, p.accent);
+    if((window._bioma||'VERDE') === 'NEVE' && rnd2(330) > 0.55){
+      /* placa de xeo flotante */
+      const ix = px+Math.floor(rnd2(331)*8)+1, iy = py+Math.floor(rnd2(332)*8)+1;
+      const iw = 5+Math.floor(rnd2(333)*5), ih = 4+Math.floor(rnd2(334)*4);
+      R(ix, iy, iw, ih, '#c8d8e4'); R(ix, iy, iw, 1, '#eef4f8');
+    }
+    /* (v0.52) auga profunda ocasional: mancha escura */
+    if(rnd2(75) > 0.86){
+      R(px+Math.floor(rnd2(76)*8)+2, py+Math.floor(rnd2(77)*8)+2, 5+Math.floor(rnd2(78)*4), 3, p.side);
+    }
+    /* (v0.52) ROCHA no río (rompe a monotonía; a animación sáltase estas celas) */
+    if(rnd2(85) > 0.90){
+      const rx = px+Math.floor(rnd2(86)*7)+3, ry = py+Math.floor(rnd2(87)*7)+3;
+      const rw = 5+Math.floor(rnd2(88)*3), rh = 4+Math.floor(rnd2(89)*3);
+      R(rx-1, ry+1, rw+2, rh, '#0c2530');
+      R(rx, ry, rw, rh-1, '#8a8578'); R(rx, ry+rh-2, rw, 2, '#4d4a42');
+      R(rx, ry, rw, 1, '#a8a294');
+      R(rx-1, ry+rh, rw+2, 1, '#dff0f5');
+    }
+    /* (v0.52) ESCUMA nas celas que tocan a PONTE (os piares baten a auga) */
+    if(N === T.BRIDGE || S === T.BRIDGE || E === T.BRIDGE || W === T.BRIDGE){
+      ctx.fillStyle = '#dff0f5';
+      if(N === T.BRIDGE) for(let i=0;i<4;i++) ctx.fillRect(px+1+i*4+Math.floor(rnd2(91+i)*2), py+1, 2, 1);
+      if(S === T.BRIDGE) for(let i=0;i<4;i++) ctx.fillRect(px+1+i*4+Math.floor(rnd2(95+i)*2), py+TILE_SIZE-3, 2, 1);
+      if(W === T.BRIDGE) for(let i=0;i<3;i++) ctx.fillRect(px+1, py+2+i*5, 1, 2);
+      if(E === T.BRIDGE) for(let i=0;i<3;i++) ctx.fillRect(px+TILE_SIZE-2, py+2+i*5, 1, 2);
+    }
+    return;
+  }
+
+  /* ---- cara superior do bloque con variación ---- */
+  const top = rnd2(1) < 0.55 ? p.base : p.top2;
+  R(px, py, TILE_SIZE, TILE_SIZE, top);
+  /* dentado orgánico só entre tipos da MESMA altura (herba<->terra) */
+  const dent = (nb, side) => {
+    if(nb === here || TILE_HEIGHT[nb] !== TILE_HEIGHT[here] || nb === T.WATER) return;
+    const np = TILE_PALETTES[nb]; ctx.fillStyle = np.base;
+    const seed = (x*73 + y*31 + side)|0;
+    const rr = (n)=>{ const s=Math.sin(seed+n)*10000; return s-Math.floor(s); };
+    for(let i=0; i<4; i++){
+      const o = i*4 + Math.floor(rr(i)*2), d = 1 + Math.floor(rr(i+10)*3);
+      if(side===0) ctx.fillRect(px+o, py, 4, d);
+      else if(side===1) ctx.fillRect(px+o, py+TILE_SIZE-d, 4, d);
+      else if(side===2) ctx.fillRect(px+TILE_SIZE-d, py+o, d, 4);
+      else ctx.fillRect(px, py+o, d, 4);
+    }
+  };
+  dent(N,0); dent(S,1); dent(E,2); dent(W,3);
+  /* micro-dithering */
+  ctx.fillStyle = p.dark;
+  for(let i=0; i<3; i++) ctx.fillRect(px+Math.floor(rnd2(10+i)*14)+1, py+Math.floor(rnd2(20+i)*14)+1, 1, 1);
+  ctx.fillStyle = p.light;
+  for(let i=0; i<2; i++) if(rnd2(30+i) > 0.5) ctx.fillRect(px+Math.floor(rnd2(40+i)*13)+1, py+Math.floor(rnd2(50+i)*13)+1, 2, 1);
+  /* catch-light ocasional (sen raiado) */
+  if(rnd2(5) > 0.62) R(px+Math.floor(rnd2(6)*8), py, 6+Math.floor(rnd2(7)*6), 1, top === p.base ? p.top2 : p.base);
+  /* caras laterais do bloque cara a veciños máis baixos */
+  if(TILE_HEIGHT[S] < TILE_HEIGHT[here]) R(px, py+TILE_SIZE-3, TILE_SIZE, 3, p.side);
+  if(TILE_HEIGHT[E] < TILE_HEIGHT[here]) R(px+TILE_SIZE-2, py, 2, TILE_SIZE, p.side);
+
+  /* ---- detalle por tipo ---- */
+  if(here === T.GRASS){
+    if(rnd2(80) > 0.86){
+      cube(px+Math.floor(rnd2(81)*9)+2, py+Math.floor(rnd2(82)*8)+2, 5, 5, p.accent, p.side, '#9ec868');
+    }
+    if(rnd2(90) > 0.94){   /* vexetación grande por bioma */
+      const _b = window._bioma || 'VERDE';
+      const tx = px+2, ty = py+1;
+      if(_b === 'DESERTO'){
+        /* CACTO: tronco + dous brazos */
+        const cx3 = px+7, cy3 = py+3;
+        R(cx3+1, cy3+11, 5, 2, '#5a4a26');
+        R(cx3, cy3, 3, 12, '#4a7a3a'); R(cx3, cy3, 3, 1, '#6a9a5a');
+        R(cx3-3, cy3+3, 3, 2, '#4a7a3a'); R(cx3-3, cy3+1, 2, 4, '#4a7a3a');
+        R(cx3+4, cy3+5, 3, 2, '#4a7a3a'); R(cx3+5, cy3+3, 2, 4, '#4a7a3a');
+      } else if(_b === 'NEVE'){
+        /* ABETO nevado */
+        const ax = px+4, ay2 = py+1;
+        R(ax+2, ay2+12, 6, 2, '#5a6674');
+        R(ax, ay2+7, 8, 5, '#2c4a3a'); R(ax, ay2+7, 8, 1, '#e8f0f6');
+        R(ax+1, ay2+3, 6, 5, '#35584a'); R(ax+1, ay2+3, 6, 1, '#e8f0f6');
+        R(ax+3, ay2, 2, 4, '#3f6858'); R(ax+3, ay2, 2, 1, '#ffffff');
+      } else {
+        R(tx+2, ty+11, 10, 3, '#1c2a10');
+        cube(tx, ty+3, 12, 10, '#3d6a26', '#1e3512', '#5d8f3a');
+        cube(tx+2, ty, 8, 8, '#4d7d2e', '#2c4a1a', '#6fa243');
+        R(tx+5, ty+12, 2, 2, '#3a2a18');
+      }
+    }
+    else if((window._bioma||'VERDE') === 'DESERTO' && rnd2(310) > 0.80){
+      /* liña de duna */
+      const dy3 = py + Math.floor(rnd2(311)*10)+3;
+      R(px+1, dy3, TILE_SIZE-2, 1, p.side);
+      R(px+3, dy3-1, TILE_SIZE-8, 1, p.light);
+    }
+    /* (v0.57) DECORACIÓN AMBIENTAL — "ruído visual" pedido por Agarfal.
+       Frecuencias baixas e canles rnd separadas para non amontoar. */
+    else if(rnd2(200) > 0.90){   /* flores: 2-3 puntiños de cor con talo */
+      for(let i = 0; i < 2 + (rnd2(201) > 0.5 ? 1 : 0); i++){
+        const fx2 = px + Math.floor(rnd2(202+i)*12)+2, fy2 = py + Math.floor(rnd2(206+i)*12)+2;
+        R(fx2, fy2+1, 1, 2, '#2c3d16');
+        R(fx2, fy2, 2, 1, ['#e8d24a', '#d87ab0', '#e8e4e0'][Math.floor(rnd2(210+i)*3)]);
+      }
+    }
+    else if(rnd2(215) > 0.90){   /* herba alta: trazos verticais */
+      ctx.fillStyle = '#688a3a';
+      for(let i = 0; i < 5; i++)
+        ctx.fillRect(px + 2 + i*3 + Math.floor(rnd2(216+i)*2), py + Math.floor(rnd2(220+i)*8)+4, 1, 4 + Math.floor(rnd2(224+i)*3));
+    }
+    else if(rnd2(230) > 0.965){   /* árbore MORTA: tronco e polas núas */
+      const tx2 = px + 6, ty2 = py + 2;
+      R(tx2+1, ty2+11, 6, 2, '#1c2a10');
+      R(tx2+2, ty2+3, 2, 10, '#4a3826'); R(tx2+2, ty2+3, 2, 1, '#6a5436');
+      R(tx2-1, ty2+2, 4, 1, '#4a3826'); R(tx2+3, ty2, 1, 4, '#4a3826'); R(tx2+4, ty2+4, 3, 1, '#4a3826');
+    }
+    else if(rnd2(235) > 0.972){   /* pneumáticos: aro escuro */
+      const nx = px + Math.floor(rnd2(236)*6)+3, ny = py + Math.floor(rnd2(237)*7)+4;
+      R(nx, ny, 8, 7, '#1c1c18'); R(nx+2, ny+2, 4, 3, p.base); R(nx, ny, 8, 1, '#34342e');
+      if(rnd2(238) > 0.5){ R(nx+5, ny+4, 8, 6, '#1c1c18'); R(nx+7, ny+6, 4, 2, p.base); }
+    }
+    else if(rnd2(240) > 0.975){   /* chatarra: anacos grises/ocres */
+      for(let i = 0; i < 4; i++){
+        ctx.fillStyle = i % 2 ? '#6a6a60' : '#7a5c34';
+        ctx.fillRect(px + Math.floor(rnd2(241+i)*11)+2, py + Math.floor(rnd2(246+i)*11)+2, 2 + Math.floor(rnd2(250+i)*3), 2);
+      }
+    }
+    else if(rnd2(255) > 0.985){   /* MURO DERRUÍDO: restos brancos do formigón */
+      R(px+2, py+6, 7, 5, '#8a887c'); R(px+2, py+6, 7, 2, '#d8d5c8');
+      R(px+10, py+9, 4, 3, '#8a887c'); R(px+10, py+9, 4, 1, '#d8d5c8');
+      R(px+5, py+12, 3, 2, '#6a685e');
+    }
+    else if(rnd2(260) > 0.988){   /* COCHE OXIDADO (raro, ~1-2 por mapa) */
+      R(px+1, py+11, 14, 2, '#1c2a10');
+      R(px+1, py+4, 13, 7, '#8a5a2c'); R(px+1, py+4, 13, 2, '#a8743c');
+      R(px+3, py+5, 4, 3, '#2c2c28'); R(px+9, py+5, 3, 3, '#2c2c28');
+      R(px+1, py+10, 3, 2, '#1c1c18'); R(px+11, py+10, 3, 2, '#1c1c18');
+      R(px+5, py+9, 5, 1, '#6a4420');
+    }
+    else if(rnd2(265) > 0.985){   /* POSTE ELÉCTRICO: alto, con travesa */
+      const px2 = px + 7;
+      R(px2, py+14, 4, 1, '#1c2a10');
+      R(px2+1, py+1, 2, 14, '#4a3826'); R(px2+1, py+1, 2, 1, '#6a5436');
+      R(px2-2, py+2, 8, 1, '#4a3826');
+      R(px2-2, py+1, 1, 1, '#2c2c28'); R(px2+5, py+1, 1, 1, '#2c2c28');
     }
   } else if(here === T.DIRT){
-    /* Grava */
-    ctx.fillStyle = palette.dark;
-    for(let i=0; i<4; i++){
-      ctx.fillRect(px + Math.floor(rnd2(i+40)*15), py + Math.floor(rnd2(i+45)*15), 1, 1);
+    ctx.fillStyle = p.dark;
+    for(let i=0; i<3; i++) ctx.fillRect(px+Math.floor(rnd2(40+i)*15), py+Math.floor(rnd2(45+i)*15), 1, 1);
+    /* (v0.57) POZA na terra: escura con reflexo */
+    if(rnd2(270) > 0.92){
+      const qx = px + Math.floor(rnd2(271)*6)+2, qy = py + Math.floor(rnd2(272)*6)+3;
+      R(qx, qy+1, 8, 4, '#22303a'); R(qx+1, qy, 6, 6, '#22303a');
+      R(qx+2, qy+2, 3, 1, '#5a86a0');
     }
-    ctx.fillStyle = palette.light;
-    if(rnd2(50) > 0.6) ctx.fillRect(px + Math.floor(rnd2(51)*12)+2, py + Math.floor(rnd2(52)*12)+2, 2, 1);
-  } else if(here === T.WATER){
-    /* Ondas estáticas en el cache: la animación se hará por encima en drawWaterRipples */
-    const wave = 0;
-    ctx.fillStyle = palette.light;
-    for(let i=0; i<2; i++){
-      const wy = (Math.floor(rnd2(i+60)*12) + Math.floor(Math.sin(wave + x*0.3 + y*0.2 + i) * 2));
-      ctx.fillRect(px + Math.floor(rnd2(i+65)*10)+2, py + wy, 3, 1);
+    /* (v0.57) caixa perdida */
+    else if(rnd2(275) > 0.96){
+      const bx = px + Math.floor(rnd2(276)*7)+2, by = py + Math.floor(rnd2(277)*7)+2;
+      R(bx, by, 8, 6, '#6a5230'); R(bx, by, 8, 2, '#8a6f42'); R(bx+4, by, 1, 6, '#4a3820');
     }
-  } else if(here === T.ROAD){
-    /* Líneas amarillas discontinuas en la franja central de la carretera */
-    const rowMid = Math.floor((252 + 288) / 2 / TILE_SIZE);
-    if(y === rowMid){
-      ctx.fillStyle = '#7a6a30';
-      if(x % 2 === 0) ctx.fillRect(px + 2, py + TILE_SIZE/2 - 1, TILE_SIZE - 4, 1);
+  }
+  /* (v0.57) SINAL DE ESTRADA: en herba pegada á estrada, raro */
+  if(here === T.GRASS && (N === T.ROAD || S === T.ROAD) && rnd2(280) > 0.94){
+    const sx2 = px + 7, syT = (N === T.ROAD) ? py + 8 : py + 2;
+    ctx.fillStyle = '#1c2a10'; ctx.fillRect(sx2, syT + 6, 3, 1);
+    ctx.fillStyle = '#4a4a42'; ctx.fillRect(sx2 + 1, syT + 1, 1, 6);
+    ctx.fillStyle = rnd2(281) > 0.5 ? '#b09a30' : '#a84a3c';
+    ctx.fillRect(sx2 - 1, syT - 2, 5, 4);
+    ctx.fillStyle = '#26251f'; ctx.fillRect(sx2, syT - 1, 3, 2);
+  }
+  if(here === T.ROAD){
+    if(x % 2 === 0) R(px, py+2, 1, TILE_SIZE-4, p.dark);   /* xuntas de lousa */
+    /* (v0.52) cicatrices de uso: aceite, marcas de cadeas, parches, buracos */
+    if(rnd2(120) > 0.86){   /* mancha de aceite */
+      R(px+Math.floor(rnd2(121)*9)+2, py+Math.floor(rnd2(122)*9)+2, 4+Math.floor(rnd2(123)*3), 3, '#232420');
+      R(px+Math.floor(rnd2(121)*9)+3, py+Math.floor(rnd2(122)*9)+4, 2, 2, '#1a1b18');
     }
-    /* Acentos */
-    ctx.fillStyle = palette.dark;
-    for(let i=0; i<2; i++){
-      ctx.fillRect(px + Math.floor(rnd2(i+70)*15), py + Math.floor(rnd2(i+75)*15), 1, 1);
+    if(rnd2(125) > 0.84){   /* marcas de cadeas: dúas liñas paralelas */
+      const ty2 = py+Math.floor(rnd2(126)*10)+2;
+      R(px+1, ty2, TILE_SIZE-2, 1, p.dark);
+      R(px+1, ty2+3, TILE_SIZE-2, 1, p.dark);
     }
+    if(rnd2(128) > 0.90){   /* parche de asfalto novo */
+      const qx = px+Math.floor(rnd2(129)*8)+2, qy = py+Math.floor(rnd2(130)*8)+2;
+      R(qx, qy, 6, 5, '#454540'); R(qx, qy, 6, 1, p.dark); R(qx, qy+4, 6, 1, p.dark);
+    }
+    if(rnd2(132) > 0.93){   /* buraco */
+      R(px+Math.floor(rnd2(133)*11)+2, py+Math.floor(rnd2(134)*11)+2, 3, 3, '#26251f');
+    }
+    R(px+2, py+(TILE_SIZE/2)|0, TILE_SIZE-4, 1, p.dark);
+    /* liña amarela descontinua no bordo interior da fila superior da estrada */
+    if(S === T.ROAD && N !== T.ROAD && x % 2 === 0) R(px+2, py+TILE_SIZE-2, TILE_SIZE-5, 2, '#c8a832');
   } else if(here === T.BRIDGE){
-    /* Tablones */
-    ctx.fillStyle = palette.dark;
-    ctx.fillRect(px, py + TILE_SIZE - 1, TILE_SIZE, 1);
-    ctx.fillRect(px, py, TILE_SIZE, 1);
-    ctx.fillStyle = palette.light;
-    ctx.fillRect(px + 4, py + 2, 1, TILE_SIZE - 4);
-    ctx.fillRect(px + 11, py + 2, 1, TILE_SIZE - 4);
+    R(px, py, TILE_SIZE, 1, p.dark); R(px, py+TILE_SIZE-1, TILE_SIZE, 1, p.dark);
+    R(px+4, py+2, 1, TILE_SIZE-4, p.light); R(px+11, py+2, 1, TILE_SIZE-4, p.light);
   } else if(here === T.RUBBLE){
-    /* Piedras dispersas */
-    ctx.fillStyle = palette.light;
     for(let i=0; i<3; i++){
-      ctx.fillRect(px + Math.floor(rnd2(i+90)*13), py + Math.floor(rnd2(i+95)*13), 2, 2);
-    }
-    ctx.fillStyle = palette.dark;
-    for(let i=0; i<2; i++){
-      ctx.fillRect(px + Math.floor(rnd2(i+100)*14), py + Math.floor(rnd2(i+105)*14), 1, 1);
+      cube(px+Math.floor(rnd2(100+i)*8)+1, py+Math.floor(rnd2(105+i)*7)+1,
+           5+Math.floor(rnd2(110+i)*4), 5+Math.floor(rnd2(115+i)*4), p.base, p.side, p.accent);
     }
   }
 }
 
-/* Dibujar el grid completo. Llamado una vez al inicio en un canvas off-screen
+/* Dibujar el grid completo/* Dibujar el grid completo. Llamado una vez al inicio en un canvas off-screen
    y luego copiado al canvas principal cada frame (mucho más rápido que redibujar
    por celda cada frame). Solo el agua se anima — para no recachear todo. */
 let TERRAIN_CACHE = null;     /* canvas off-screen con el terreno estático */
@@ -267,7 +388,61 @@ function buildTerrainCache(grid){
       drawTile(ctx, grid, x, y);
     }
   }
+  /* (v0.53) sistema de CAMIÑOS TRILLADOS: novo mapa = desgaste a cero */
+  _wear = new Float32Array(COLS * ROWS);
+  _wearStage = new Uint8Array(COLS * ROWS);
+  _wearCtx = ctx;
+  _wearGrid = grid;
+  window._terrainGrid = grid;   /* (v0.60) para repintar ao cambiar de bioma */
   return canvas;
+}
+
+/* ============================================================
+   (v0.53) CAMIÑOS TRILLADOS — onde as unidades pasan unha e outra
+   vez, a herba/terra vaise desgastando en 3 fases. O mapa mostra
+   as rutas de ataque como cicatrices. Puramente cosmético e por
+   cliente; o desgaste PÍNTASE NO CACHE unha soa vez ao cruzar
+   cada limiar (custo por frame: cero).
+   ============================================================ */
+let _wear = null, _wearStage = null, _wearCtx = null, _wearGrid = null;
+function addWear(wx, wy, amt){
+  if(!_wear || !_wearGrid) return;
+  const cx2 = (wx / TILE_SIZE) | 0, cy2 = (wy / TILE_SIZE) | 0;
+  if(cx2 < 0 || cy2 < 0 || cx2 >= COLS || cy2 >= ROWS) return;
+  const t = _wearGrid[cy2][cx2];
+  if(t !== T.GRASS && t !== T.DIRT) return;   /* estrada/ponte/auga non se trillan */
+  const i = cy2 * COLS + cx2;
+  _wear[i] += amt;
+  const stg = _wear[i] > 16 ? 3 : _wear[i] > 7 ? 2 : _wear[i] > 2.5 ? 1 : 0;
+  if(stg > _wearStage[i]){ _wearStage[i] = stg; _paintWear(cx2, cy2, stg); }
+}
+function _paintWear(x, y, stg){
+  const ctx = _wearCtx; if(!ctx) return;
+  const px = x * TILE_SIZE, py = y * TILE_SIZE;
+  const P = TILE_PALETTES[T.DIRT];
+  const sx = (x * 977 + y * 311) | 0;
+  const r2 = (n) => { const s = Math.sin(sx + n * 7) * 10000; return s - Math.floor(s); };
+  if(stg === 1){
+    /* herba pisada: motas de terra espalladas */
+    ctx.fillStyle = P.base;
+    for(let i = 0; i < 6; i++)
+      ctx.fillRect(px + ((r2(140+i)*13)|0) + 1, py + ((r2(146+i)*13)|0) + 1, 2, 1);
+  } else if(stg === 2){
+    /* parche de terra con bordo irregular */
+    ctx.fillStyle = P.base; ctx.fillRect(px+3, py+4, 10, 8);
+    ctx.fillStyle = P.top2; ctx.fillRect(px+4, py+5, 8, 6);
+    ctx.fillStyle = P.base;
+    ctx.fillRect(px + ((r2(150)*4)|0), py + ((r2(151)*10)|0) + 3, 3, 2);
+    ctx.fillRect(px + 11 + ((r2(152)*3)|0), py + ((r2(153)*10)|0) + 3, 3, 2);
+  } else {
+    /* carreiro asentado: terra case completa + rodada escura central */
+    ctx.fillStyle = P.top2; ctx.fillRect(px+1, py+1, TILE_SIZE-2, TILE_SIZE-2);
+    ctx.fillStyle = P.base; ctx.fillRect(px+2, py+2, TILE_SIZE-4, TILE_SIZE-4);
+    ctx.fillStyle = P.dark;
+    for(let i = 0; i < 3; i++)
+      ctx.fillRect(px + ((r2(160+i)*12)|0) + 2, py + ((r2(165+i)*12)|0) + 2, 2, 1);
+    ctx.fillRect(px + 2, py + 7 + ((r2(168)*3)|0), TILE_SIZE - 4, 2);
+  }
 }
 
 /* Animación del agua: dibujar ondas encima del cache cada frame */
@@ -284,15 +459,30 @@ function drawWaterRipples(ctx, grid, g){
         const s = Math.sin(sx + n * 7) * 10000;
         return s - Math.floor(s);
       };
-      /* Repintar la base del agua para tapar ondas anteriores */
-      ctx.fillStyle = palette.base;
-      ctx.fillRect(px+1, py+1, TILE_SIZE-2, TILE_SIZE-2);
-      /* Dibujar las ondas nuevas */
+      if((window._bioma||'VERDE') === 'NEVE' && rnd2(330) > 0.55) continue;   /* (v0.60) placas de xeo */
+      /* (v0.52) NON animar celas con ROCHA nin con ESCUMA de ponte:
+         o repintado borraríaas; auga quieta ao pé de obstáculos é crible */
+      if(rnd2(85) > 0.90) continue;
+      const _bN = y>0 && grid[y-1][x]===T.BRIDGE, _bS = y+1<ROWS && grid[y+1][x]===T.BRIDGE;
+      const _bW = x>0 && grid[y][x-1]===T.BRIDGE, _bE = x+1<COLS && grid[y][x+1]===T.BRIDGE;
+      if(_bN || _bS || _bW || _bE) continue;
+      /* Repintar la base del agua para tapar ondas anteriores
+         (v0.50: coa variación top2 e redebuxando as sombras de beira) */
+      ctx.fillStyle = rnd2(1) < 0.6 ? palette.base : palette.top2;
+      ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+      const _N = y>0 ? grid[y-1][x] : T.WATER, _S = y+1<ROWS ? grid[y+1][x] : T.WATER;
+      const _W = x>0 ? grid[y][x-1] : T.WATER, _E = x+1<COLS ? grid[y][x+1] : T.WATER;
+      if(_N !== T.WATER){ ctx.fillStyle = palette.dark; ctx.fillRect(px, py, TILE_SIZE, 3); }
+      if(_W !== T.WATER){ ctx.fillStyle = palette.dark; ctx.fillRect(px, py, 3, TILE_SIZE); }
+      if(_E !== T.WATER){ ctx.fillStyle = palette.side; ctx.fillRect(px+TILE_SIZE-2, py, 2, TILE_SIZE); }
+      if(_S !== T.WATER){ ctx.fillStyle = palette.side; ctx.fillRect(px, py+TILE_SIZE-2, TILE_SIZE, 2); }
+      /* Dibujar las ondas nuevas (animadas) */
       ctx.fillStyle = palette.light;
       for(let i=0; i<2; i++){
-        const wy = (Math.floor(rnd2(i+60)*12) + Math.floor(Math.sin(wave + x*0.3 + y*0.2 + i) * 2));
-        ctx.fillRect(px + Math.floor(rnd2(i+65)*10)+2, py + wy, 3, 1);
+        const wy = 2 + (Math.floor(rnd2(i+60)*9) + Math.floor(Math.sin(wave + x*0.3 + y*0.2 + i) * 2) + 9) % 11;
+        ctx.fillRect(px + Math.floor(rnd2(i+65)*9)+2, py + wy, 3+Math.floor(rnd2(i+68)*3), 1);
       }
+      if(rnd2(70) > 0.78){ ctx.fillStyle = palette.accent; ctx.fillRect(px+Math.floor(rnd2(71)*12)+2, py+Math.floor(rnd2(72)*12)+2, 2, 1); }
     }
   }
 }
@@ -314,14 +504,43 @@ function pickClima(){
   return CLIMAS[0];
 }
 
+/* (v0.48.4) Axuste de spawn: evita que as unidades aparezan SOLAPADAS co HQ
+   ou amontoadas unhas sobre outras (facíaas 'malas de seleccionar', queixa da
+   betatester). É puramente ADITIVO: só move a unidade se realmente hai colisión.
+   Corre no host (autoritario), que tamén posiciona as unidades do convidado. */
+function nudgeSpawn(g, team, x, y){
+  const hqs = (g && g.hq) ? g.hq : (typeof HQ !== 'undefined' ? HQ : null);
+  const hq = hqs && hqs[team];
+  const facing = (team === 0) ? 1 : -1;   /* equipo 0 mira a +x; equipo 1 a -x */
+  if(hq){
+    const M = 18;   /* marxe fóra da caixa do HQ */
+    if(x > hq.x - M && x < hq.x + hq.w + M && y > hq.y - M && y < hq.y + hq.h + M){
+      x = (facing > 0) ? hq.x + hq.w + M + 6 : hq.x - M - 6;   /* empurra ao lado inimigo */
+    }
+  }
+  if(g && g.units){
+    for(let k = 0; k < 14; k++){
+      const clash = g.units.find(u => u && !u.dead && u.team === team && !u.inside &&
+        Math.abs(u.x - x) < 22 && Math.abs(u.y - y) < 22);
+      if(!clash) break;
+      y += 26;                                         /* baixa unha fila */
+      if(hq && y > hq.y + hq.h + 130){ y = hq.y - 44; x += facing * 22; }   /* nova columna cara á fronte */
+    }
+  }
+  return {x: Math.round(x), y: Math.round(y)};
+}
 function newBattle(deployed){
   try{ startMusic(); }catch(e){ console.warn('[música]', e); }   /* (v0.36) xamais no camiño crítico */
+  /* (v0.60) bioma da batalla: o Mundial fixa a sede; a campaña vai en VERDE */
+  if(typeof setBioma === 'function') setBioma(window._mundialArranque ? (window._mundialBioma || 'VERDE') : 'VERDE');
   const _crisol = !!window._modoCrisol;
   window._modoCrisol = false;
   /* (v0.9) Escoller mapa segundo a operación */
   /* (v0.39) PvP: batalla 1 en MAP1 (simétrico coñecido); revanchas con mapa
      procedural SEMENTADO (o host publica o seed, os dous xeran o mesmo). */
-  const mapDef = window._pvpArranque
+  const mapDef = window._mundialArranque
+    ? genMap()                                   /* (v0.61) Mundial: sempre procedural (campos grandes) */
+    : window._pvpArranque
     ? (window._pvpMapaSeed ? genMap(window._pvpMapaSeed) : MAP1)
     : ((DATA.opCount >= 2) ? genMap() : ((DATA.opCount >= 1) ? MAP2 : MAP1));
   applyMap(mapDef);
@@ -356,13 +575,16 @@ function newBattle(deployed){
     /* Para tracking de DEFENDIO: por unidad, lugar actual + tiempo en él */
   };
   deployed.forEach((vu,i)=>{
-    const u = mkUnit(PT, vu.cls, PT===0 ? HQ[0].x + HQ[0].w + 30 : HQ[1].x - 30, HQ[PT].y - 28 + i*40, vu);
+    const _sp = nudgeSpawn(g, PT, PT===0 ? HQ[0].x + HQ[0].w + 30 : HQ[1].x - 30, HQ[PT].y - 28 + i*40);
+    const u = mkUnit(PT, vu.cls, _sp.x, _sp.y, vu);
     g.units.push(u);
     radio(TXT('r.desplegado', {id:vu.id, n:vu.name, op:vu.ops+1}), '#7fdc7f');
   });
   const _pdx = PT===0 ? (d)=>HQ[0].x + HQ[0].w + d : (d)=>HQ[1].x - d;
-  g.units.push(mkUnit(PT,'GRUNT',    _pdx(30), HQ[PT].y + HQ[PT].h + 20, null));
-  g.units.push(mkUnit(PT,'ENGINEER', _pdx(40), HQ[PT].y + HQ[PT].h + 60, null));
+  if(!window._mundialArranque){   /* (v0.60) o Mundial xoga co XI puro, sen extras */
+  { const _g = nudgeSpawn(g, PT, _pdx(30), HQ[PT].y + HQ[PT].h + 20); g.units.push(mkUnit(PT,'GRUNT', _g.x, _g.y, null)); }
+  { const _e = nudgeSpawn(g, PT, _pdx(40), HQ[PT].y + HQ[PT].h + 60); g.units.push(mkUnit(PT,'ENGINEER', _e.x, _e.y, null)); }
+  }
 
   /* ===== Despliegue enemigo escalado =====
      Op 1 (DATA.opCount===0): enemigo básico — 1 GRUNT + 1 ENGINEER.
@@ -376,8 +598,15 @@ function newBattle(deployed){
     g.modo = 'pvp';
   } else if(DATA.opCount === 0){
     const _edx = ET===1 ? (d)=>HQ[1].x - d : (d)=>HQ[0].x + HQ[0].w + d;
+    if(!window._mundialArranque){   /* (v0.60) o rival do Mundial é o XI da doutrina, sen extras */
     g.units.push(mkUnit(ET,'GRUNT',    _edx(35), HQ[ET].y - 28, null));
     g.units.push(mkUnit(ET,'ENGINEER', _edx(40), HQ[ET].y + HQ[ET].h + 40, null));
+    }
+  } else if(window._mundialArranque){
+    /* (v0.61.4) MUNDIAL con opCount>0: NADA aquí — o rival é SÓ o XI da
+       doutrina que monta o módulo. Esta rama metía 13 veteranos de campaña
+       ENRIBA do XI (24 rivais no saque) e esnaquizaba os 11 do xogador en
+       segundos: "siguen sin estar os 11" — estaban, pero morrían xa. */
   } else {
     const playerInitial = deployed.length + 2;  /* veteranos + GRUNT + ENGINEER */
     const playerVeterans = deployed.length;
@@ -561,6 +790,7 @@ function crearVinculo(rec, outroRec, tipo){
   if(rec.vinculos.length >= VINCULO.MAX) return false;
   if(rec.vinculos.some(v => v.con === outroRec.id)) return false;
   rec.vinculos.push({con: outroRec.id, conNome: outroRec.name, tipo, op: DATA.opCount});
+  try{ if(typeof diarioEixos === 'function') diarioEixos({apego: 1}); }catch(e){}   /* (v0.65) */
   return true;
 }
 

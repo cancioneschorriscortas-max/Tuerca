@@ -466,6 +466,9 @@ function playSysVoice(ev){
 
 /* ---------- Estado global ---------- */
 let DATA = freshData();
+/* (v0.65) exposición sincronizada: 00b xa lía window.DATA (era no-op silencioso)
+   e o arnés precisa mutar o estado real. Getter/setter → nunca desincroniza. */
+try{ Object.defineProperty(window, 'DATA', {get: () => DATA, set: (v) => { DATA = v; }, configurable: true}); }catch(e){}
 let game = null;
 const $ = id => document.getElementById(id);
 
@@ -578,8 +581,167 @@ const RADIO_LINES = {
     {cond:()=>true, text:()=>`Radar Central neutralizado.`},
   ],
 };
+
+/* (v0.41) RADIO_LINES en galego — mesma estrutura e condicións que a castelá */
+const RADIO_LINES_GL = {
+  under_fire: [
+    {cond:(u)=>u.traits.includes('SUPERVIVIENTE') && u.ops>=3,
+     text:(u)=>`'${u.name}': Vin cousas peores. Aguantando.`},
+    {cond:(u)=>u.traits.includes('PROTECTOR'),
+     text:(u)=>`'${u.name}': Non penso deixalos atrás.`},
+    {cond:(u)=>u.cls==='HEAVY' && u.ops>=3,
+     text:(u)=>`'${u.name}': É só metal. Aguanto.`},
+    {cond:(u)=>u.cls==='ENGINEER',
+     text:(u)=>`'${u.name}': Estou exposto! Cubrídeme!`},
+    {cond:(u)=>u.ops>=3,
+     text:(u)=>`'${u.name}': Contacto. Múltiples hostís.`},
+    {cond:(u)=>true,
+     text:(u)=>`'${u.name}': Baixo lume! Necesito apoio!`},
+  ],
+  produced: [
+    {cond:(u)=>u.cls==='HEAVY', text:(u)=>`'${u.name}' (HEAVY) disposto a servir.`},
+    {cond:(u)=>u.cls==='ENGINEER', text:(u)=>`'${u.name}' (ENGINEER) reportando. Disposto a reparar.`},
+    {cond:(u)=>true, text:(u)=>`${u.id} '${u.name}' (${u.cls}) sae de fábrica.`},
+  ],
+  killed_enemy: [
+    {cond:(u,ctx)=>ctx.targetName && ctx.targetName.length>3,
+     text:(u,ctx)=>`'${u.name}' eliminou a ${ctx.targetName}.`},
+    {cond:()=>true,
+     text:(u,ctx)=>`'${u.name}' eliminou a ${ctx.targetName||'un hostil'}.`},
+  ],
+  fallen: [
+    {cond:(u)=>u.ops>=5,
+     text:(u,ctx)=>`${u.id} '${u.name}' CAEU en ${placeLabel(ctx.place)}.`},
+    {cond:()=>true,
+     text:(u,ctx)=>`${u.id} '${u.name}' CAEU.`},
+  ],
+  remains_secured: [
+    {cond:(u)=>u.traits.includes('PROTECTOR'),
+     text:(u,ctx)=>`'${u.name}': Teño a '${ctx.targetName}'. Aguanta.`},
+    {cond:()=>true,
+     text:(u,ctx)=>`'${u.name}' asegura os restos de '${ctx.targetName}' en ${placeLabel(ctx.place)}.`},
+  ],
+  captured_sector: [
+    {cond:(u)=>u.cls==='ENGINEER',
+     text:(u,ctx)=>`'${u.name}': Posición asegurada. ${placeLabel(ctx.place)}.`},
+    {cond:(u)=>u.ops>=3,
+     text:(u,ctx)=>`'${u.name}': ${placeLabel(ctx.place)} baixo control.`},
+    {cond:()=>true,
+     text:(u,ctx)=>`SECTOR ${ctx.sectorId} ASEGURADO. Produción acelerada.`},
+  ],
+  sector_lost: [
+    {cond:()=>true,
+     text:(u,ctx)=>`Sector ${ctx.sectorId} perdido.`},
+  ],
+  enemy_veteran_warning: [
+    {cond:(u,ctx)=>ctx.count>1,
+     text:(u,ctx)=>`PRECAUCIÓN: ${ctx.count} unidades inimigas veteranas no campo.`},
+    {cond:()=>true,
+     text:(u,ctx)=>`PRECAUCIÓN: unidade inimiga veterana detectada.`},
+  ],
+  recurring_announce: [
+    {cond:(u,ctx)=>ctx.appearances>=3,
+     text:(u,ctx)=>`Detección: ${ctx.name} volveu. ${ctx.appearances}º encontro.`},
+    {cond:(u,ctx)=>ctx.appearances===2,
+     text:(u,ctx)=>`Detectado na zona: ${ctx.name}. Outra vez.`},
+    {cond:()=>true,
+     text:(u,ctx)=>`Confirmado: ${ctx.name} segue aí fóra.`},
+  ],
+  radar_captured_blue: [
+    {cond:()=>true, text:()=>`Radar Central baixo o noso control. Detección activa.`},
+  ],
+  radar_captured_red: [
+    {cond:()=>true, text:()=>`Radar Central perdido. Detección comprometida.`},
+  ],
+  radar_neutral: [
+    {cond:()=>true, text:()=>`Radar Central neutralizado.`},
+  ],
+};
+
+/* (v0.41) RADIO_LINES en inglés — telegrama militar, mesmo carácter */
+const RADIO_LINES_EN = {
+  under_fire: [
+    {cond:(u)=>u.traits.includes('SUPERVIVIENTE') && u.ops>=3,
+     text:(u)=>`'${u.name}': I've seen worse. Holding.`},
+    {cond:(u)=>u.traits.includes('PROTECTOR'),
+     text:(u)=>`'${u.name}': I'm not leaving them behind.`},
+    {cond:(u)=>u.cls==='HEAVY' && u.ops>=3,
+     text:(u)=>`'${u.name}': It's just metal. I can take it.`},
+    {cond:(u)=>u.cls==='ENGINEER',
+     text:(u)=>`'${u.name}': I'm exposed! Cover me!`},
+    {cond:(u)=>u.ops>=3,
+     text:(u)=>`'${u.name}': Contact. Multiple hostiles.`},
+    {cond:(u)=>true,
+     text:(u)=>`'${u.name}': Under fire! Need support!`},
+  ],
+  produced: [
+    {cond:(u)=>u.cls==='HEAVY', text:(u)=>`'${u.name}' (HEAVY) ready to serve.`},
+    {cond:(u)=>u.cls==='ENGINEER', text:(u)=>`'${u.name}' (ENGINEER) reporting. Ready to repair.`},
+    {cond:(u)=>true, text:(u)=>`${u.id} '${u.name}' (${clsLabel(u.cls)}) rolls off the line.`},
+  ],
+  killed_enemy: [
+    {cond:(u,ctx)=>ctx.targetName && ctx.targetName.length>3,
+     text:(u,ctx)=>`'${u.name}' took down ${ctx.targetName}.`},
+    {cond:()=>true,
+     text:(u,ctx)=>`'${u.name}' took down ${ctx.targetName||'a hostile'}.`},
+  ],
+  fallen: [
+    {cond:(u)=>u.ops>=5,
+     text:(u,ctx)=>`${u.id} '${u.name}' IS DOWN at ${placeLabel(ctx.place)}.`},
+    {cond:()=>true,
+     text:(u,ctx)=>`${u.id} '${u.name}' IS DOWN.`},
+  ],
+  remains_secured: [
+    {cond:(u)=>u.traits.includes('PROTECTOR'),
+     text:(u,ctx)=>`'${u.name}': I've got '${ctx.targetName}'. Hold on.`},
+    {cond:()=>true,
+     text:(u,ctx)=>`'${u.name}' secures the remains of '${ctx.targetName}' at ${placeLabel(ctx.place)}.`},
+  ],
+  captured_sector: [
+    {cond:(u)=>u.cls==='ENGINEER',
+     text:(u,ctx)=>`'${u.name}': Position secured. ${placeLabel(ctx.place)}.`},
+    {cond:(u)=>u.ops>=3,
+     text:(u,ctx)=>`'${u.name}': ${placeLabel(ctx.place)} under control.`},
+    {cond:()=>true,
+     text:(u,ctx)=>`SECTOR ${ctx.sectorId} SECURED. Production accelerated.`},
+  ],
+  sector_lost: [
+    {cond:()=>true,
+     text:(u,ctx)=>`Sector ${ctx.sectorId} lost.`},
+  ],
+  enemy_veteran_warning: [
+    {cond:(u,ctx)=>ctx.count>1,
+     text:(u,ctx)=>`CAUTION: ${ctx.count} enemy veteran units on the field.`},
+    {cond:()=>true,
+     text:(u,ctx)=>`CAUTION: enemy veteran unit detected.`},
+  ],
+  recurring_announce: [
+    {cond:(u,ctx)=>ctx.appearances>=3,
+     text:(u,ctx)=>`Detection: ${ctx.name} is back. Encounter no. ${ctx.appearances}.`},
+    {cond:(u,ctx)=>ctx.appearances===2,
+     text:(u,ctx)=>`Detected in the area: ${ctx.name}. Again.`},
+    {cond:()=>true,
+     text:(u,ctx)=>`Confirmed: ${ctx.name} is still out there.`},
+  ],
+  radar_captured_blue: [
+    {cond:()=>true, text:()=>`Central Radar under our control. Detection active.`},
+  ],
+  radar_captured_red: [
+    {cond:()=>true, text:()=>`Central Radar lost. Detection compromised.`},
+  ],
+  radar_neutral: [
+    {cond:()=>true, text:()=>`Central Radar neutralized.`},
+  ],
+};
+
+/* (v0.41) Táboa de radio segundo o idioma activo, con fallback á castelá */
+function radioTable(){
+  if(I18N.lang === 'gl' && typeof RADIO_LINES_GL !== 'undefined') return RADIO_LINES_GL;
+  if(I18N.lang === 'en' && typeof RADIO_LINES_EN !== 'undefined') return RADIO_LINES_EN;
+  return RADIO_LINES;
+}
 function pickLine(eventType, unit, ctx={}){
-  const lines = RADIO_LINES[eventType];
+  const lines = radioTable()[eventType] || RADIO_LINES[eventType];
   if(!lines) return null;
   for(const l of lines){
     if(l.cond(unit, ctx)) return l.text(unit, ctx);
@@ -592,7 +754,10 @@ function radioSay(eventType, unit, ctx={}, color){
   const text = pickLine(eventType, unit, ctx);
   if(text){
     radio(text, color, unit && typeof unit.x==='number' ? {x:unit.x, y:unit.y} : undefined);
-    if(unit && unit.cls) sfxT('voice_blip', 260, unit.cls);
+    /* (v0.63) chío do robot en vez do blip xenérico (se a voz está activa) */
+    if(typeof vozRobot === 'function' && typeof vozModo === 'function' && vozModo() !== 'off'){
+      vozRobot(unit, text, 2, eventType);
+    } else if(unit && unit.cls) sfxT('voice_blip', 260, unit.cls);
   }
 }
 

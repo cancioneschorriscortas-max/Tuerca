@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="gl">
+<head>
+<meta charset="UTF-8">
+<title>TUERCA · Lab de Voz Procedural</title>
+<style>
+  body { background:#0a0a08; color:#d8d0b8; font-family:'Courier New',monospace; max-width:760px; margin:20px auto; padding:0 16px; }
+  h1 { color:#ffd24a; font-size:18px; } h2 { color:#ffd24a; font-size:14px; margin-top:24px; }
+  .card { border:1px solid #3a3520; padding:12px; margin:10px 0; background:#12100a; }
+  button { background:#1a1810; color:#ffd24a; border:1px solid #5a5230; padding:8px 12px; font-family:inherit; cursor:pointer; margin:3px; }
+  button:hover { background:#2a2415; }
+  input, select { background:#1a1810; color:#d8d0b8; border:1px solid #5a5230; padding:6px; font-family:inherit; }
+  input[type=text] { width:340px; }
+  .small { font-size:11px; color:#8a8268; }
+  #log { height:150px; overflow-y:auto; font-size:11px; border-top:1px dotted #3a3520; padding-top:6px; }
+  .falando { color:#7fdc7f; } .cortado { color:#ff5340; } .encolado { color:#9fd0ff; } .refugado { color:#8a8268; }
+</style>
+</head>
+<body>
+<h1>■ TUERCA · Lab de Voz Procedural</h1>
+<p class="small">Voz robótica silábica (estilo Animalese): cada robot ten timbre PROPIO derivado do nome, coma os retratos. Sen gravacións, sen ficheiros: sintetízase ao voo con WebAudio, en calquera lingua.</p>
+
+<div class="card">
+  <h2>1 · A VOZ DUN ROBOT</h2>
+  Nome: <input type="text" id="nome" value="TORNO" style="width:110px; text-transform:uppercase;">
+  Personalidade: <select id="persoa">
+    <option>ESTOICO</option><option>SARCASTICO</option><option>NERVIOSO</option><option>ENTUSIASTA</option><option>VETERANO</option>
+  </select>
+  Confianza: <select id="conf"><option value="85">LEAL (85)</option><option value="55" selected>NORMAL (55)</option><option value="20">AUTOPRESERVACIÓN (20)</option></select>
+  <br><br>
+  Frase: <input type="text" id="frase" value="Peso, munición, dúbidas. Todo cargado.">
+  <button onclick="probarVoz()">▶ FALAR</button>
+  <div class="small">Proba co mesmo nome dúas veces (idéntica voz) e con nomes distintos (voces distintas). A personalidade cambia ritmo e ton; a confianza, a enerxía.</div>
+</div>
+
+<div class="card">
+  <h2>2 · O XESTOR DE CANLE (os cruces, resoltos)</h2>
+  <p class="small">Regra de ouro: UNHA soa voz á vez. Prioridades: o comentarista/GOL corta a calquera; a unidade que TI seleccionas corta á cháchara; a cháchara agarda quenda ou refúgase. Proba a atacalos á vez:</p>
+  <button onclick="demoCruce()">⚡ SIMULTÁNEOS: cháchara + selección + GOL</button>
+  <button onclick="demoCola()">≋ TRES CHÁCHARAS SEGUIDAS (cola)</button>
+  <button onclick="demoDedupe()">♻ MESMA FRASE 3 VECES (dedupe)</button>
+  <div id="log"></div>
+</div>
+
+<script>
+/* ============ SÍNTESE DE VOZ ROBÓTICA ============ */
+let AC = null;
+function ac(){ if(!AC) AC = new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==='suspended') AC.resume(); return AC; }
+
+/* semente determinista polo nome (mesma técnica cós retratos) */
+function seedDe(nome){ let h = 2166136261; for(const c of nome){ h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0); }
+function rng(seed){ let s = seed; return () => { s = (Math.imul(s, 1103515245) + 12345) & 0x7fffffff; return s / 0x7fffffff; }; }
+
+const PERSOAS = {
+  ESTOICO:    {pitch:0.72, rate:0.85, jitter:0.03, glide:-0.02, wave:'square'},
+  SARCASTICO: {pitch:0.95, rate:0.95, jitter:0.05, glide:-0.12, wave:'sawtooth'},
+  NERVIOSO:   {pitch:1.25, rate:1.35, jitter:0.18, glide:+0.04, wave:'square'},
+  ENTUSIASTA: {pitch:1.10, rate:1.15, jitter:0.08, glide:+0.10, wave:'triangle'},
+  VETERANO:   {pitch:0.62, rate:0.78, jitter:0.02, glide:-0.05, wave:'sawtooth'},
+};
+const VOGAIS = {a:1.00, e:1.12, i:1.30, o:0.85, u:0.74, á:1.0, é:1.12, í:1.3, ó:0.85, ú:0.74, ü:0.74};
+
+function silabas(texto){
+  /* corte tosco por grupos consoante+vogal: chega para o ritmo */
+  const out = []; let cur = '';
+  for(const ch of texto.toLowerCase()){
+    if(/[aeiouáéíóúü]/.test(ch)){ out.push(cur + ch); cur = ''; }
+    else if(/[a-zñç]/.test(ch)) cur += ch;
+    else { if(cur) out.push(cur); cur=''; if(/[.,;:!?…]/.test(ch)) out.push('|'); }
+  }
+  if(cur) out.push(cur);
+  return out;
+}
+
+function falar(nome, persoa, conf, texto, cando, ganancia){
+  const ctx = ac();
+  const P = PERSOAS[persoa] || PERSOAS.ESTOICO;
+  const r = rng(seedDe(nome));
+  const base = 90 + r()*80;                       /* 90-170 Hz: identidade do robot */
+  const kConf = 0.85 + (conf/100)*0.35;           /* confianza = enerxía */
+  const master = ctx.createGain(); master.gain.value = ganancia ?? 0.5; master.connect(ctx.destination);
+  let t = cando ?? ctx.currentTime + 0.02;
+  const sils = silabas(texto);
+  for(const s of sils){
+    if(s === '|'){ t += 0.11 / P.rate; continue; }
+    const vog = [...s].find(c => VOGAIS[c]) || 'a';
+    const dur = (0.055 + r()*0.03 + (s.length>3?0.02:0)) / P.rate;
+    const jit = 1 + (r()*2-1) * P.jitter;
+    const f0 = base * P.pitch * VOGAIS[vog] * jit * kConf;
+    const o = ctx.createOscillator(); o.type = P.wave;
+    o.frequency.setValueAtTime(f0, t);
+    o.frequency.exponentialRampToValueAtTime(Math.max(40, f0 * (1 + P.glide)), t + dur);
+    /* segundo harmónico feble: corpo metálico */
+    const o2 = ctx.createOscillator(); o2.type = 'sine';
+    o2.frequency.setValueAtTime(f0*2.02, t);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.9, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    const g2 = ctx.createGain(); g2.gain.value = 0.18;
+    o.connect(g); o2.connect(g2); g2.connect(g); g.connect(master);
+    o.start(t); o.stop(t + dur + 0.01); o2.start(t); o2.stop(t + dur + 0.01);
+    t += dur + 0.024/P.rate;
+  }
+  return t - (cando ?? ctx.currentTime);          /* duración total */
+}
+
+function probarVoz(){
+  const nome = document.getElementById('nome').value.toUpperCase() || 'TORNO';
+  canle.pedir({quen:nome, persoa:document.getElementById('persoa').value,
+    conf:+document.getElementById('conf').value,
+    texto:document.getElementById('frase').value, prio:4, id:'manual'+Math.random()});
+}
+
+/* ============ XESTOR DE CANLE DE VOZ ============ */
+const canle = {
+  falando: null,          /* {id, quen, ata} */
+  cola: [],               /* máx 2, ordenada por prioridade */
+  ultimas: {},            /* id de frase → timestamp (dedupe) */
+  pedir(p){
+    const agora = performance.now();
+    /* dedupe: mesma frase-id nos últimos 6s → fóra */
+    if(this.ultimas[p.id] && agora - this.ultimas[p.id] < 6000){ log(`refugada (repetida): "${p.texto.slice(0,30)}…" de ${p.quen}`, 'refugado'); return; }
+    if(this.falando){
+      if(p.prio > this.falando.prio){
+        log(`⚡ ${p.quen} (prio ${p.prio}) CORTA a ${this.falando.quen} (prio ${this.falando.prio})`, 'cortado');
+        this.matarActual(); this.emitir(p);
+      } else if(this.cola.length < 2){
+        this.cola.push(p); this.cola.sort((a,b)=>b.prio-a.prio);
+        log(`≋ encolada: ${p.quen} (prio ${p.prio}) — ${this.cola.length} na cola`, 'encolado');
+      } else log(`refugada (cola chea): ${p.quen}`, 'refugado');
+    } else this.emitir(p);
+  },
+  emitir(p){
+    this.ultimas[p.id] = performance.now();
+    const dur = falar(p.quen, p.persoa||'ESTOICO', p.conf??55, p.texto, undefined, p.prio>=5?0.65:0.45);
+    this.falando = {...p, timer:setTimeout(()=>{ this.falando=null; this.seguinte(); }, dur*1000 + 120)};
+    log(`▶ ${p.quen} fala (prio ${p.prio}): "${p.texto}"`, 'falando');
+  },
+  matarActual(){
+    if(!this.falando) return;
+    clearTimeout(this.falando.timer);
+    try{ AC.close(); }catch(e){} AC = null;   /* corte brusco na demo; no xogo: fade 80ms */
+    this.falando = null;
+  },
+  seguinte(){ const p = this.cola.shift(); if(p) this.emitir(p); },
+};
+
+function log(msg, cls){
+  const d = document.getElementById('log');
+  d.innerHTML += `<div class="${cls||''}">${new Date().toLocaleTimeString()} · ${msg}</div>`;
+  d.scrollTop = d.scrollHeight;
+}
+
+/* ============ DEMOS DE CRUCE ============ */
+function demoCruce(){
+  canle.pedir({quen:'LIMA', persoa:'NERVIOSO', conf:40, texto:'Escoitades ese renxer? Son os meus rodamentos.', prio:1, id:'chach1'});
+  setTimeout(()=>canle.pedir({quen:'TORNO', persoa:'ESTOICO', conf:70, texto:'Ordes recibidas. En marcha.', prio:4, id:'sel1'}), 700);
+  setTimeout(()=>canle.pedir({quen:'COMENTARISTA', persoa:'ENTUSIASTA', conf:95, texto:'GOOOOL! Sector dominado! Dous a un no marcador!', prio:5, id:'gol1'}), 1500);
+}
+function demoCola(){
+  canle.pedir({quen:'BIELA', persoa:'SARCASTICO', conf:60, texto:'Deixa as dúbidas na base.', prio:1, id:'c1'+Math.random()});
+  canle.pedir({quen:'CROMO', persoa:'ENTUSIASTA', conf:80, texto:'Adiante, sempre adiante!', prio:1, id:'c2'+Math.random()});
+  canle.pedir({quen:'ZINC', persoa:'VETERANO', conf:50, texto:'Xa vin isto antes. Non acaba ben.', prio:1, id:'c3'+Math.random()});
+}
+function demoDedupe(){
+  for(let i=0;i<3;i++) canle.pedir({quen:'SOLDADOR', persoa:'ESTOICO', conf:55, texto:'Peso, munición, dúbidas. Todo cargado.', prio:2, id:'dedupe-fixa'});
+}
+</script>
+</body>
+</html>

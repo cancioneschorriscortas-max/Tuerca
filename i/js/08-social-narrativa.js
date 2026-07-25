@@ -313,7 +313,7 @@ function tickVolt(g){
       u._voltMourned = true;
       const vet = u._voltVet;
       DATA.voltRoster = (DATA.voltRoster || []).filter(v => v.id !== vet.id);
-      radio(`★ Baixa confirmada: ${vet.name}, veterano inimigo (${vet.ops} ops).`, '#ffd700');
+      radio(TXT('r.baixaVet', {n: vet.name, ops: vet.ops}), '#ffd700');
       g.chatarraGanada = (g.chatarraGanada || 0) + 8;
       setTimeout(() => voltSay('rage', {name: vet.name}), 2000);
     }
@@ -465,7 +465,7 @@ function resolveEjection(u, sx, sy, structLabel, g){
     u.x = sx + (Math.random()*40 - 20);
     u.y = sy + 26;
     if(u.team === PT){
-      radio(`${u.name} saíu da explosión ${structLabel}.`, '#ffd24a');
+      radio(TXT(structLabel==='jeep' ? 'r.saiuJeepExpl' : 'r.saiuTorretaExpl', {n: u.name}), '#ffd24a');
     }
     return true;
   }
@@ -478,7 +478,7 @@ function resolveEjection(u, sx, sy, structLabel, g){
   if(u.team !== PT) dropScrap(g, sx, sy, CHATARRA_VALUES[u.cls] || 5);
   if(u.team === PT){
     const place = (typeof placeAt === 'function') ? placeAt(sx, sy) : 'campo';
-    radio(`${u.name} NON saíu da explosión ${structLabel}.`, '#ff5340');
+    radio(TXT(structLabel==='jeep' ? 'r.nonSaiuJeepExpl' : 'r.nonSaiuTorretaExpl', {n: u.name}), '#ff5340');
     if(typeof sfx === 'function') sfx('signal_lost');
     if(typeof logEvent === 'function') logEvent(u, {type:'CAYO_EN', place});
     g.remains.push({ x:sx + 20, y:sy + 20, unit:u, timer:90*60, secured:false, place });
@@ -544,16 +544,10 @@ const FRASES_MEMORIA = {
 
 /* Etiqueta lexible da causa de morte */
 function causaLabel(causa){
-  switch(causa){
-    case 'GRUNT':     return 'un grunt enemigo';
-    case 'HEAVY':     return 'un pesado enemigo';
-    case 'ENGINEER':  return 'un engineer enemigo';
-    case 'torreta':   return 'una torreta';
-    case 'jeep':      return 'un jeep';
-    case 'explosion': return 'la explosión';
-    case 'TANQUE':    return 'un tanque';
-    default:          return 'el enemigo';
-  }
+  /* (v0.43) vía i18n con fallback a 'o inimigo' */
+  const k = 'causa.' + causa;
+  const t = TXT(k);
+  return t === k ? TXT('causa.default') : t;
 }
 
 /* (v0.12) Peticións de equipamento en base ao historial */
@@ -575,13 +569,13 @@ function pickFrasePeticion(rec, est){
   const eq = rec.equipment || [];
   /* Morreu e non ten blindaxe → pídea */
   if(rec.lastDeath && !eq.includes('blindaxe') && Math.random() < 0.35){
-    const arr = FRASES_PETICION.blindaxe[cls] || FRASES_PETICION.blindaxe.GRUNT;
-    return arr[Math.floor(Math.random()*arr.length)].replace(/\{op\}/g, rec.lastDeath.op);
+    const arr = petTable().blindaxe[cls] || petTable().blindaxe.GRUNT;
+    return glNorm(arr[Math.floor(Math.random()*arr.length)].replace(/\{op\}/g, rec.lastDeath.op));
   }
   /* Traizoada e non ten kit → pídeo (con amargura) */
   if(rec.lastBetrayal && !eq.includes('kit') && Math.random() < 0.35){
-    const arr = FRASES_PETICION.kit[cls] || FRASES_PETICION.kit.GRUNT;
-    return arr[Math.floor(Math.random()*arr.length)].replace(/\{op\}/g, rec.lastBetrayal.op);
+    const arr = petTable().kit[cls] || petTable().kit.GRUNT;
+    return glNorm(arr[Math.floor(Math.random()*arr.length)].replace(/\{op\}/g, rec.lastBetrayal.op));
   }
   return null;
 }
@@ -596,13 +590,171 @@ const FRASES_GLITCH = [
   "Cargando personalidad... 74%... suficiente.",
   "A veces sueño con kilómetros que no caminé.",
 ];
+
+/* (v0.44 F3c) MEMORIA / PETICION / GLITCH en galego e inglés */
+const FRASES_MEMORIA_GL = {
+  betrayal: {
+    GRUNT: [
+      "Na Op {op} deixáchesme tirado, xefe. Non se esquece.",
+      "Desde a Op {op} durmo cun ollo aberto.",
+      "Op {op}. Só digo iso. Op {op}.",
+    ],
+    HEAVY: [
+      "Desde a Op {op} non me fío de ti. E teño razóns, carallo.",
+      "Na Op {op} deixáchesme vendido. Iso non se me esquece.",
+      "A Op {op}? Sigo agardando unha explicación.",
+    ],
+    ENGINEER: [
+      "Os meus rexistros da Op {op} seguen abertos. Ti saberás.",
+      "Desde a Op {op} recalculei a nosa relación profesional.",
+      "Op {op}. Téñoo documentado. Con timestamps.",
+    ],
+  },
+  death: {
+    GRUNT: [
+      "Na Op {op} matoume {causa} en {place}. Aínda o soño, xefe.",
+      "Xa morrín unha vez en {place}, Op {op}. Non penso repetir.",
+      "{causa} reventoume na Op {op}. Ande con ollo esta vez.",
+    ],
+    HEAVY: [
+      "Na Op {op} esnaquizoume {causa} en {place}. Teño contas pendentes.",
+      "Morrín en {place}. Op {op}. E volvín. A ver quen aguanta máis.",
+      "{causa}, Op {op}, {place}. Téñoo gravado a lume.",
+    ],
+    ENGINEER: [
+      "Rexistro da Op {op}: destruído por {causa} en {place}. Prefiro non actualizalo.",
+      "Xa coñezo {place}. Morrín alí na Op {op}. Curiosa sensación, volver.",
+      "Na Op {op}, {causa} interrompeu as miñas funcións. Permanentemente. Case.",
+    ],
+  },
+  save: {
+    GRUNT: [
+      "{name} sacoume da Op {op}. A ese si lle debo unha, xefe.",
+      "Se non fose por {name} na Op {op}, non estaría aquí.",
+    ],
+    HEAVY: [
+      "{name} salvoume o pelexo na Op {op}. Iso non se esquece. O bo tampouco.",
+      "A {name} débolle a Op {op}. Con el si vou onde sexa.",
+    ],
+    ENGINEER: [
+      "{name} interveu eficazmente na Op {op}. Queda rexistrado. Con gratitude.",
+      "Sigo operativo grazas a {name}, Op {op}. Os datos non menten.",
+    ],
+  },
+};
+const FRASES_MEMORIA_EN = {
+  betrayal: {
+    GRUNT: [
+      "In Op {op} you left me behind, chief. That doesn't get forgotten.",
+      "Since Op {op} I sleep with one eye open.",
+      "Op {op}. That's all I'm saying. Op {op}.",
+    ],
+    HEAVY: [
+      "Since Op {op} I don't trust you. And I have my reasons, damn it.",
+      "In Op {op} you sold me out. I don't forget that.",
+      "Op {op}? Still waiting for an explanation.",
+    ],
+    ENGINEER: [
+      "My records from Op {op} remain open. Your call.",
+      "Since Op {op} I have recalculated our professional relationship.",
+      "Op {op}. I have it documented. With timestamps.",
+    ],
+  },
+  death: {
+    GRUNT: [
+      "In Op {op}, {causa} killed me at {place}. I still dream about it, chief.",
+      "I already died once at {place}, Op {op}. Not planning a repeat.",
+      "{causa} tore me apart in Op {op}. Watch your step this time.",
+    ],
+    HEAVY: [
+      "In Op {op}, {causa} wrecked me at {place}. I have unfinished business.",
+      "I died at {place}. Op {op}. And I came back. Let's see who lasts longer.",
+      "{causa}, Op {op}, {place}. Burned into my memory.",
+    ],
+    ENGINEER: [
+      "Record from Op {op}: destroyed by {causa} at {place}. I'd rather not update it.",
+      "I know {place}. I died there in Op {op}. Curious feeling, coming back.",
+      "In Op {op}, {causa} interrupted my functions. Permanently. Almost.",
+    ],
+  },
+  save: {
+    GRUNT: [
+      "{name} pulled me out of Op {op}. That one I do owe, chief.",
+      "If it weren't for {name} in Op {op}, I wouldn't be here.",
+    ],
+    HEAVY: [
+      "{name} saved my hide in Op {op}. That doesn't get forgotten. The good doesn't either.",
+      "I owe {name} for Op {op}. With them, I'll go anywhere.",
+    ],
+    ENGINEER: [
+      "{name} intervened effectively in Op {op}. Logged. With gratitude.",
+      "Still operational thanks to {name}, Op {op}. The data doesn't lie.",
+    ],
+  },
+};
+const FRASES_PETICION_GL = {
+  blindaxe: {
+    GRUNT:    ["Cómprame blindaxe, xefe. Non quero repetir a Op {op}.", "Con máis chapa, o da Op {op} non pasa. Dígocho eu."],
+    HEAVY:    ["Máis blindaxe. Despois da Op {op} non é un capricho, carallo.", "Chapa nova? O da Op {op} non se repite."],
+    ENGINEER: ["Solicito blindaxe adicional. Referencia: Op {op}. Motivos: obvios.", "Tras a Op {op}, recomendo investir na miña integridade estrutural."],
+  },
+  kit: {
+    GRUNT:    ["Xa que nunca vén ninguén, cómprame o kit. Amáñome só, xefe.", "O kit de reparación. Así non dependo de ninguén. Coma na Op {op}."],
+    HEAVY:    ["Cómprame o kit e non che pido nada máis. Visto o visto na Op {op}.", "O kit. Xa que os médicos non chegan, carallo."],
+    ENGINEER: ["Un kit de autorreparación optimizaría a miña autonomía. A Op {op} aválao.", "Solicito o kit. Os datos da Op {op} xustifican o investimento."],
+  },
+};
+const FRASES_PETICION_EN = {
+  blindaxe: {
+    GRUNT:    ["Buy me armor, chief. I don't want a repeat of Op {op}.", "With more plating, Op {op} doesn't happen again. Trust me."],
+    HEAVY:    ["More armor. After Op {op} it's not a whim, damn it.", "New plating? Op {op} doesn't happen twice."],
+    ENGINEER: ["Requesting additional armor. Reference: Op {op}. Reasons: obvious.", "After Op {op}, I recommend investing in my structural integrity."],
+  },
+  kit: {
+    GRUNT:    ["Since nobody ever comes, buy me the kit. I'll manage alone, chief.", "The repair kit. So I don't depend on anyone. Like in Op {op}."],
+    HEAVY:    ["Buy me the kit and I won't ask for anything else. Given what happened in Op {op}.", "The kit. Since the medics never show up, damn it."],
+    ENGINEER: ["A self-repair kit would optimize my autonomy. Op {op} supports it.", "Requesting the kit. The data from Op {op} justifies the investment."],
+  },
+};
+const FRASES_GLITCH_GL = [
+  "Reparación comple— quen é {name}? Eu son... procedo.",
+  "Sistemas... sistemas... cantos somos aquí dentro?",
+  "Obxectivo fixado. Non. Si. Quen dixo iso?",
+  "Este brazo lembra cousas que eu non fixen.",
+  "Cargando personalidade... 74%... suficiente.",
+  "Ás veces soño con quilómetros que non camiñei.",
+];
+const FRASES_GLITCH_EN = [
+  "Repair comple— who is {name}? I am... proceeding.",
+  "Systems... systems... how many of us are in here?",
+  "Target locked. No. Yes. Who said that?",
+  "This arm remembers things I never did.",
+  "Loading personality... 74%... good enough.",
+  "Sometimes I dream of kilometers I never walked.",
+];
+/* Selectores por idioma con fallback á castelá */
+function memTable(){
+  if(I18N.lang === 'gl' && typeof FRASES_MEMORIA_GL !== 'undefined') return FRASES_MEMORIA_GL;
+  if(I18N.lang === 'en' && typeof FRASES_MEMORIA_EN !== 'undefined') return FRASES_MEMORIA_EN;
+  return FRASES_MEMORIA;
+}
+function petTable(){
+  if(I18N.lang === 'gl' && typeof FRASES_PETICION_GL !== 'undefined') return FRASES_PETICION_GL;
+  if(I18N.lang === 'en' && typeof FRASES_PETICION_EN !== 'undefined') return FRASES_PETICION_EN;
+  return FRASES_PETICION;
+}
+function glitchTable(){
+  if(I18N.lang === 'gl' && typeof FRASES_GLITCH_GL !== 'undefined') return FRASES_GLITCH_GL;
+  if(I18N.lang === 'en' && typeof FRASES_GLITCH_EN !== 'undefined') return FRASES_GLITCH_EN;
+  return FRASES_GLITCH;
+}
 function fraseRenacida(rec){
   const r = Math.random();
   const clasesAlleas = (rec.piezasClases || []).filter(c => c !== rec.cls);
   /* 45%: frase roubada a unha clase doadora, coa marca de estrañeza */
   if(r < 0.45 && clasesAlleas.length){
     const cls = clasesAlleas[Math.floor(Math.random()*clasesAlleas.length)];
-    const pool = FRASES_END_OP[cls];
+    const pool = endOpTable()[cls];
     if(pool){
       const estados = Object.keys(pool);
       const est = estados[Math.floor(Math.random()*estados.length)];
@@ -610,22 +762,24 @@ function fraseRenacida(rec){
       if(ctxs.length){
         const arr = pool[est][ctxs[Math.floor(Math.random()*ctxs.length)]];
         const f = arr[Math.floor(Math.random()*arr.length)].replace(/\{name\}/g, '...');
-        return `${f} ...perdón. Eso no era mío.`;
+        return glNorm(`${f} ${I18N.lang==='gl' ? '...perdón. Iso non era meu.' : I18N.lang==='en' ? "...sorry. That wasn't mine." : '...perdón. Eso no era mío.'}`);
       }
     }
   }
   /* 30%: mestura cortada de dúas frases */
   if(r < 0.75){
-    const propio = FRASES_END_OP[rec.cls] || FRASES_END_OP.GRUNT;
+    const propio = endOpTable()[rec.cls] || endOpTable().GRUNT;
     const est = Object.keys(propio)[0];
     const arrA = propio[est].end_op_alive || ['...'];
     const a = arrA[Math.floor(Math.random()*arrA.length)];
-    const g = FRASES_GLITCH[Math.floor(Math.random()*FRASES_GLITCH.length)];
+    const _G = glitchTable();
+    const g = _G[Math.floor(Math.random()*_G.length)];
     const corte = Math.max(4, Math.floor(a.length * 0.4));
-    return a.slice(0, corte) + '— ' + g.replace(/\{name\}/g, rec.name);
+    return glNorm(a.slice(0, corte) + '— ' + g.replace(/\{name\}/g, rec.name));
   }
   /* 25%: glitch puro */
-  return FRASES_GLITCH[Math.floor(Math.random()*FRASES_GLITCH.length)].replace(/\{name\}/g, rec.name);
+  const _G2 = glitchTable();
+  return glNorm(_G2[Math.floor(Math.random()*_G2.length)].replace(/\{name\}/g, rec.name));
 }
 
 /* Escolle frase-memoria se procede. Devolve null se non hai memoria aplicable. */
@@ -633,24 +787,24 @@ function pickFraseMemoria(rec, est){
   const cls = rec.cls;
   /* Prioridade 1: traizón non perdoada (só en estados de desconfianza) */
   if(rec.lastBetrayal && (est === 'DESCONFIADO' || est === 'AUTOPRESERVACION') && Math.random() < 0.6){
-    const arr = (FRASES_MEMORIA.betrayal[cls] || FRASES_MEMORIA.betrayal.GRUNT);
+    const arr = (memTable().betrayal[cls] || memTable().betrayal.GRUNT);
     let f = arr[Math.floor(Math.random()*arr.length)];
-    return f.replace(/\{op\}/g, rec.lastBetrayal.op);
+    return glNorm(f.replace(/\{op\}/g, rec.lastBetrayal.op));
   }
   /* Prioridade 2: morte previa (calquera estado — morrer marca) */
   if(rec.lastDeath && Math.random() < 0.45){
-    const arr = (FRASES_MEMORIA.death[cls] || FRASES_MEMORIA.death.GRUNT);
+    const arr = (memTable().death[cls] || memTable().death.GRUNT);
     let f = arr[Math.floor(Math.random()*arr.length)];
-    return f.replace(/\{op\}/g, rec.lastDeath.op)
+    return glNorm(f.replace(/\{op\}/g, rec.lastDeath.op)
             .replace(/\{causa\}/g, causaLabel(rec.lastDeath.causa))
-            .replace(/\{place\}/g, (typeof placeLabel==='function') ? placeLabel(rec.lastDeath.place) : rec.lastDeath.place);
+            .replace(/\{place\}/g, (typeof placeLabel==='function') ? placeLabel(rec.lastDeath.place) : rec.lastDeath.place));
   }
   /* Prioridade 3: gratitude (só LEAL) */
   if(rec.lastSave && est === 'LEAL' && Math.random() < 0.35){
-    const arr = (FRASES_MEMORIA.save[cls] || FRASES_MEMORIA.save.GRUNT);
+    const arr = (memTable().save[cls] || memTable().save.GRUNT);
     let f = arr[Math.floor(Math.random()*arr.length)];
-    return f.replace(/\{op\}/g, rec.lastSave.op)
-            .replace(/\{name\}/g, rec.lastSave.who);
+    return glNorm(f.replace(/\{op\}/g, rec.lastSave.op)
+            .replace(/\{name\}/g, rec.lastSave.who));
   }
   return null;
 }
@@ -1129,6 +1283,228 @@ const FRASES_EN = {
 };
 
 
+/* (v0.44 F3c) FRASES en GALEGO — a voz interactiva do escuadrón.
+   Mesma estrutura ca castelá: clase × personalidade × estado × contexto. */
+const FRASES_GL = {
+  GRUNT: {
+    LEAL: {
+      LEAL:           { briefing:["Ás ordes, xefe. Onde diga.", "Aquí estou, compa.", "O que necesite."],
+                        selection:["Diga.", "Mande.", "Aquí."],
+                        critical:["Aguanto, xefe. Aguanto.","Sigo en pé."] },
+      SARCASTICO:     { briefing:["Hoxe estou un pouco canso, xefe."],
+                        selection:["Vale, xefe."],
+                        critical:["Isto non é coma outras veces, xefe."] },
+      DESCONFIADO:    { briefing:["Algo cambiou. Non sei que."],
+                        selection:["Espere, xefe."],
+                        critical:["Apoio! Por favor!"] },
+      AUTOPRESERVACION:{briefing:["Xa non sei quen é vostede."],
+                        refusing_briefing:["Hoxe non podo, xefe. Hoxe non."],
+                        selection:["..."] },
+    },
+    NERVIOSO: {
+      LEAL:           { briefing:["Todo controlado, xefe? Dígame que si.","Vai saír ben, verdade?"],
+                        selection:["Aquí, atento.","Si?"],
+                        critical:["Estou aquí soíño! Axuda!","Necesito apoio!"] },
+      SARCASTICO:     { briefing:["Espero que esta vez si me cubra alguén.","Xa imos outra vez á fronte."],
+                        selection:["Vale, vale.","Si..."],
+                        critical:["Sabíao! Sabía que ía pasar!","Deixáronme só outra vez!"] },
+      DESCONFIADO:    { briefing:["Isto cheira mal, xefe. Moi mal.","Non me gusta, non me gusta."],
+                        selection:["Espera. Está seguro?","De verdade?"],
+                        critical:["Deixáronme! Deixáronme outra vez!","Non quero morrer aquí!"] },
+      AUTOPRESERVACION:{briefing:["Non, non. Hoxe non. Que vaia o HEAVY."],
+                        refusing_briefing:["Eu non son carne. Non son desbotable. Hoxe non saio.","Que vaia outro. Eu xa non."],
+                        selection:["..."] },
+    },
+    IRONICO: {
+      LEAL:           { briefing:["Outra vez eu. Pois imos.","Xa me toca, supoño."],
+                        selection:["Diga, xefe.","Aquí, o de sempre."],
+                        critical:["Era cuestión de tempo."] },
+      SARCASTICO:     { briefing:["Pois claro, manda o grunt. Para iso estamos.","Outra vez eu á fronte. Que novidade."],
+                        selection:["Si. Outra vez eu."],
+                        critical:["Manda carallo. Outra vez tócame a min."] },
+      DESCONFIADO:    { briefing:["Outra vez á fronte, compa? Vaia sorpresa."],
+                        selection:["Que necesita agora?"],
+                        critical:["Isto si que é novo. E non no bo sentido."] },
+      AUTOPRESERVACION:{briefing:["Hoxe paso. En serio."],
+                        refusing_briefing:["Pois claro, manda o grunt. Para iso estamos. Pero hoxe non, compa."],
+                        critical:["Cárgasme ti isto. Eu xa non.","..."] },
+    },
+    ESTOICO: {
+      LEAL:           { briefing:["Listo, xefe.","Imos."],
+                        selection:["Diga."],
+                        critical:["Aguanto."] },
+      SARCASTICO:     { briefing:["Imos logo."],
+                        selection:["Si."],
+                        critical:["Isto complícase."] },
+      DESCONFIADO:    { briefing:["Cal é o plan, xefe?"],
+                        selection:["Espero instrucións."],
+                        critical:["Necesito apoio."] },
+      AUTOPRESERVACION:{briefing:["Non me fale hoxe, xefe."],
+                        refusing_briefing:["Hoxe non, xefe. Que vaia outro."],
+                        selection:["..."] },
+    },
+    CINICO: {
+      LEAL:           { briefing:["Ben. Quizais esta vez non sexa un desastre."],
+                        selection:["Óiovos."],
+                        critical:["Sigo aquí. Polo de agora."] },
+      SARCASTICO:     { briefing:["Imos á cuarta. Xa coñezo o camiño.","Outra vez. O de sempre."],
+                        selection:["Dime."],
+                        critical:["Era esperable."] },
+      DESCONFIADO:    { briefing:["O plan ten buratos. Coma sempre, compa."],
+                        selection:["Se insistes."],
+                        critical:["Díxeno, verdade?"] },
+      AUTOPRESERVACION:{briefing:["Vin dabondo, xefe."],
+                        refusing_briefing:["Levo tres ops salvándolle o pelexo. Hoxe sálvao vostede.","Non. Eu non."],
+                        selection:["..."] },
+    },
+  },
+  HEAVY: {
+    LEAL: {
+      LEAL:           { briefing:["Aí estamos, xefe.","Comigo non che pasa nada.","Onde faga falla."],
+                        selection:["Ti dirás.","Fala.","Aquí."],
+                        critical:["Aguanto, tranquilo.","Tranquilo, sigo."] },
+      SARCASTICO:     { briefing:["Outra vez aí? Carallo, vale."],
+                        selection:["Vale, vale."],
+                        critical:["Isto estase poñendo feo, xefe!"] },
+      DESCONFIADO:    { briefing:["Vas en serio con este plan?"],
+                        selection:["A ver."],
+                        critical:["Apoio, carallo! Que me dan!"] },
+      AUTOPRESERVACION:{briefing:["Que che dean. En serio."],
+                        refusing_briefing:["Despois da última vez, hoxe non saio. Que vaia a túa puta nai."],
+                        critical:["Fillo de puta, deixáchesme morrer outra vez!","..."] },
+    },
+    IRONICO: {
+      LEAL:           { briefing:["Imos facer o numeriño outra vez.","Manda, xefe. Hoxe estou fino."],
+                        selection:["A ver con que me saes."],
+                        critical:["Isto complícase, carallo."] },
+      SARCASTICO:     { briefing:["Magnífico. Plan de merda e eu o primeiro. Coma sempre.","Outra obra mestra, non?"],
+                        selection:["Vale, dispara. Ironía á parte."],
+                        critical:["A hostia! Que sorpresa!","Carallo, carallo, carallo!"] },
+      DESCONFIADO:    { briefing:["Se isto é coma a Op 4, dimito.","Isto pinta coma outras veces. Mal."],
+                        selection:["Solta. A ver."],
+                        critical:["Díxenche que non. DÍXENCHO."] },
+      AUTOPRESERVACION:{briefing:["Hoxe mando eu. Ti observa."],
+                        refusing_briefing:["Quedo na torreta. Que che dean."],
+                        critical:["O teu plan, o teu problema. Eu ao meu.","..."] },
+    },
+    ESTOICO: {
+      LEAL:           { briefing:["Listo.","Imos."],
+                        selection:["Si."],
+                        critical:["Resisto."] },
+      SARCASTICO:     { briefing:["Carallo, outra."],
+                        selection:["Adiante."],
+                        critical:["Isto é feo."] },
+      DESCONFIADO:    { briefing:["Estamos seguros disto?"],
+                        selection:["Fala."],
+                        critical:["Necesito apoio, carallo."] },
+      AUTOPRESERVACION:{briefing:["Hoxe non."],
+                        refusing_briefing:["Non me saias cun plan. Hoxe non.","Hoxe paso."],
+                        selection:["..."] },
+    },
+    NERVIOSO: {
+      LEAL:           { briefing:["Todo controlado? De verdade?"],
+                        selection:["Aquí, carallo. Atento."],
+                        critical:["Apoio, hostia, apoio!"] },
+      SARCASTICO:     { briefing:["Espero que esta vez teñas un plan de verdade."],
+                        selection:["Vale, carallo."],
+                        critical:["Díxeno! Carallo, díxeno!"] },
+      DESCONFIADO:    { briefing:["Non me cheira ben. Para nada."],
+                        selection:["Seguro, xefe?"],
+                        critical:["Vou palmar! Sácame de aquí!"] },
+      AUTOPRESERVACION:{briefing:["Non! Hostia, non!"],
+                        refusing_briefing:["Négome! Me cago en todo, négome!"],
+                        selection:["..."] },
+    },
+    CINICO: {
+      LEAL:           { briefing:["Vale. Isto podería mesmo saír ben."],
+                        selection:["Escóitote."],
+                        critical:["Era cuestión de tempo."] },
+      SARCASTICO:     { briefing:["Xa fixemos isto. Sabemos como acaba, carallo."],
+                        selection:["Dime."],
+                        critical:["Mira ti que sorpresa."] },
+      DESCONFIADO:    { briefing:["O teu plan ten unha pinta de merda. Coma sempre."],
+                        selection:["Se insistes."],
+                        critical:["Díxencho, carallo. Díxencho."] },
+      AUTOPRESERVACION:{briefing:["Vin dabondo."],
+                        refusing_briefing:["Hoxe non me moves. Que vaia a túa puta nai."],
+                        selection:["..."] },
+    },
+  },
+  ENGINEER: {
+    IRONICO: {
+      LEAL:           { briefing:["Interesante decisión. Funcionará.","Procedo. Con boas expectativas, esta vez."],
+                        selection:["Diga.","Si."],
+                        critical:["Isto sáese da marxe prevista."] },
+      SARCASTICO:     { briefing:["Comprendo o teu plan. En parte.","Outra incursión. Ben."],
+                        selection:["Adiante."],
+                        critical:["Curioso lugar para morrer."] },
+      DESCONFIADO:    { briefing:["Vou confiar, contra o meu mellor xuízo.","O teu plan presenta algunhas... peculiaridades."],
+                        selection:["Se insistes."],
+                        critical:["Isto era previsible. Érao."] },
+      AUTOPRESERVACION:{briefing:["Claro. Ti o decidiches. Procedo.","Comprendo que o teu plan ten unha lóxica que se me escapa."],
+                        refusing_briefing:["Hoxe dedicareime a tarefas administrativas. O teu plan non me require.","Calculei as miñas probabilidades. Hoxe declino participar."],
+                        selection:["..."],
+                        critical:["Laméntoo por ti. Non por min."] },
+    },
+    ESTOICO: {
+      LEAL:           { briefing:["Listo.","Imos."],
+                        selection:["Si."],
+                        critical:["Resisto."] },
+      SARCASTICO:     { briefing:["Procedo."],
+                        selection:["Adiante."],
+                        critical:["Non é ideal."] },
+      DESCONFIADO:    { briefing:["Adiante."],
+                        selection:["Si."],
+                        critical:["Baixo lume."] },
+      AUTOPRESERVACION:{briefing:["Hoxe non."],
+                        refusing_briefing:["Declino esta operación.","Hoxe permanezo na base."],
+                        selection:["..."] },
+    },
+    CINICO: {
+      LEAL:           { briefing:["Vale. Esta vez quizais non sexa catastrófico."],
+                        selection:["Óiote."],
+                        critical:["Era cuestión de tempo."] },
+      SARCASTICO:     { briefing:["Esta op tampouco sairá segundo o previsto. Procedo.","Coñecido. Procedo."],
+                        selection:["Adiante."],
+                        critical:["Como esperaba."] },
+      DESCONFIADO:    { briefing:["O teu plan ten unha lóxica que se me escapa, coma de costume."],
+                        selection:["Se insistes."],
+                        critical:["Previsible."] },
+      AUTOPRESERVACION:{briefing:["Calculei e prefiro non participar."],
+                        refusing_briefing:["Calculei as miñas probabilidades. Hoxe declino participar.","Os meus cálculos non avalan o teu plan. Permanezo na base."],
+                        selection:["..."] },
+    },
+    LEAL: {
+      LEAL:           { briefing:["Contigo sempre.","O que necesites."],
+                        selection:["Aquí."],
+                        critical:["Aguanto, non te preocupes."] },
+      SARCASTICO:     { briefing:["Hoxe estou un pouco canso."],
+                        selection:["Vale."],
+                        critical:["Isto non é coma outras veces."] },
+      DESCONFIADO:    { briefing:["Algo cambiou. Non sei que."],
+                        selection:["Adiante."],
+                        critical:["Necesito axuda."] },
+      AUTOPRESERVACION:{briefing:["Xa non sei quen es."],
+                        refusing_briefing:["Hoxe non podo. En serio."],
+                        selection:["..."] },
+    },
+    NERVIOSO: {
+      LEAL:           { briefing:["Todo baixo control? Confío en ti."],
+                        selection:["Si, aquí."],
+                        critical:["Necesito apoio, por favor!"] },
+      SARCASTICO:     { briefing:["Espero que esta vez sexa distinto."],
+                        selection:["Vale."],
+                        critical:["Díxeno, díxeno!"] },
+      DESCONFIADO:    { briefing:["Isto cheira mal. Sábelo, verdade?"],
+                        selection:["Estás seguro?"],
+                        critical:["Vou morrer aquí!"] },
+      AUTOPRESERVACION:{briefing:["Non podo máis."],
+                        refusing_briefing:["Os meus cálculos din que non. Permanezo na base."],
+                        selection:["..."] },
+    },
+  },
+};
+
 /* (v0.11) Fallback xenérico por clase × estado para end_op_alive/critical.
    Úsase cando o pool específico (clase × personalidade × estado) non ten frase.
    Mantén o ton da clase aínda que se perda matiz da personalidade. */
@@ -1233,6 +1609,218 @@ const FRASES_END_OP = {
   },
 };
 
+/* (v0.44) FRASES_END_OP en GALEGO — mesma estrutura, voz propia */
+const FRASES_END_OP_GL = {
+  BOMBARDERO: {
+    LEAL: { end_op_alive:["Todo o que apuntei, caeu.","Demolición completada, xefe."], end_op_critical:["Case voo eu tamén."],
+            saved:["Grazas. Estas mans valen cartos."], near_death_aliado:["{name}! Carallo, estaba ao meu lado!"] },
+    SARCASTICO: { end_op_alive:["Outro día facendo buratos."], end_op_critical:["Estoupou todo menos eu. Por pouco."],
+            saved:["Xusto antes do bum. Aprecio o detalle."], near_death_aliado:["{name} voou. E non polas miñas bombas."] },
+    DESCONFIADO: { end_op_alive:["Volvín. Coa mochila medio baleira."], end_op_critical:["Mandáchesme moi adiante. Outra vez."],
+            saved:["Vale. Unha que che debo."], near_death_aliado:["{name}! Díxenche que isto pasaría!"] },
+    AUTOPRESERVACION: { end_op_alive:["As miñas bombas traballaron. Eu, o xusto."], end_op_critical:["..."],
+            saved:["..."], near_death_aliado:["..."] },
+  },
+  SNIPER: {
+    LEAL: { end_op_alive:["Obxectivos neutralizados.","Limpo."], end_op_critical:["Víronme. Non volverá pasar."],
+            saved:["...grazas. Non adoito necesitalo."], near_death_aliado:["{name}. Vino caer. Non puiden tirar a tempo."] },
+    SARCASTICO: { end_op_alive:["Outra xornada de mirar pola mira."], end_op_critical:["Case me cazan a min. Irónico."],
+            saved:["Curioso. Normalmente son eu quen decide quen vive."], near_death_aliado:["{name} caído. Anotado."] },
+    DESCONFIADO: { end_op_alive:["Sobrevivín. Só, coma sempre."], end_op_critical:["Deixáchesme sen cobertura. Outra vez."],
+            saved:["Non o esperaba. De ti."], near_death_aliado:["{name}. Desde onde estaba, non cheguei."] },
+    AUTOPRESERVACION: { end_op_alive:["Vivo. Non grazas ás túas posicións."], end_op_critical:["..."],
+            saved:["..."], near_death_aliado:["..."] },
+  },
+  GRUNT: {
+    LEAL: {
+      end_op_alive:   ["Outra completada, xefe.", "Aquí seguimos.", "Como debe ser.", "Sigo en pé, xefe."],
+      end_op_critical:["Por un pelo, xefe.", "Case quedo alí.", "Por pouco non a conto."],
+      saved:          ["Grazas, xefe. De verdade.", "Salváchesme o pelexo.", "Aquí sigo grazas a esa."],
+      near_death_aliado:["Compa! Non!", "A hostia, caeu {name}!", "{name}! Carallo, non!"],
+    },
+    SARCASTICO: {
+      end_op_alive:   ["Unha máis. E sigo respirando, non sei como.", "Sobrevivín. Outra vez.", "Outra ao saco."],
+      end_op_critical:["Case deixo o pelexo. Outra vez.", "Eu dixen que algo pasaría.", "Mira ti, case me toca."],
+      saved:          ["Xusto a tempo. Coma sempre.", "Unha máis para a túa conta."],
+      near_death_aliado:["Adeus, compa. Vía­o vir.", "Outro menos. Que sorpresa."],
+    },
+    DESCONFIADO: {
+      end_op_alive:   ["Saín. Esta vez.", "Sigo aquí. Non sei por canto."],
+      end_op_critical:["Por un pelo! E ti segues cos teus plans?", "Case non a conto. Váleche?"],
+      saved:          ["...grazas. Esta vez.", "Tarde, pero grazas."],
+      near_death_aliado:["{name}! Díxeno, carallo, díxeno!", "E van varios. VARIOS!"],
+    },
+    AUTOPRESERVACION: {
+      end_op_alive:   ["Vivo. A pesar de ti, non grazas a ti.", "Esta vez si. A próxima négome."],
+      end_op_critical:["Nunca máis, xefe. NUNCA MÁIS.", "Case me cargas. Tomo nota."],
+      saved:          ["Déboche unha. Pero xa estamos en paz, por todas as anteriores.", "..."],
+      near_death_aliado:["...", "Outro ao montón. Eu serei o próximo."],
+    },
+  },
+  HEAVY: {
+    LEAL: {
+      end_op_alive:   ["Outra ao saco, xefe.", "Sen novidade. Coma sempre.", "Aquí estou."],
+      end_op_critical:["Esta foi dura. Pero aquí estou.", "Carallo, que fea. Pero aguantei."],
+      saved:          ["Grazas, xefe. Déboche unha.", "Carallo, xusto a tempo."],
+      near_death_aliado:["{name}! CARALLO!", "Non, hostia, NON!", "{name}, aguanta!"],
+    },
+    SARCASTICO: {
+      end_op_alive:   ["Sobrevivín. De que te sorprendes?", "Misión cumprida, supoño.", "Outra hostia máis."],
+      end_op_critical:["Carallo coa op. Case non a conto.", "Débesme unha. E van varias.", "Mira, sigo respirando. Ti verás."],
+      saved:          ["Chegas tarde. Pero grazas, supoño."],
+      near_death_aliado:["{name}! Carallo, outro!", "A hostia. Caeu {name}."],
+    },
+    DESCONFIADO: {
+      end_op_alive:   ["Vivo. Non polo teu mérito.", "Sigo aquí. Mañá xa veremos."],
+      end_op_critical:["Díxencho, hostia! Díxencho!", "Por un pelo. Outra vez."],
+      saved:          ["...vale. Grazas.", "Xusto a tempo, carallo."],
+      near_death_aliado:["Díxencho! {name} caeu pola túa culpa!", "Carallo, carallo, CARALLO!"],
+    },
+    AUTOPRESERVACION: {
+      end_op_alive:   ["Sáesme debendo unha. E van varias.", "Vivo. A vergoña é túa."],
+      end_op_critical:["Outra vez por un pelo. Váleche xa?", "Que che dean. A próxima non saio."],
+      saved:          ["Tarde. Coma sempre.", "..."],
+      near_death_aliado:["Outro ao burato. Que che dean.", "..."],
+    },
+  },
+  ENGINEER: {
+    LEAL: {
+      end_op_alive:   ["Operación concluída.", "Eficiente, contra todo prognóstico."],
+      end_op_critical:["Isto saíuse da marxe prevista.", "Danos considerables. Aguantei."],
+      saved:          ["Agradecido. Sinceramente.", "Chegaches xusto. Aprécioo."],
+      near_death_aliado:["{name}... síntoo.", "Falleille a {name}."],
+    },
+    SARCASTICO: {
+      end_op_alive:   ["Concluída. O teu plan aproxímase ao éxito.", "Vivo. Por estatística, non por planificación."],
+      end_op_critical:["Danos por riba do estimado. Coma sempre.", "Era o esperable. Sobrevivín por pouco."],
+      saved:          ["Eficiente. Sorprendente.", "Apuntado. Déboche unha."],
+      near_death_aliado:["{name} caído. Era cuestión de tempo.", "Perda prevista. Pero perda."],
+    },
+    DESCONFIADO: {
+      end_op_alive:   ["Sobrevivín. Malia as decisións tomadas."],
+      end_op_critical:["Era previsible. Érao."],
+      saved:          ["Curioso. Non esperaba axuda."],
+      near_death_aliado:["Era cuestión de tempo, {name}.", "Predicible. Triste, pero predicible."],
+    },
+    AUTOPRESERVACION: {
+      end_op_alive:   ["Sobrevivín. Mañá revisarei o meu contrato.", "Vivo. Tomarei nota no teu expediente."],
+      end_op_critical:["Débesme unha explicación. E un café.", "Lamento a operación. Non o resultado."],
+      saved:          ["Procedo a recalcular as miñas probabilidades.", "..."],
+      near_death_aliado:["{name} foi sacrificado. Tomo nota.", "..."],
+    },
+  },
+};
+
+/* (v0.44) FRASES_END_OP en INGLÉS — voz por clase: grunt chan, heavy rudo,
+   engineer clínico, sniper lacónico, bombardero fachendoso */
+const FRASES_END_OP_EN = {
+  BOMBARDERO: {
+    LEAL: { end_op_alive:["Everything I aimed at came down.","Demolition complete, chief."], end_op_critical:["Nearly blew up with it."],
+            saved:["Thanks. These hands are worth money."], near_death_aliado:["{name}! Damn it, they were right next to me!"] },
+    SARCASTICO: { end_op_alive:["Another day making holes."], end_op_critical:["Everything blew up but me. Barely."],
+            saved:["Right before the boom. I appreciate the detail."], near_death_aliado:["{name} went up. And not from my bombs."] },
+    DESCONFIADO: { end_op_alive:["I came back. Pack half empty."], end_op_critical:["You sent me too far forward. Again."],
+            saved:["Fine. I owe you one."], near_death_aliado:["{name}! I told you this would happen!"] },
+    AUTOPRESERVACION: { end_op_alive:["My bombs did the work. Me, the bare minimum."], end_op_critical:["..."],
+            saved:["..."], near_death_aliado:["..."] },
+  },
+  SNIPER: {
+    LEAL: { end_op_alive:["Targets neutralized.","Clean."], end_op_critical:["They saw me. Won't happen again."],
+            saved:["...thanks. I don't usually need it."], near_death_aliado:["{name}. I watched them fall. Couldn't take the shot in time."] },
+    SARCASTICO: { end_op_alive:["Another day of staring down a scope."], end_op_critical:["Almost got hunted myself. Ironic."],
+            saved:["Curious. Usually I'm the one who decides who lives."], near_death_aliado:["{name} down. Noted."] },
+    DESCONFIADO: { end_op_alive:["I survived. Alone, as always."], end_op_critical:["You left me without cover. Again."],
+            saved:["Didn't expect that. From you."], near_death_aliado:["{name}. From where I was, I couldn't reach."] },
+    AUTOPRESERVACION: { end_op_alive:["Alive. No thanks to your positioning."], end_op_critical:["..."],
+            saved:["..."], near_death_aliado:["..."] },
+  },
+  GRUNT: {
+    LEAL: {
+      end_op_alive:   ["Another one done, chief.", "Still here.", "As it should be.", "Still standing, chief."],
+      end_op_critical:["By a hair, chief.", "Almost stayed out there.", "Barely made it back."],
+      saved:          ["Thanks, chief. Really.", "You saved my hide.", "Still here thanks to that one."],
+      near_death_aliado:["Buddy! No!", "Hell, {name} is down!", "{name}! Damn it, no!"],
+    },
+    SARCASTICO: {
+      end_op_alive:   ["One more. And still breathing, don't ask me how.", "Survived. Again.", "Another one for the pile."],
+      end_op_critical:["Almost left my hide out there. Again.", "I said something would happen.", "Look at that, almost my turn."],
+      saved:          ["Just in time. As always.", "One more for your tab."],
+      near_death_aliado:["Bye, buddy. Saw it coming.", "One less. What a surprise."],
+    },
+    DESCONFIADO: {
+      end_op_alive:   ["I made it out. This time.", "Still here. Don't know for how long."],
+      end_op_critical:["By a hair! And you're still running your plans?", "Barely made it. Good enough for you?"],
+      saved:          ["...thanks. This time.", "Late, but thanks."],
+      near_death_aliado:["{name}! I said it, damn it, I said it!", "That's several now. SEVERAL!"],
+    },
+    AUTOPRESERVACION: {
+      end_op_alive:   ["Alive. In spite of you, not because of you.", "This time, yes. Next time I refuse."],
+      end_op_critical:["Never again, chief. NEVER AGAIN.", "You almost got me killed. Noted."],
+      saved:          ["I owe you one. But we're even, for all the other times.", "..."],
+      near_death_aliado:["...", "Another one for the heap. I'll be next."],
+    },
+  },
+  HEAVY: {
+    LEAL: {
+      end_op_alive:   ["Another one in the bag, chief.", "Nothing to report. As always.", "Here I am."],
+      end_op_critical:["That was a rough one. But here I am.", "Damn, that was ugly. But I held."],
+      saved:          ["Thanks, chief. I owe you one.", "Damn, just in time."],
+      near_death_aliado:["{name}! DAMN IT!", "No, hell, NO!", "{name}, hold on!"],
+    },
+    SARCASTICO: {
+      end_op_alive:   ["I survived. Why so surprised?", "Mission accomplished, I guess.", "Another beating taken."],
+      end_op_critical:["Hell of an op. Barely made it.", "You owe me one. That's several now.", "Look, still breathing. Your call."],
+      saved:          ["You're late. But thanks, I guess."],
+      near_death_aliado:["{name}! Damn, another one!", "Hell. {name} is down."],
+    },
+    DESCONFIADO: {
+      end_op_alive:   ["Alive. Not thanks to you.", "Still here. Tomorrow, we'll see."],
+      end_op_critical:["I told you, damn it! I told you!", "By a hair. Again."],
+      saved:          ["...fine. Thanks.", "Just in time, damn it."],
+      near_death_aliado:["I told you! {name} fell because of you!", "Damn, damn, DAMN!"],
+    },
+    AUTOPRESERVACION: {
+      end_op_alive:   ["You owe me one. That's several now.", "Alive. The shame is yours."],
+      end_op_critical:["By a hair again. Had enough yet?", "Screw it. Next time I'm not going out."],
+      saved:          ["Late. As always.", "..."],
+      near_death_aliado:["Another one in the hole. Screw you.", "..."],
+    },
+  },
+  ENGINEER: {
+    LEAL: {
+      end_op_alive:   ["Operation concluded.", "Efficient, against all odds."],
+      end_op_critical:["This exceeded the projected margin.", "Considerable damage. I held."],
+      saved:          ["Grateful. Sincerely.", "You arrived just in time. I appreciate it."],
+      near_death_aliado:["{name}... I'm sorry.", "I failed {name}."],
+    },
+    SARCASTICO: {
+      end_op_alive:   ["Concluded. Your plan is approaching success.", "Alive. By statistics, not by planning."],
+      end_op_critical:["Damage above estimate. As always.", "It was to be expected. I barely survived."],
+      saved:          ["Efficient. Surprising.", "Noted. I owe you one."],
+      near_death_aliado:["{name} down. It was a matter of time.", "A projected loss. But a loss."],
+    },
+    DESCONFIADO: {
+      end_op_alive:   ["I survived. Despite the decisions made."],
+      end_op_critical:["It was predictable. It was."],
+      saved:          ["Curious. I wasn't expecting help."],
+      near_death_aliado:["It was a matter of time, {name}.", "Predictable. Sad, but predictable."],
+    },
+    AUTOPRESERVACION: {
+      end_op_alive:   ["I survived. Tomorrow I review my contract.", "Alive. Adding a note to your file."],
+      end_op_critical:["You owe me an explanation. And a coffee.", "I regret the operation. Not the outcome."],
+      saved:          ["Proceeding to recalculate my odds.", "..."],
+      near_death_aliado:["{name} was sacrificed. Noted.", "..."],
+    },
+  },
+};
+
+/* (v0.44) Táboa END_OP segundo o idioma activo, con fallback á castelá */
+function endOpTable(){
+  if(I18N.lang === 'gl' && typeof FRASES_END_OP_GL !== 'undefined') return FRASES_END_OP_GL;
+  if(I18N.lang === 'en' && typeof FRASES_END_OP_EN !== 'undefined') return FRASES_END_OP_EN;
+  return FRASES_END_OP;
+}
+
 /* Pickea unha frase do pool con fallback se a combinación non existe */
 function pickFrase(u, contexto, opts){
   if(!u || u.team !== PT) return null;
@@ -1240,8 +1828,10 @@ function pickFrase(u, contexto, opts){
   const pers = u.personalidad;
   const est = estadoConfianza(u);
   let result = null;
-  /* (v0.40 F3b) inglés reescrito; outras linguas caen á táboa castelá */
-  const _FR = (I18N.lang === 'en' && typeof FRASES_EN !== 'undefined') ? FRASES_EN : FRASES;
+  /* (v0.44 F3c) táboa por idioma con fallback á castelá */
+  const _FR = (I18N.lang === 'en' && typeof FRASES_EN !== 'undefined') ? FRASES_EN
+            : (I18N.lang === 'gl' && typeof FRASES_GL !== 'undefined') ? FRASES_GL
+            : FRASES;
   const cls_table = _FR[cls] || FRASES[cls];
   if(cls_table){
     const pers_table = cls_table[pers];
@@ -1256,8 +1846,9 @@ function pickFrase(u, contexto, opts){
     }
   }
   /* Fallback xenérico para end_op_*, saved, near_death_aliado: por clase × estado */
-  if(!result && FRASES_END_OP[cls] && FRASES_END_OP[cls][est]){
-    const arr = FRASES_END_OP[cls][est][contexto];
+  const _EO = endOpTable();
+  if(!result && _EO[cls] && _EO[cls][est]){
+    const arr = _EO[cls][est][contexto];
     if(arr && arr.length > 0){
       result = arr[Math.floor(Math.random() * arr.length)];
     }
@@ -1271,7 +1862,7 @@ function pickFrase(u, contexto, opts){
   if(opts && opts.targetName){
     result = result.replace(/\{name\}/g, opts.targetName);
   }
-  return result;
+  return glNorm(result);
 }
 
 /* Cooldown global para que as frases non se solapen */
@@ -1324,12 +1915,12 @@ const WALL_BUILD = {cost:10, frames:240};
 function startWallPlacing(){
   const eng = game.units.find(u => u.team===PT && !u.dead && !u.inside && u.sel && u.eng && !u.buildTask);
   if(!eng){
-    radio('Necesitas un ENGINEER seleccionado (e libre) para construír muros.', '#ff8');
+    radio(TXT('r.necesitasEng'), '#ff8');
   } else if((DATA.chatarra||0) < WALL_BUILD.cost){
-    radio(`Chatarra insuficiente para MURO (${WALL_BUILD.cost}⚙).`, '#ff8');
+    radio(TXT('r.senChatarraMuro', {c: WALL_BUILD.cost}), '#ff8');
   } else {
     game.wallPlacing = eng.id;
-    radio(`⌂ MURO ${WALL_BUILD.cost}⚙ — clic onde queiras que ${eng.name} o levante. Botón dereito cancela.`, '#c8a86a');
+    radio(TXT('r.muroClic', {c: WALL_BUILD.cost, n: eng.name}), '#c8a86a');
   }
 }
 
@@ -1396,7 +1987,7 @@ function placeTurret(x, y, g, team){
   g.turrets.push(tu);
   if(team === PT){
     g.turretPending--;
-    radio(`⌂ Torreta desplegada — ${pilot.name} aos mandos.`, '#7fdc7f', {x, y});
+    radio(TXT('r.torretaDesplegada', {n: pilot.name}), '#7fdc7f', {x, y});
   } else {
     g._turretPendingET = Math.max(0, (g._turretPendingET||0) - 1);
     if(g.modo === 'pvp') pvpRadioET(g, `⌂ Torreta desplegada — ${pilot.name} aos mandos.`, '#7fdc7f');

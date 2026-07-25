@@ -12,8 +12,8 @@
 
 <!-- ===================== HANGAR ===================== -->
 <div id="hangar" class="scr">
-  <h2>// Hangar — Roster persistente <span id="chatarraDisplay" style="float:right; font-size:14px; color:#c8a86a;"></span></h2>
-  <div id="rosterList" class="small">Cargando roster…</div>
+  <h2><span id="hgTitle">// Hangar — Roster persistente</span> <span id="chatarraDisplay" style="float:right; font-size:14px; color:#c8a86a;"></span></h2>
+  <div id="rosterList" class="small">Cargando roster…</div><!-- hg.cargando: substitúese ao renderizar -->
   <div class="row">
     <button id="btnStart">▶ Iniciar operación</button>
     <button id="btnLang" title="Idioma / Language">🌐 GL</button>
@@ -22,6 +22,9 @@
     <button id="btnCrisol" style="color:#e8c060; border-color:#8a6a20;" title="Programa de Validación de Durabilidade de ÓPTIMA: 5 oleadas de brigadas grises contra o teu escuadrón. Todo o gañado (skills, ops, alcumes, pezas) volve contigo á campaña. Os datos doen.">⚒ O CRISOL (supervivencia)</button>
     <button id="btnMemorial">Memorial de caídos</button>
     <button id="btnDespiece" style="color:#c8a86a;">⚙ Despiece</button>
+    <button id="btnMundial" style="color:#7fd0ff;">🏆 MUNDIAL</button>
+    <button id="btnVoz" style="color:#9fd0ff;">🤖 VOZ: CHÍOS</button>
+    <button id="btnDiario" style="color:#c8a86a; display:none;">📖 ARQUIVO</button>
     <button id="btnCantina" title="O escuadrón de charla entre operacións. Podes invitar a unha rolda (+2 confianza a todos).">🍺 Cantina</button>
     <button id="btnCronica" title="O xogo escribe a historia da túa guerra: escuadrón, caídos, vínculos, pezas, VOLT. Descárgase como .md">📜 Crónica</button>
     <button id="btnExport" title="Descarga a partida enteira como JSON — roster, pezas, vínculos, campaña. O localStorage é fráxil; isto non.">💾 Exportar</button>
@@ -30,7 +33,7 @@
     <button id="btnWipe">Borrar todos los datos</button>
   </div>
   <div id="memorial" style="display:none; margin-top:12px;" class="small"></div>
-  <p class="small" style="margin-top:14px;">
+  <p id="hgHelp" class="small" style="margin-top:14px;">
     Selecciona hasta 3 veteranos para desplegar.<br>
     CONTROLES: arrastra para seleccionar · clic para mover/atacar · doble clic en una unidad para seleccionar todas las del mismo tipo cercanas · teclas 1/2/3 o botones para producir.<br>
     OBJETIVO: destruye el HQ rojo. Captura sectores (○) para producir más rápido.<br>
@@ -42,7 +45,7 @@
 <div id="battle" style="display:none; width:100%; max-width:1260px;">
   <div id="battleLayout">
     <div id="wrap"><canvas id="cv" width="960" height="540"></canvas></div>
-    <div id="sidePanel"><div class="small">— Sin unidad seleccionada —</div></div>
+    <div id="sidePanel"><div id="spEmpty" class="small">— Sin unidad seleccionada —</div></div>
   </div>
   <div id="hud">
     <div id="prodbar" style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -60,7 +63,7 @@
     </div>
     <button id="btnAbort" style="margin-left:auto;">Abortar misión</button>
   </div>
-  <div id="radio"><div class="line small">— Canal de radio abierto —</div></div>
+  <div id="radio"><div id="radioCanal" class="line small">— Canal de radio abierto —</div></div>
 </div>
 
 <!-- ===================== DEBRIEF ===================== -->
@@ -107,12 +110,15 @@
 <script src="js/04-progresion.js"></script>
 <script src="js/05-mapa-camara-neboa.js"></script>
 <script src="js/06-audio-voces.js"></script>
+<script src="js/06b-voz.js"></script>
 <script src="js/07-terreo-batalla.js"></script>
 <script src="js/08-social-narrativa.js"></script>
 <script src="js/09-economia-combate.js"></script>
 <script src="js/10-estructuras.js"></script>
 <script src="js/11-retratos-ui.js"></script>
 <script src="js/12-debrief-hangar.js"></script>
+<script src="js/13-mundial.js"></script>
+<script src="js/14-diario.js"></script>
 <script src="js/99-boot.js"></script>
 </body>
 </html>

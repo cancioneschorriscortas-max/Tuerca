@@ -143,6 +143,15 @@ function drawPortrait(canvas, u, opts={}){
   if(hpPct < 0.34) eyeGlow = '#ff5340';
   else if(hpPct < 0.7) eyeGlow = '#ffaa30';
 
+  /* (v0.49) PARPADEO: cada robot pecha os ollos ~120ms cada 3-5s, con fase
+     propia derivada do nome — o panel repíntase 10x/s, dabondo para velo. */
+  let _blink = false;
+  if(!opts.interrupted && expr !== 'dead'){
+    let _h = 0; const _nm = u.name || u.id || 'X';
+    for(let i = 0; i < _nm.length; i++) _h = (_h * 31 + _nm.charCodeAt(i)) | 0;
+    const _per = 3000 + (Math.abs(_h) % 2200);
+    _blink = ((Date.now() + Math.abs(_h)) % _per) < 120;
+  }
   function drawEye(x, y, shape){
     /* shape:
        'normal'      -> círculo grande
@@ -156,6 +165,12 @@ function drawPortrait(canvas, u, opts={}){
     ctx.fillStyle = '#000';
     /* base oscura del ojo */
     ctx.fillRect(x-eyeBase*0.7, y-eyeBase*0.5, eyeBase*1.4, eyeBase);
+    if(_blink && shape !== 'cross'){
+      /* pálpebra pechada: liña fina do ton do ollo */
+      ctx.fillStyle = eyeGlow;
+      ctx.fillRect(x-eyeBase*0.55, y-eyeBase*0.06, eyeBase*1.1, eyeBase*0.14);
+      return;
+    }
 
     if(shape === 'cross'){
       ctx.strokeStyle = '#7a4a44'; ctx.lineWidth = 2;
@@ -372,6 +387,24 @@ function paintPortrait(id, unit, opts){
   if(!c) return;
   drawPortrait(c, unit, opts);
   drawCicatrices(c, unit);
+  /* (v0.49) ESTÁTICA: cando a confianza cae a AUTOPRESERVACIÓN, o sinal
+     do retrato degrádase — ruído de píxeles + banda horizontal errante. */
+  try{
+    if(typeof estadoConfianza === 'function' && !unit.dead && estadoConfianza(unit) === 'AUTOPRESERVACION'){
+      const ctx = c.getContext('2d');
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      for(let i = 0; i < 46; i++){
+        ctx.fillStyle = Math.random() < 0.6 ? '#000' : '#9ab89a';
+        ctx.fillRect((Math.random() * c.width) | 0, (Math.random() * c.height) | 0, 2, 1);
+      }
+      const by = ((Date.now() * 0.06) % (c.height + 12)) - 6;
+      ctx.globalAlpha = 0.16;
+      ctx.fillStyle = '#cfe0cf';
+      ctx.fillRect(0, by, c.width, 3);
+      ctx.restore();
+    }
+  }catch(e){}
 }
 
 /* ============================================================
@@ -405,7 +438,7 @@ function unitPanelHTML(u, ctx={}){
   if(ctx.interrupted){
     const interruptLine = ctx.interruptLine || `'${u.name}': ...`;
     return `
-      <div class="interrupt-banner">⚠ TRANSMISIÓN DE EMERGENCIA ⚠</div>
+      <div class="interrupt-banner">${TXT('ui.emerxencia')}</div>
       <div class="interrupt-portrait">
         ${portraitHTML('portraitBig', 240, 280)}
         <div class="speaker">${u.id} '${u.name}'</div>
@@ -420,46 +453,130 @@ function unitPanelHTML(u, ctx={}){
       ${portraitHTML('portraitSmall', 100, 120)}
       <div class="meta">
         <div class="ph-name">${u.id} '${u.name}'</div>
-        <div class="ph-sub">${u.cls} · Op ${opsTotal} · ${totalKills} bajas</div>
+        <div class="ph-sub">${clsLabel(u.cls)}${u.personalidad ? ' · ' + u.personalidad : ''} · Op ${opsTotal} · ${totalKills} ${TXT('ui.bajas')}</div>
         <div style="margin-top:4px;">
           <div class="ph-bar"><div style="width:${(hpPct*100).toFixed(0)}%; background:${hpColor};"></div></div>
-          <span style="font-size:10px; color:${hpColor};">${(hpPct*100).toFixed(0)}% INTEGRIDAD</span>
+          <span style="font-size:10px; color:${hpColor};">${(hpPct*100).toFixed(0)}% ${TXT('ui.integridade')}</span>
         </div>
       </div>
     </div>
   `;
   if(traits.length){
-    html += `<div class="ph-section"><b>RASGOS</b>${traits.map(t=>`<span class="tag">${t}</span>`).join(' ')}</div>`;
+    html += `<div class="ph-section"><b>${TXT('ui.rasgos')}</b>${traits.map(t=>`<span class="tag">${tagLabel(t)}</span>`).join(' ')}</div>`;
   }
   if(medals.length){
-    html += `<div class="ph-section"><b>MEDALLAS</b>`+
+    html += `<div class="ph-section"><b>${TXT('ui.medallas')}</b>`+
       medals.map(mid=>{
         const m = MEDAL_DEFS.find(x=>x.id===mid);
         const sub = (m && m.subtitle && persistedRec) ? m.subtitle(persistedRec) : null;
-        return `<span class="medal">✪ ${m?m.label:mid}${sub?` <span class="small">(${sub})</span>`:''}</span>`;
+        return `<span class="medal">✪ ${medalLabel(mid)}${sub?` <span class="small">(${sub})</span>`:''}</span>`;
       }).join(' ')+`</div>`;
   }
-  html += `<div class="ph-section"><b>POSICIÓN</b><span class="ph-place">${placeLabel(place)}</span></div>`;
+  /* (v0.57) FICHA COMPLETA ao seleccionar (pedido de Agarfal): confianza,
+     atributos e a súa VOZ no panel */
+  if(typeof estadoConfianza === 'function' && typeof u.confianza === 'number'){
+    const est = estadoConfianza(u);
+    const ecol = est === 'LEAL' ? '#7fdc7f' : est === 'SARCASTICO' ? '#cfe0ff'
+               : est === 'DESCONFIADO' ? '#ffd24a' : '#ff5340';
+    html += `<div class="ph-section"><b>${TXT('ui.confianza')}</b>
+      <div class="ph-bar"><div style="width:${Math.max(0,Math.min(100,u.confianza)).toFixed(0)}%; background:${ecol};"></div></div>
+      <span style="font-size:10px; color:${ecol};">${est} · ${Math.round(u.confianza)}/100</span></div>`;
+  }
+  if(typeof skillTagsHTML === 'function' && persistedRec){
+    const st = skillTagsHTML(persistedRec);
+    if(st) html += `<div class="ph-section"><b>${TXT('ui.atributos')}</b>${st}</div>`;
+  }
+  /* (v0.58.1) VÍNCULO de camaradas: con quen e en que estado */
+  const _vs = (u.vinculos && u.vinculos.length ? u.vinculos : (persistedRec && persistedRec.vinculos) || []);
+  if(_vs.length){
+    const vid = _vs[0].con;
+    const vRec = DATA.units.find(r => r.id === vid);
+    const vUnit = (typeof game !== 'undefined' && game && game.units) ? game.units.find(o => o.id === vid) : null;
+    const vName = (vUnit && vUnit.name) || (vRec && vRec.name) || vid;
+    let vTxt, vCol;
+    if(vUnit && !vUnit.dead){
+      vTxt = u._vinculoActivo ? TXT('ui.vincXuntos') : TXT('ui.vincCampo');
+      vCol = u._vinculoActivo ? '#ffd700' : '#7fdc7f';
+    } else if(vRec){ vTxt = TXT('ui.vincHangar'); vCol = '#9aa0a8'; }
+    else { vTxt = TXT('ui.vincCaido'); vCol = '#ff5340'; }
+    html += `<div class="ph-section"><b>${TXT('ui.vinculo')}</b><span style="font-size:10px; color:${vCol};">⭐ ${vName} · ${vTxt}</span></div>`;
+  }
+  /* (v0.58.1) ORIXE: os reensamblados levan pezas doutros — o lore do salvage */
+  if(persistedRec && persistedRec.piezasClases){
+    const alleas = [...new Set(persistedRec.piezasClases.filter(c => c !== u.cls))];
+    if(alleas.length){
+      html += `<div class="ph-section"><b>${TXT('ui.orixe')}</b><span style="font-size:10px; color:#c8a86a;">☍ ${alleas.map(c => clsLabel(c)).join(', ')}</span></div>`;
+    }
+  }
+  /* (v0.58) CONTRIBUCIÓN nesta operación: o que está a facer AGORA */
+  if(u.act){
+    const a = u.act;
+    const bits = [];
+    if(u.kills > 0) bits.push(`☠ ${u.kills} ${TXT('ui.bajas')}`);
+    if(a.shots > 0) bits.push(`▸ ${a.shots} ${TXT('ui.disparos')}`);
+    if(a.dist > 40) bits.push(`↦ ${Math.round(a.dist/10)}m`);
+    if(a.dmgTaken > 0) bits.push(`⛨ ${Math.round(a.dmgTaken)} ${TXT('ui.encaixado')}`);
+    if(a.caps > 0) bits.push(`⚑ ${a.caps}`);
+    if(a.veh > 60) bits.push(`⛟ ${Math.round(a.veh/60)}s`);
+    if(bits.length){
+      html += `<div class="ph-section"><b>${TXT('ui.contribucion')}</b><span style="font-size:10px; color:#9fd0ff;">${bits.join(' · ')}</span></div>`;
+    }
+  }
+  /* (v0.58) PROGRESO cara á seguinte skill: carreira + esta op, co limiar seguinte */
+  if(typeof SKILLS !== 'undefined' && typeof skillLevel === 'function'){
+    /* (v0.58) tamén para unidades novas sen ficha persistida: van cara á primeira skill */
+    const actv = (persistedRec && persistedRec.activity) || {};
+    let prog = '';
+    for(const id of Object.keys(SKILLS)){
+      const sk = SKILLS[id];
+      const total = (actv[sk.track] || 0) + ((u.act && u.act[sk.track]) || 0) + (sk.track === 'kills' ? (u.kills||0) : 0);
+      const lv = skillLevel(actv, id);
+      if(lv >= sk.th.length) continue;         /* xa ao máximo */
+      const next = sk.th[lv];
+      if(total < next * 0.25) continue;        /* só as que van encamiñadas */
+      const pct = Math.min(100, total / next * 100);
+      prog += `<div style="margin:2px 0;"><span style="font-size:10px; color:#9fd0ff;">◆ ${skillLabel(id)} ${'I'.repeat(lv+1).replace(/I{3}/,'III')}</span>
+        <div class="ph-bar" style="height:3px;"><div style="width:${pct.toFixed(0)}%; background:#5a80a8;"></div></div></div>`;
+    }
+    if(prog) html += `<div class="ph-section"><b>${TXT('ui.progreso')}</b>${prog}</div>`;
+  }
+  html += `<div class="ph-section"><b>${TXT('ui.posicion')}</b><span class="ph-place">${placeLabel(place)}</span></div>`;
   if(lastEv){
-    html += `<div class="ph-section"><b>ÚLTIMO EVENTO</b><div class="ph-event">${formatEvent(lastEv)}</div></div>`;
+    html += `<div class="ph-section"><b>${TXT('ui.ultimoEvento')}</b><div class="ph-event">${formatEvent(lastEv)}</div></div>`;
+  }
+  /* (v0.58.1) HISTORIAL curto: dous ecos do pasado (a bio completa segue no hangar) */
+  if(persistedRec && persistedRec.events && persistedRec.events.length > 1){
+    const prev = persistedRec.events.slice(-3, -1);
+    if(prev.length){
+      html += `<div class="ph-section"><b>${TXT('ui.historial')}</b>` +
+        prev.map(e => `<div class="ph-event" style="opacity:0.7;">Op ${e.op}: ${formatEvent(e)}</div>`).join('') + `</div>`;
+    }
+  }
+  /* (v0.57) a VOZ da unidade: a última frase dita, no panel (non só na radio).
+     Store externo por id — no convidado os obxectos recréanse a cada snap. */
+  const _fl = (window._falaU && window._falaU[u.id]) || u._lastFrase;
+  if(_fl && Date.now() - _fl.time < 12000){
+    html += `<div class="ph-section" style="border-left:2px solid ${_fl.color||'#7fdc7f'}; padding-left:6px;">
+      <span style="color:${_fl.color||'#7fdc7f'}; font-style:italic;">«${_fl.text}»</span></div>`;
   }
   return html;
 }
 
 function squadPanelHTML(g, sel){
-  let html = `<div class="ph-name">ESCUADRÓN</div>`;
+  let html = `<div class="ph-name">${TXT('ui.escuadron')}</div>`;
   if(sel.length > 1){
     const totalHp = sel.reduce((a,u)=>a+u.hp/u.max,0);
     const avgHp = (totalHp/sel.length*100).toFixed(0);
     const vets = sel.filter(u=>u.persisted).length;
-    html += `<div class="ph-sub">${sel.length} unidades · ${vets} veteranos</div>`;
-    html += `<div class="ph-section"><b>INTEGRIDAD MEDIA</b><span>${avgHp}%</span></div>`;
-    html += `<div class="ph-section"><b>UNIDADES</b><div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:4px;">`;
+    html += `<div class="ph-sub">${TXT('ui.unidadesVets', {n: sel.length, v: vets})}</div>`;
+    html += `<div class="ph-section"><b>${TXT('ui.integridadeMedia')}</b><span>${avgHp}%</span></div>`;
+    html += `<div class="ph-section"><b>${TXT('ui.unidades')}</b><div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:4px;">`;
     sel.forEach((u, i) => {
       const pct = (u.hp/u.max*100).toFixed(0);
-      html += `<div style="text-align:center;">
+      /* (v0.59) clicable: ir ao membro e seleccionalo só (idea de Agarfal) */
+      html += `<div data-uid="${u.id}" style="text-align:center; cursor:pointer;" title="${TXT('ui.irAUnidade')}">
         ${portraitHTML(`squadPortrait${i}`, 56, 64)}
-        <div style="font-size:9px; color:var(--phos); margin-top:2px;">${u.name}</div>
+        <div style="font-size:9px; color:var(--phos); margin-top:2px;">${u.id}·${u.name}</div>
         <div style="font-size:9px; color:var(--phos-dim);">${pct}%</div>
       </div>`;
     });
@@ -467,13 +584,13 @@ function squadPanelHTML(g, sel){
   } else {
     const alive = g.units.filter(u=>u.team===PT && !u.dead);
     const sectorsOwn = g.sectors.filter(s=>s.owner===PT).length;
-    html += `<div class="ph-sub">${alive.length} unidades vivas · Op nº ${DATA.opCount+1}</div>`;
-    html += `<div class="ph-section"><b>SECTORES</b>${sectorsOwn} / ${g.sectors.length}</div>`;
-    html += `<div class="ph-section"><b>BAJAS</b>${g.kills[PT]} enemigas · ${g.units.filter(u=>u.team===PT && u.dead).length} propias</div>`;
+    html += `<div class="ph-sub">${TXT('ui.vivasOp', {n: alive.length, op: DATA.opCount+1})}</div>`;
+    html += `<div class="ph-section"><b>${TXT('ui.sectores')}</b>${sectorsOwn} / ${g.sectors.length}</div>`;
+    html += `<div class="ph-section"><b>${TXT('ui.bajasHdr')}</b>${TXT('ui.bajasDet', {e: g.kills[PT], p: g.units.filter(u=>u.team===PT && u.dead).length})}</div>`;
     if(g.remains.filter(r=>!r.expired).length){
       const open = g.remains.filter(r=>!r.expired && !r.secured).length;
       const sec = g.remains.filter(r=>!r.expired && r.secured).length;
-      html += `<div class="ph-section"><b>RESTOS</b>${open} sin recuperar · ${sec} asegurados</div>`;
+      html += `<div class="ph-section"><b>${TXT('ui.restos')}</b>${TXT('ui.restosDet', {o: open, s: sec})}</div>`;
     }
   }
   return html;
@@ -482,6 +599,18 @@ function squadPanelHTML(g, sel){
 function updateSidePanel(g){
   /* Si no hay batalla, salir */
   if(!g){ return; }
+  /* (v0.59) FIX RAÍZ do "escuadrón fantasma": lastPanelRender/panelInterrupt
+     son estado de MÓDULO e sobrevivían entre batallas. A batalla nova empeza
+     con g.t=0 e o throttle (g.t - lastPanelRender < 6) daba negativo → o panel
+     quedaba CONXELADO mostrando o escuadrón da operación ANTERIOR durante
+     minutos, e parecía que a selección non funcionaba. (Intuición de Agarfal:
+     "algo que sobrevive entre misións e non debería".) */
+  if(updateSidePanel._g !== g){
+    updateSidePanel._g = g;
+    lastPanelRender = -Infinity;
+    panelInterrupt = null;
+    lastClickUnit = null;
+  }
   /* Throttle: actualizar cada 6 frames (10 veces/s) */
   if(g.t - lastPanelRender < 6 && !panelInterrupt) return;
   lastPanelRender = g.t;
@@ -494,7 +623,7 @@ function updateSidePanel(g){
       panel.classList.remove('interrupted');
     } else {
       panel.classList.add('interrupted');
-      panel.innerHTML = unitPanelHTML(panelInterrupt.unit, {
+      panel._lastHTML = null; panel.innerHTML = unitPanelHTML(panelInterrupt.unit, {
         interrupted: true,
         interruptLine: panelInterrupt.line || '...',
       });
@@ -509,17 +638,17 @@ function updateSidePanel(g){
     const hpPct = Math.round(100*tSel.hp/tSel.max);
     const extra = `
       <div style="margin-top:10px; padding:8px; border-top:1px solid #444; background:#1a1a1a;">
-        <div style="font-size:10px; color:#7fb0e8; margin-bottom:4px;">— EN TORRETA ${tSel.id} —</div>
-        <div style="font-size:11px; color:#aaa; margin-bottom:4px;">Estrutura: <b style="color:${hpPct>50?'#7fdc7f':(hpPct>25?'#ffd24a':'#ff5340')};">${tSel.hp}/${tSel.max} (${hpPct}%)</b></div>
+        <div style="font-size:10px; color:#7fb0e8; margin-bottom:4px;">${TXT('ui.enTorreta', {id: tSel.id})}</div>
+        <div style="font-size:11px; color:#aaa; margin-bottom:4px;">${TXT('ui.estrutura')}: <b style="color:${hpPct>50?'#7fdc7f':(hpPct>25?'#ffd24a':'#ff5340')};">${tSel.hp}/${tSel.max} (${hpPct}%)</b></div>
         <button onclick="ejectFromTurret()" style="
           width:100%; padding:8px; margin-top:4px;
           background:#27406e; color:#cfe0ff; border:1px solid #4f8aff;
           font-family:'Courier New',monospace; font-size:11px;
           cursor:pointer; letter-spacing:1px;">
-          ▼ BAIXAR DA TORRETA  (E)
+          ${TXT('ui.baixarTorreta')}
         </button>
       </div>`;
-    panel.innerHTML = unitPanelHTML(tSel.occupant) + extra;
+    panel._lastHTML = null; panel.innerHTML = unitPanelHTML(tSel.occupant) + extra;
     paintPortrait('portraitSmall', tSel.occupant);
     return;
   }
@@ -530,27 +659,37 @@ function updateSidePanel(g){
     const moving = Math.hypot(vSel.tx - vSel.x, vSel.ty - vSel.y) > 4;
     const extra = `
       <div style="margin-top:10px; padding:8px; border-top:1px solid #444; background:#1a1a1a;">
-        <div style="font-size:10px; color:#7fb0e8; margin-bottom:4px;">— NO JEEP ${vSel.id} ${moving?'(en marcha)':'(parado)'} —</div>
-        <div style="font-size:11px; color:#aaa; margin-bottom:4px;">Estrutura: <b style="color:${hpPct>50?'#7fdc7f':(hpPct>25?'#ffd24a':'#ff5340')};">${vSel.hp}/${vSel.max} (${hpPct}%)</b></div>
-        <div style="font-size:10px; color:#888; margin-bottom:6px;">Clic no chan para conducir</div>
+        <div style="font-size:10px; color:#7fb0e8; margin-bottom:4px;">${TXT('ui.noJeep', {id: vSel.id, m: moving?TXT('ui.enMarcha'):TXT('ui.parado')})}</div>
+        <div style="font-size:11px; color:#aaa; margin-bottom:4px;">${TXT('ui.estrutura')}: <b style="color:${hpPct>50?'#7fdc7f':(hpPct>25?'#ffd24a':'#ff5340')};">${vSel.hp}/${vSel.max} (${hpPct}%)</b></div>
+        <div style="font-size:10px; color:#888; margin-bottom:6px;">${TXT('ui.clicConducir')}</div>
         <button onclick="ejectFromTurret()" style="
           width:100%; padding:8px; margin-top:4px;
           background:#27406e; color:#cfe0ff; border:1px solid #4f8aff;
           font-family:'Courier New',monospace; font-size:11px;
           cursor:pointer; letter-spacing:1px;">
-          ▼ BAIXAR DO JEEP  (E)
+          ${TXT('ui.baixarJeep')}
         </button>
       </div>`;
-    panel.innerHTML = unitPanelHTML(vSel.occupant) + extra;
+    panel._lastHTML = null; panel.innerHTML = unitPanelHTML(vSel.occupant) + extra;
     paintPortrait('portraitSmall', vSel.occupant);
     return;
   }
+  /* (v0.59.1) só substituír o DOM se o HTML cambiou: os canvases dos retratos
+     persisten (o parpadeo segue vía paintPortrait) e os clics xa non compiten
+     co repintado */
+  const _setPanel = (h) => { if(panel._lastHTML !== h){ panel._lastHTML = h; panel._lastHTML = null; panel.innerHTML = h; } };
   const sel = g.units.filter(u=>u.sel && !u.dead && u.team===PT && !u.inside);
   if(sel.length === 1){
-    panel.innerHTML = unitPanelHTML(sel[0]);
-    paintPortrait('portraitSmall', sel[0]);
+    /* (v0.57.1) blindado: se a ficha peta no navegador real, o erro sae no
+       overlay en vez de deixar contido vello no panel en silencio */
+    try{
+      _setPanel(unitPanelHTML(sel[0]));
+      paintPortrait('portraitSmall', sel[0]);
+    }catch(err){
+      if(typeof _tuercaOverlay === 'function') _tuercaOverlay('panel único: ' + (err && (err.stack || err.message) || err));
+    }
   } else {
-    panel.innerHTML = squadPanelHTML(g, sel);
+    _setPanel(squadPanelHTML(g, sel));
     /* Si hay varias seleccionadas, pintar mini-retratos del escuadrón */
     sel.forEach((u, i) => {
       paintPortrait(`squadPortrait${i}`, u);
@@ -559,9 +698,20 @@ function updateSidePanel(g){
 }
 
 /* ---------- Bucle ---------- */
-function loop(){
-  if(!game) return;
-  const g=game;
+/* (v0.48) TIMESTEP FIXO — a simulación avanza a 60Hz EXACTOS, independente
+   dos Hz do monitor. Antes: g.t++ por frame de requestAnimationFrame, así
+   que un monitor a 144Hz simulaba 2.4x máis rápido (unidades máis veloces,
+   producían antes, disparaban máis a miúdo, néboa distinta) e rompía o PvP.
+   Patrón acumulador (Gaffer "Fix Your Timestep"): depositamos o tempo real
+   transcorrido e executamos pasos de dt fixo mentres sobre tempo, cun tope
+   para non entrar en espiral da morte tras un pico de lag. */
+const SIM_HZ = 60;
+const SIM_DT = 1000 / SIM_HZ;      /* 16.667 ms — o ritmo para o que se deseñou o xogo */
+const SIM_MAX_STEPS = 5;           /* nunca máis de 5 pasos/frame (clamp anti-espiral) */
+let _simAccum = 0, _simLastT = 0, _simGame = null;
+
+/* Un paso de SIMULACIÓN (o que antes facía o corpo do loop antes de debuxar) */
+function simStep(g){
   g.t++;
   const _pvpGuest = g.modo === 'pvp' && window._pvp && window._pvp.rol === 'guest';
   if(_pvpGuest){
@@ -569,6 +719,18 @@ function loop(){
       pvpAplicarSnap(g);   /* (v0.31) o convidado NON simula: renderiza o estado do host */
       pvpInterpolar(g);    /* (v0.32) suavizado visual entre snaps */
       pvpFlushOrdes();
+      /* (v0.51.1) WATCHDOG: host conxelado SEN desconectar (lapela suspendida,
+         cuelgue) non dispara o onDisconnect de Firebase — o convidado quedaba
+         pillado para sempre. 8s sen snap = aviso; 18s = fin por abandono. */
+      if(!g.over){
+        if(!window._pvpLastSnapMs) window._pvpLastSnapMs = Date.now();
+        const _sen = Date.now() - window._pvpLastSnapMs;
+        if(_sen > 8000 && !window._pvpSnapWarn){
+          window._pvpSnapWarn = true;
+          radio(TXT('pvp.senSinal'), '#ff5340');
+        }
+        if(_sen > 18000) pvpAbandono();
+      }
     }catch(e){ console.error('[pvp guest]', e); }   /* (v0.34.1) nada mata o loop */
   } else if(!g.over){
     tickProd(g); tickAI(g); tickUnits(g); tickTurrets(g); tickVehicles(g); tickSectors(g); tickRadar(g); tickBaseAlarm(g); tickEnd(g);
@@ -576,13 +738,36 @@ function loop(){
       try{ pvpHostFrame(g); }catch(e){ console.error('[pvp host]', e); }
     }
   }
+  computeVision(g);   /* (v0.20) fontes de visión deste paso (a IA/combate leen esta néboa) */
+}
+
+function loop(now){
+  if(!game){ _simGame = null; return; }   /* (comportamento previo: o loop para sen game) */
+  const g=game;
+  now = now || (typeof performance!=='undefined' ? performance.now() : Date.now());
+  /* Reinicio limpo ao cambiar de batalla: sen delta xigante no primeiro frame,
+     e cun paso garantido antes do primeiro render (néboa lista). */
+  if(g !== _simGame){ _simGame = g; _simLastT = now; _simAccum = SIM_DT; }
+  let frameTime = now - _simLastT;
+  _simLastT = now;
+  if(frameTime > 250) frameTime = 250;     /* clamp: un pico de lag non "acelera" o xogo */
+  _simAccum += frameTime;
+  let steps = 0;
+  while(_simAccum >= SIM_DT && steps < SIM_MAX_STEPS){
+    simStep(g);
+    _simAccum -= SIM_DT;
+    steps++;
+  }
+  if(steps >= SIM_MAX_STEPS) _simAccum = 0;   /* tras carga pesada, tira o atraso acumulado */
+
+  /* ---- RENDER (unha vez por frame, á taxa do monitor) ---- */
   updateCamera();
-  computeVision(g);   /* (v0.20) fontes de visión deste frame */
   /* (v0.25) JUICE: screen shake con decaemento */
   if(g.shake > 0.3){ g.shake *= 0.86; } else g.shake = 0;
   const _shx = g.shake ? (Math.random()*2-1)*g.shake : 0;
   const _shy = g.shake ? (Math.random()*2-1)*g.shake : 0;
   ctx.save();
+  ctx.scale(camZoom, camZoom);   /* (v0.50.2) zoom lixeiro */
   ctx.translate(-Math.round(cam.x + _shx), -Math.round(cam.y + _shy));
   draw(g);
   ctx.restore();
@@ -605,6 +790,36 @@ function loop(){
     ctx.restore();
   }
   drawMinimap(g);
+  /* (v0.60) MARCADOR do Mundial: PAI g - r RIV · minuto' */
+  if(g.modo === 'mundial' && window._mundial && typeof MDATA !== 'undefined' && MDATA){
+    const M = window._mundial;
+    const min = Math.min(90, (M.matchT / MUN_MIN_TICKS) | 0);
+    const meuId = MDATA.pais, rivId = M.rival.id;
+    const txt = `${meuId} ${M.goles[PT]} - ${M.goles[1-PT]} ${rivId} · ${min}'`;
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    const tw = txt.length * 7 + 16;
+    ctx.fillRect((cv.width - tw) / 2, 6, tw, 18);
+    ctx.fillStyle = '#7fd0ff';
+    ctx.font = 'bold 12px Courier New';
+    ctx.fillText(txt, (cv.width - tw) / 2 + 8, 19);
+    /* barra de progreso do gol do que domina */
+    const lid = M.golProg[0] > 0 ? 0 : M.golProg[1] > 0 ? 1 : -1;
+    if(lid >= 0){
+      const pw = Math.round((M.golProg[lid] / MUN_GOL_TICKS) * (tw - 16));
+      ctx.fillStyle = lid === PT ? '#7fdc7f' : '#ff5340';
+      ctx.fillRect((cv.width - tw) / 2 + 8, 22, pw, 2);
+    }
+  }
+  /* (v0.55) reloxo do mundo: a partida vive de 09:00 a ~19:00 */
+  {
+    const _wh = Math.min(19, 9 + g.t / 9000);
+    const _hh = _wh | 0, _mm = ((_wh % 1) * 60) | 0;
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(6, 6, 58, 16);
+    ctx.fillStyle = '#ffd24a';
+    ctx.font = '11px Courier New';
+    ctx.fillText('☀ ' + String(_hh).padStart(2, '0') + ':' + String(_mm).padStart(2, '0'), 11, 18);
+  }
   /* (v0.13) Flash de alarma: bordo vermello pulsante 3s tras dano ao HQ azul */
   if(g.hq[PT].lastDamageT && g.t - g.hq[PT].lastDamageT < 60*3){
     const a = 0.30 + 0.22 * Math.sin(g.t * 0.35);
@@ -619,11 +834,45 @@ function loop(){
   requestAnimationFrame(loop);
 }
 
+/* (v0.59) Clic nun retrato do escuadrón: saltar a cámara a esa unidade e
+   seleccionala individualmente. Delegación no contedor (o innerHTML múdase
+   10 veces/segundo, os tiles non poden levar listener propio). */
+(function(){
+  const sp = document.getElementById('sidePanel');
+  if(!sp) return;
+  /* (v0.59.1) pointerdown, NON click: o innerHTML repíntase 10x/s e un 'click'
+     só dispara se down e up caen no MESMO nodo — o repintado destruíao entre
+     medias e había que premer 4-5 veces. pointerdown dispara ao premer. */
+  sp.addEventListener('pointerdown', e => {
+    const t = e.target && e.target.closest ? e.target.closest('[data-uid]') : null;
+    if(!t || !game) return;
+    const u = game.units.find(x => x.id === t.dataset.uid && !x.dead && !x.inside);
+    if(!u) return;
+    game.units.forEach(x => x.sel = false);
+    if(game.turrets) game.turrets.forEach(x => x.sel = false);
+    if(game.vehicles) game.vehicles.forEach(x => x.sel = false);
+    u.sel = true;
+    if(typeof camJumpTo === 'function') camJumpTo(u.x, u.y);
+    lastPanelRender = -Infinity;   /* repintar xa */
+  });
+})();
 /* ---------- Input ---------- */
+cv.addEventListener('wheel', e => {
+  if(!game) return;
+  e.preventDefault();
+  const r = cv.getBoundingClientRect();
+  const sx = (e.clientX - r.left) * (cv.width / r.width);
+  const sy = (e.clientY - r.top) * (cv.height / r.height);
+  const wx = sx / camZoom + cam.x, wy = sy / camZoom + cam.y;   /* punto do mundo baixo o rato */
+  camZoom = Math.max(1, Math.min(1.8, camZoom * (e.deltaY < 0 ? 1.12 : 1/1.12)));
+  cam.x = wx - sx / camZoom;   /* que ese punto quede fixo */
+  cam.y = wy - sy / camZoom;
+  camClamp();
+}, {passive: false});
 function canvasPos(e){
   const r=cv.getBoundingClientRect();
-  return {x:(e.clientX-r.left)*(cv.width/r.width) + cam.x,
-          y:(e.clientY-r.top)*(cv.height/r.height) + cam.y};
+  return {x:(e.clientX-r.left)*(cv.width/r.width)/camZoom + cam.x,
+          y:(e.clientY-r.top)*(cv.height/r.height)/camZoom + cam.y};
 }
 function screenPos(e){
   const r=cv.getBoundingClientRect();
@@ -933,7 +1182,7 @@ const MEDAL_DEFS = [
    subtitle: u => {
     const rf = u.recoveredFrom || {};
     const entry = Object.entries(rf).find(([n,v]) => v >= 3);
-    return entry ? `con ${entry[0]}` : null;
+    return entry ? TXT('medal.con', {n: entry[0]}) : null;
   }},
 ];
 function checkMedals(unit, ctx){
