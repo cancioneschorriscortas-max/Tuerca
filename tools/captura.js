@@ -1,0 +1,152 @@
+#!/usr/bin/env node
+/* ============================================================
+   CAPTURA — renderiza o xogo de verdade e garda un PNG.
+
+   Usa Edge (ou Chrome) en modo sen cabeceira: mesmo motor que o
+   navegador do xogador, JS executado, CSS aplicado. Serve para ver
+   o que se está a facer sen ter que abrir nada a man, e para
+   comparar antes/despois dun cambio visual.
+
+   Uso:
+     node tools/captura.js hangar
+     node tools/captura.js batalla
+     node tools/captura.js batalla --hora 18 --pasos 3000
+     node tools/captura.js batalla --sen-luz --saida antes.png
+
+   Opcións:
+     --hora N      forza a hora do día (9..19) na capa de luz
+     --pasos N     pasos de simulación antes de debuxar (defecto 1800)
+     --sen-luz     apaga a capa de luz e as sombras (para o A/B)
+     --saida RUTA  onde gardar (defecto: capturas/<modo>.png)
+     --ancho N --alto N   tamaño da ventá
+
+   Cero dependencias: só o navegador que xa está instalado.
+   ============================================================ */
+const fs = require('fs');
+const path = require('path');
+const { execFileSync } = require('child_process');
+
+const RAIZ = path.join(__dirname, '..');
+const I = path.join(RAIZ, 'i');
+
+/* ---------- Argumentos ---------- */
+const argv = process.argv.slice(2);
+const modo = argv[0] && !argv[0].startsWith('--') ? argv[0] : 'hangar';
+const op = (nome, defecto) => {
+  const i = argv.indexOf('--' + nome);
+  return i >= 0 && argv[i + 1] ? argv[i + 1] : defecto;
+};
+const ten = (nome) => argv.includes('--' + nome);
+
+const hora = op('hora', null);
+const pasos = parseInt(op('pasos', '1800'), 10);
+const ancho = parseInt(op('ancho', '1280'), 10);
+const alto = parseInt(op('alto', modo === 'batalla' ? '900' : '760'), 10);
+const senLuz = ten('sen-luz');
+const saida = path.resolve(op('saida', path.join(RAIZ, 'capturas', modo + '.png')));
+
+/* ---------- Navegador ---------- */
+function atoparNavegador() {
+  const candidatos = [
+    process.env.PROGRAMFILES + '\\Google\\Chrome\\Application\\chrome.exe',
+    process.env['PROGRAMFILES(X86)'] + '\\Google\\Chrome\\Application\\chrome.exe',
+    process.env.LOCALAPPDATA + '\\Google\\Chrome\\Application\\chrome.exe',
+    process.env.PROGRAMFILES + '\\Microsoft\\Edge\\Application\\msedge.exe',
+    process.env['PROGRAMFILES(X86)'] + '\\Microsoft\\Edge\\Application\\msedge.exe',
+  ];
+  for (const c of candidatos) { if (c && fs.existsSync(c)) return c; }
+  throw new Error('non atopei Chrome nin Edge; pasa a ruta en CAPTURA_NAVEGADOR');
+}
+const navegador = process.env.CAPTURA_NAVEGADOR || atoparNavegador();
+
+/* ---------- Sonda ----------
+   Unha copia de index.html cun script engadido ao final. Vai DENTRO de
+   i/ para que as rutas relativas a js/ e css/ sigan valendo, e bórrase
+   ao rematar. Está en .gitignore por se algunha vez queda orfa. */
+const arranque = modo === 'batalla' ? `
+<script>
+/* sonda de captura — non forma parte do xogo */
+window.addEventListener('load', function(){
+  setTimeout(function(){
+    try{
+      var roster = [];
+      var clases = ['GRUNT','HEAVY','ENGINEER'];
+      for(var i = 0; i < 3; i++){
+        roster.push({
+          id: 'C-0' + (i+1), name: pickName(DATA, roster), cls: clases[i],
+          ops: 3, kills: 2, traits: [], events: [], medals: [],
+          crossings: 0, recoveries: 0, criticalSurvivals: 0, captures: 0,
+          personalidad: pickPersonalidad(clases[i]), confianza: 55,
+          activity: {dist:0, shots:0, kills:0, dmgTaken:0, caps:0, veh:0}
+        });
+      }
+      DATA.opCount = 2;   /* mapa procedural, o máis representativo */
+      document.getElementById('hangar').style.display = 'none';
+      document.getElementById('battle').style.display = 'block';
+      game = newBattle(roster);
+      ${senLuz ? 'LUZ.activa = false; SOMBRA.activa = false;' : 'LUZ.activa = true; SOMBRA.activa = true;'}
+      ${hora != null ? 'LUZ.horaForzada = ' + Number(hora) + ';' : ''}
+      for(var s = 0; s < ${pasos}; s++) simStep(game);
+      requestAnimationFrame(loop);
+    }catch(e){
+      document.body.innerHTML = '<pre style="color:#ff6a5a;font:14px monospace;padding:20px">'
+        + 'ERRO NA SONDA\\n' + (e && e.stack || e) + '</pre>';
+    }
+  }, 60);
+});
+</script>
+` : '';
+
+const sonda = path.join(I, '_captura_tmp.html');
+let html = fs.readFileSync(path.join(I, 'index.html'), 'utf8');
+html = html.replace('</body>', arranque + '</body>');
+fs.writeFileSync(sonda, html, 'utf8');
+
+/* ---------- Disparo ----------
+   --user-data-dir é OBRIGATORIO: sen el, se o navegador xa está aberto,
+   o executable limítase a pasarlle o encargo á instancia existente e
+   devolve o control ao instante. O proceso "remata" antes de cargar
+   nada, e a sonda bórrase debaixo dos pés (ERR_FILE_NOT_FOUND). Cun
+   perfil propio arranca unha instancia illada que si agarda. */
+fs.mkdirSync(path.dirname(saida), { recursive: true });
+const perfil = path.join(require('os').tmpdir(), 'tuerca-captura-' + process.pid);
+try { fs.unlinkSync(saida); } catch (_) {}
+
+try {
+  execFileSync(navegador, [
+    '--headless=new', '--disable-gpu', '--no-sandbox',
+    '--hide-scrollbars', '--user-data-dir=' + perfil,
+    '--screenshot=' + saida,
+    '--window-size=' + ancho + ',' + alto,
+    '--virtual-time-budget=8000',
+    'file:///' + sonda.replace(/\\/g, '/'),
+  ], { stdio: 'ignore', timeout: 60000 });
+} catch (e) {
+  /* Chromium devolve códigos raros aínda cando a captura sae ben. */
+}
+
+/* O executable devolve o control ANTES de escribir o PNG, así que non
+   vale con mirar se existe nada máis rematar: hai que agardar a que
+   apareza e a que deixe de medrar. E a sonda non se pode borrar antes,
+   ou o navegador atópaa xa borrada (ERR_FILE_NOT_FOUND). */
+function agardarPolaSaida(ruta, msMax) {
+  const dorme = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+  const t0 = Date.now();
+  let anterior = -1;
+  while (Date.now() - t0 < msMax) {
+    dorme(300);
+    if (fs.existsSync(ruta)) {
+      const tam = fs.statSync(ruta).size;
+      if (tam > 0 && tam === anterior) return true;   /* tamaño estable */
+      anterior = tam;
+    }
+  }
+  return fs.existsSync(ruta);
+}
+const saiu = agardarPolaSaida(saida, 45000);
+
+try { fs.unlinkSync(sonda); } catch (_) {}
+try { fs.rmSync(perfil, { recursive: true, force: true }); } catch (_) {}
+
+if (!saiu) { console.error('non se xerou a captura'); process.exit(1); }
+console.log(`${saida}  (${Math.round(fs.statSync(saida).size / 1024)} KB)`);

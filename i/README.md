@@ -87,6 +87,26 @@ e `SOMBRA` son globais; con `LUZ.forza = 0` a escena queda como antes.
 As scanlines do CSS baixaron de `.18` a `.05` (variable `--scan` en
 `css/style.css`): co mapa de luz por baixo, sobraba reixa.
 
+## Ver o que se fai (capturas)
+
+```
+node tools/captura.js hangar
+node tools/captura.js batalla --hora 18 --pasos 3000
+node tools/captura.js batalla --sen-luz --saida capturas/antes.png
+```
+
+Renderiza o xogo de verdade —mesmo motor Chromium, JS executado, CSS
+aplicado— e garda un PNG en `capturas/` (ignorado por git). Serve para
+comparar antes/despois dun cambio visual sen abrir nada a man.
+
+Cero dependencias: usa o Chrome ou o Edge que xa estea instalado.
+
+Dúas trampas que xa están resoltas dentro da ferramenta, por se algún día
+hai que tocala: o executable **devolve o control antes de escribir o PNG**
+(hai que agardar a que o ficheiro apareza e deixe de medrar, non a que o
+proceso remate), e sen `--user-data-dir` propio o encargo deléganse nunha
+instancia xa aberta e a sonda temporal bórrase antes de cargarse.
+
 ## Probas
 
 ```

@@ -67,3 +67,8 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
+
+# Sonda temporal de tools/captura.js (bórrase soa; por se queda orfa)
+i/_captura_tmp.html
+# Capturas de desenvolvemento
+capturas/
