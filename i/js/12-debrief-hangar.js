@@ -588,8 +588,7 @@ async function endBattle(g){
   $('dbTitle').textContent = g.result==='victory'
     ? TXT('deb.vitoria')
     : TXT('deb.derrota');
-  if(g.result==='victory') playSysVoice('victory');
-  else                     playSysVoice('defeat');
+  /* (v0.79) o resultado xa o di vozMando(op.vitoria/op.derrota) ao entrar en endBattle */
   $('dbBody').innerHTML =
     `<p>${TXT('deb.stats', {op: DATA.opCount, be: g.kills[PT], bp: lostRemains.length, r: recovered.length})}<span style="color:#c8a86a;">${TXT('deb.chatarra', {g: g.chatarraGanada||0, t: DATA.chatarra||0})}</span>${g._pvpBotinInfo || ''}${(g.lootGanado&&g.lootGanado.length)?` · <span style="color:#ffd700;">${TXT('deb.botin', {l: g.lootGanado.map(l=>eqLabel(l)).join(', ')})}</span>`:''}</p><br>`+
     (lines.length?lines.join(''):`<div>${TXT('deb.senSuperviventes')}</div>`);
@@ -1670,7 +1669,7 @@ $('btnStart').onclick=()=>{
     sfx('radio_open');
     setTimeout(()=>{
       sfx('radio_static', 0.6);
-      playSysVoice('op_start');
+      if(typeof vozMando === 'function') vozMando('op.inicio', TXT('op.inicio'));
     }, 100);
     updateSidePanel(game);
     requestAnimationFrame(loop);

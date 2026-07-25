@@ -383,86 +383,25 @@ function sfxT(name, ms, ...args){
    que existan.
    ============================================================ */
 
-const VOICE_CACHE = {};   /* key → HTMLAudioElement|null */
-const VOICE_POOL = {};    /* "clase_evento" → [keys que existen] */
-const VOICE_VARIANTS = 6; /* máximo de variantes por evento a probar */
-const VOICE_EXTENSIONS = ['wav', 'mp3', 'ogg'];
-let voicesPreloaded = false;
+/* ============================================================
+   (v0.79) CARGADOR DE VOCES VELLO — RETIRADO.
 
-/* Pre-carga: probar todas las combinaciones esperables al iniciar */
-function preloadVoices(){
-  if(voicesPreloaded) return;
-  voicesPreloaded = true;
-  const classes = ['grunt', 'heavy', 'engineer'];
-  const events  = ['sel', 'move', 'kill', 'critical', 'recover', 'repair'];
-  for(const cls of classes){
-    for(const ev of events){
-      const poolKey = `${cls}_${ev}`;
-      VOICE_POOL[poolKey] = [];
-      for(let n = 1; n <= VOICE_VARIANTS; n++){
-        tryLoadVoice(cls, ev, n);
-      }
-    }
-  }
-  /* Sonidos del "sistema" — voz neutra */
-  ['op_start','radar_us','radar_them','recurring','victory','defeat'].forEach(ev=>{
-    const poolKey = `sys_${ev}`;
-    VOICE_POOL[poolKey] = [];
-    tryLoadVoice('sys', ev, 0);  /* sin número, una sola variante */
-  });
-}
+   Buscaba os ficheiros en `assets/voices/grunt_sel1.wav`. Esa
+   carpeta NON EXISTE nin existiu: as voces viven en `voces/<lingua>/`
+   coa clave de i18n por nome (`op.inicio.ogg`), como define
+   README_VOCES.md e xestiona o manifesto desde a v0.63.
 
-function tryLoadVoice(cls, ev, n){
-  const baseName = n > 0 ? `${cls}_${ev}${n}` : `${cls}_${ev}`;
-  const poolKey  = `${cls}_${ev}`;
-  /* Probar cada extensión secuencialmente — la primera que cargue se queda */
-  for(const ext of VOICE_EXTENSIONS){
-    const path = `assets/voices/${baseName}.${ext}`;
-    const audio = new Audio();
-    audio.preload = 'auto';
-    audio.addEventListener('canplaythrough', ()=>{
-      if(!VOICE_CACHE[baseName]){
-        VOICE_CACHE[baseName] = audio;
-        if(!VOICE_POOL[poolKey].includes(baseName)){
-          VOICE_POOL[poolKey].push(baseName);
-        }
-      }
-    }, {once:true});
-    audio.addEventListener('error', ()=>{ /* silenciado: archivo no existe */ }, {once:true});
-    audio.src = path;
-  }
-}
+   Non era só código morto: preloadVoices() disparaba 3 clases × 6
+   eventos × 6 variantes × 3 extensións + 6 de sistema = 342 peticións
+   HTTP que fallaban TODAS en cada arranque de batalla. E playVoice() e
+   playSysVoice() devolvían false sempre, así que os oito sitios que as
+   chamaban non facían absolutamente nada.
 
-/* Reproducir voz aleatoria del pool para clase+evento.
-   Devuelve true si encontró archivo, false si no (para que el
-   sistema procedural pueda hacer su beep en su lugar). */
-function playVoice(cls, ev){
-  const poolKey = `${cls.toLowerCase()}_${ev}`;
-  const pool = VOICE_POOL[poolKey];
-  if(!pool || pool.length === 0) return false;
-  const key = pool[Math.floor(rnd()*pool.length)];
-  const audio = VOICE_CACHE[key];
-  if(!audio) return false;
-  /* Clonar para permitir reproducciones solapadas */
-  const clone = audio.cloneNode();
-  clone.volume = 0.85;
-  clone.play().catch(()=>{ /* el navegador puede bloquear; ignorar */ });
-  return true;
-}
-
-/* Voz de sistema (anuncios) */
-function playSysVoice(ev){
-  const poolKey = `sys_${ev}`;
-  const pool = VOICE_POOL[poolKey];
-  if(!pool || pool.length === 0) return false;
-  const key = pool[0];
-  const audio = VOICE_CACHE[key];
-  if(!audio) return false;
-  const clone = audio.cloneNode();
-  clone.volume = 0.85;
-  clone.play().catch(()=>{});
-  return true;
-}
+   O sistema bo é o de 06b-voz.js: vozRobot / vozMando / vozComentarista,
+   con manifesto e fallback de idioma. As chamadas que aquí morrían
+   reencamiñáronse alí.
+   ============================================================ */
+function preloadVoices(){ /* retirado: ver a nota de arriba */ }
 
 /* ---------- Estado global ---------- */
 let DATA = freshData();

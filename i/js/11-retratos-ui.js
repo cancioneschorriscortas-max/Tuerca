@@ -1033,15 +1033,14 @@ cv.addEventListener('mouseup', e=>{
           u.sel = (u.team===PT && !u.dead && u.cls===hit.cls && dist(u, hit) <= DBL_SELECT_RADIUS);
         });
         sfx('order_confirm');
-        playVoice(hit.cls, 'sel');
+        /* (v0.79) a selección xa fala por vozRobot en emitSelectionFrase */
         emitSelectionFrase(hit);
       } else {
         g.units.forEach(u=>u.sel=false);
         g.turrets.forEach(t=>t.sel=false);
         if(g.vehicles) g.vehicles.forEach(v=>v.sel=false);
         hit.sel = true;
-        playVoice(hit.cls, 'sel');
-        emitSelectionFrase(hit);
+        emitSelectionFrase(hit);   /* (v0.79) xa fala por vozRobot */
       }
       lastClickTime = now;
       lastClickUnit = hit;
@@ -1064,8 +1063,7 @@ cv.addEventListener('mouseup', e=>{
       } else {
         const sel=g.units.filter(u=>u.sel&&!u.dead&&!u.inside);
         if(sel.length>0){
-          sfx('order_confirm');
-          playVoice(sel[0].cls, 'move');
+          sfx('order_confirm');   /* (v0.79) a confirmación de orde é SFX, non voz */
         }
         /* Cancelar intents previos */
         sel.forEach(u => {

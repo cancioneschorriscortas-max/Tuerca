@@ -12,7 +12,7 @@
    duplicados e calquera excepción no bucle — que é exactamente o
    que rompe ao mexer no render.
    ============================================================ */
-const { proba, afirmar } = require('./probar.js');
+const { proba, probaPendente, afirmar } = require('./probar.js');
 const { cargarXogo, novaBatalla, avanzar } = require('./arnes.js');
 
 const finito = (n) => typeof n === 'number' && Number.isFinite(n);
@@ -89,10 +89,20 @@ for (const op of [0, 1, 2]) {
   });
 }
 
+/* SEMENTES FIXAS, non ao chou.
+   Con azar, a suite era unha lotería: unha de cada oito execucións fallaba
+   e a seguinte xa non, así que non se podía diagnosticar nada. Agora o
+   conxunto é sempre o mesmo e calquera fallo é reproducible ao instante.
+   Para saír a buscar sementes novas:  TUERCA_FUZZ=azar node test/run.js */
+const SEMENTES = process.env.TUERCA_FUZZ === 'azar'
+  ? Array.from({ length: 12 }, () => (Math.random() * 0x100000000) >>> 0)
+  : [0x1111, 0x2222, 0x3333, 0xABCDE, 0xF00D, 0xBEEF,
+     0x51CE, 0x7A11, 0xC0DE, 0x09E5, 0x1D05, 0x4B1D];
+
 proba('fuzz: 12 batallas procedurais seguidas manteñen os invariantes', () => {
   const S = cargarXogo();
-  for (let i = 0; i < 12; i++) {
-    const g = novaBatalla(S, { op: 2 });
+  for (let i = 0; i < SEMENTES.length; i++) {
+    const g = novaBatalla(S, { op: 2, semente: SEMENTES[i] });
     avanzarRevisando(S, g, 120000, `batalla ${i + 1} semente=${g.semente}`, 120);
     afirmar(g.over, `a batalla ${i + 1} non rematou (semente=${g.semente})`);
   }
@@ -133,6 +143,31 @@ proba('os veteranos despregados conservan a súa ficha persistente', () => {
     afirmar(typeof u.personalidad === 'string' && u.personalidad.length > 0, `${u.id} sen personalidade`);
   }
 });
+
+/* ---------- Bugs coñecidos, aínda sen arranxar ---------- */
+
+probaPendente(
+  'ningunha batalla se queda sen rematar',
+  'a IA queda sen ninguén asignado ao asalto e a partida non pecha',
+  () => {
+    /* ATOPADO polo fuzz e reproducible grazas ao azar sementado (v0.78).
+       Nesta semente, ao cabo de 33 minutos de xogo: cero baixas, os dous
+       HQ intactos e as unidades inimigas paradas co destino igual á súa
+       propia posición.
+
+       A causa: o asalto ao HQ só se reparte entre unidades LIBRES
+       (09-economia-combate.js, "3. ASALTO ao HQ azul"). Tomados todos os
+       sectores e sen ameaza, as que arrastran un rol que xa non se pode
+       completar nunca volven a libres, así que ninguén ataca nunca.
+
+       Non se arranxa aquí porque tocar a agresividade da IA é unha
+       decisión de equilibrio, non un remate técnico. */
+    const S = cargarXogo();
+    const g = novaBatalla(S, { op: 2, semente: 1501646933 });
+    avanzar(S, g, 120000);
+    afirmar(g.over, 'a batalla non rematou en 120000 pasos (33 min de xogo)');
+  },
+);
 
 proba('os ids son únicos tamén na PRIMEIRA batalla da sesión', () => {
   /* Era o bug de mkUnit: numeraba os inimigos con `game ? ++game.enemyN : 1`

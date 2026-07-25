@@ -123,7 +123,7 @@ function tickBaseAlarm(g){
     radio(TXT('r.baseAtaque'), '#ff5340', {x: hq.x + hq.w/2, y: hq.y + hq.h/2});
     if(typeof vozMando === 'function') vozMando('r.baseAtaque', TXT('r.baseAtaque'));   /* (v0.63) */
     playAlarm();
-    if(typeof playSysVoice === 'function') playSysVoice('base_attack');
+    /* (v0.79) o aviso xa vai pola liña de arriba con vozMando('r.baseAtaque') */
   }
 }
 
@@ -966,7 +966,7 @@ function tickUnits(g){
         if(u.team===PT){
           radioSay('killed_enemy', u, {targetName: foe.name});
           logEvent(u, {type:'MATO_EN', place: placeAt(u.x, u.y), target: foe.name});
-          playVoice(u.cls, 'kill');
+          /* (v0.79) chío por vozRobot; o cargador vello non existía */
         }
         if(foe.team===PT){
           /* Si el matador es enemigo, registrar el nombre del caído */
@@ -1010,7 +1010,7 @@ function tickUnits(g){
         sfx('radio_open');
         setTimeout(()=>{
           sfx('radio_static', 0.4);
-          playVoice(foe.cls, 'critical');
+          /* (v0.79) idem */
         }, 80);
         /* Interrupción del panel lateral con frase incluida */
         panelInterrupt = {unit: foe, until: g.t + 60*4, line};
@@ -1261,7 +1261,7 @@ function tickUnits(g){
       if(reparoEsteFrame && u.team===PT){
         u.repairVoiceCool = (u.repairVoiceCool||0) - 1;
         if(u.repairVoiceCool <= 0){
-          if(rnd() < 0.4) playVoice(u.cls, 'repair');
+          /* (v0.79) idem */
           u.repairVoiceCool = 60 * 8;  /* 8 segundos */
         }
       }
@@ -1329,7 +1329,7 @@ function tickUnits(g){
             r.secured = true;
             radioSay('remains_secured', u, {targetName: r.unit.name, place: r.place}, '#7fdc7f');
             sfx('order_confirm');
-            playVoice(u.cls, 'recover');
+            /* (v0.79) idem */
             logEvent(u, {type:'RECUPERO_A', target: r.unit.name, place: r.place});
             logEvent(r.unit, {type:'RECUPERADO_EN', place: r.place, byUnit: u.name});
             /* Tracking para rasgos/medallas del Engineer */

@@ -33,6 +33,15 @@ const LANGS = {
     'est.optFolga': 'Incidencia laboral: {n} unidade(s) en folga. Colaboración obrigatoria.',
     'est.optRecon': '{n} unidade(s) reconstruída(s) en servizo. Rendemento dentro do previsto.',
     'est.optNominal': 'Produtividade nominal. Sen incidencias que comunicar.',
+    /* (v0.79) Anuncios do MANDO ao comandante. A clave é a mesma que a do
+       manifesto de voces: se hai .ogg soa humana, se non, chío con este
+       texto de base. Antes non existían e o chío sintetizaba o nome
+       interno da clave. */
+    'op.inicio': 'Operación iniciada. Boa sorte, comandante.',
+    'op.vitoria': 'Obxectivo cumprido. Volvede á base.',
+    'op.derrota': 'Operación fracasada. Retirada inmediata.',
+    'r.radarNoso': 'Radar central baixo control noso.',
+    'r.radarDeles': 'Perdemos o radar central.',
     /* (v0.72) Axuda do hangar, en bloque e non nun muro de texto */
     'ax.controis': 'Controis', 'ax.obxectivo': 'Obxectivo',
     'rot.operacions': 'Operacións', 'rot.operacionsSub': 'Selecciona un modo',
@@ -624,6 +633,11 @@ const LANGS = {
     'est.optFolga': 'Incidencia laboral: {n} unidad(es) en huelga. Colaboración obligatoria.',
     'est.optRecon': '{n} unidad(es) reconstruida(s) en servicio. Rendimiento dentro de lo previsto.',
     'est.optNominal': 'Productividad nominal. Sin incidencias que comunicar.',
+    'op.inicio': 'Operación iniciada. Buena suerte, comandante.',
+    'op.vitoria': 'Objetivo cumplido. Volved a la base.',
+    'op.derrota': 'Operación fracasada. Retirada inmediata.',
+    'r.radarNoso': 'Radar central bajo nuestro control.',
+    'r.radarDeles': 'Hemos perdido el radar central.',
     'ax.controis': 'Controles', 'ax.obxectivo': 'Objetivo',
     'rot.operacions': 'Operaciones', 'rot.operacionsSub': 'Selecciona un modo',
     'rot.escuadron': 'Escuadrón', 'rot.escuadronSub': 'Gestión y preparación',
@@ -1213,6 +1227,11 @@ const LANGS = {
     'est.optFolga': 'Labour incident: {n} unit(s) on strike. Collaboration is mandatory.',
     'est.optRecon': '{n} rebuilt unit(s) in service. Performance within forecast.',
     'est.optNominal': 'Nominal productivity. No incidents to report.',
+    'op.inicio': 'Operation underway. Good luck, commander.',
+    'op.vitoria': 'Objective complete. Return to base.',
+    'op.derrota': 'Operation failed. Withdraw immediately.',
+    'r.radarNoso': 'Central radar under our control.',
+    'r.radarDeles': 'We have lost the central radar.',
     'ax.controis': 'Controls', 'ax.obxectivo': 'Objective',
     'rot.operacions': 'Operations', 'rot.operacionsSub': 'Select a mode',
     'rot.escuadron': 'Squad', 'rot.escuadronSub': 'Management and preparation',

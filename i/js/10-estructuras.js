@@ -502,7 +502,7 @@ function tickRadar(g){
       r.owner = PT; r.prog = 100;
       radioSay('radar_captured_blue', null, {}, '#7fdc7f');
       sfx('order_confirm');
-      playSysVoice('radar_us');
+      if(typeof vozMando === 'function') vozMando('r.radarNoso', TXT('r.radarNoso'));
       announceRecurring(g);
     }
   } else if(n1 > 0 && n0 === 0){
@@ -511,7 +511,7 @@ function tickRadar(g){
       r.owner = ET; r.prog = -100;
       if(prevOwner === 0){
         radioSay('radar_captured_red', null, {}, '#ff5340');
-        playSysVoice('radar_them');
+        if(typeof vozMando === 'function') vozMando('r.radarDeles', TXT('r.radarDeles'));
       } else {
         radioSay('radar_neutral', null, {}, '#ff8');
       }

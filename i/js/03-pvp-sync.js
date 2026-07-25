@@ -657,7 +657,7 @@ function pvpIniciarBatalla(rol, meus, rivais){
   }
   radio(TXT('pvp.inicio', {lado: TXT(rol === 'host' ? 'pvp.azul' : 'pvp.vermello')}), '#ffd24a');
   sfx('radio_open');
-  setTimeout(() => { sfx('radio_static', 0.6); playSysVoice('op_start'); }, 100);
+  setTimeout(() => { sfx('radio_static', 0.6); if(typeof vozMando === 'function') vozMando('op.inicio', TXT('op.inicio')); }, 100);
   updateSidePanel(game);
   requestAnimationFrame(loop);
 }
