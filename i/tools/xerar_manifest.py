@@ -14,6 +14,16 @@ for lingua in ('gl', 'es', 'en'):
         clave = f[:-4]                      # r.baseAtaque.ogg → r.baseAtaque
         manifest.setdefault(clave, {})[lingua] = f"voces/{lingua}/{f}"
 out = os.path.join(RAIZ, 'manifest.json')
-json.dump(manifest, open(out, 'w'), indent=1, ensure_ascii=False)
-print(f"manifest: {len(manifest)} claves → {out}")
-for k in sorted(manifest): print(' ', k, '·', '/'.join(manifest[k].keys()))
+# encoding='utf-8' EXPLÍCITO, e ficheiro pechado como é debido: en Windows o
+# defecto de Python é a codepage ANSI (cp1252) e as rutas con acentos
+# corromperíanse. Mesmo fallo que tiña build.py.
+with open(out, 'w', encoding='utf-8', newline='\n') as fh:
+    json.dump(manifest, fh, indent=1, ensure_ascii=False)
+# Sen frechas nin puntos medios no que se imprime: a consola de Windows vai
+# en cp1252 e petaba aquí mesmo, DESPOIS de escribir o manifesto (así que
+# parecía que fallara todo cando en realidade xa estaba feito).
+print(f"manifest: {len(manifest)} claves -> {out}")
+for k in sorted(manifest):
+    print('  ', k, '-', '/'.join(manifest[k].keys()))
+if not manifest:
+    print('  (baleiro: non hai .ogg en voces/gl, voces/es nin voces/en)')
