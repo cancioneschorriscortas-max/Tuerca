@@ -87,20 +87,48 @@ def material(cor):
 # Mesma dirección que LUZ e RECHEO en vox3d.js, para que un sprite de
 # Blender e un do rasterizador non se contradigan se conviven.
 sol = bpy.data.objects.new('sol', bpy.data.lights.new('sol', type='SUN'))
-sol.data.energy = 3.6
+sol.data.energy = 3.4
 sol.data.angle = math.radians(9)
 sol.rotation_euler = (math.radians(52), 0, math.radians(38))
 escena.collection.objects.link(sol)
 
 recheo = bpy.data.objects.new('recheo', bpy.data.lights.new('recheo', type='SUN'))
-recheo.data.energy = 1.0
+recheo.data.energy = 0.9
 recheo.rotation_euler = (math.radians(72), 0, math.radians(-132))
 escena.collection.objects.link(recheo)
+
+# Luz FRONTAL, que viaxa coa cámara (aponse en situar()).
+#
+# Sen ela o sprite saía apagado, e non por falta de contraste: a cara
+# máis iluminada chegaba a luminancia 212, por riba da paleta. O que
+# estaba escuro era a cara de FRONTE, xusto a que máis superficie ocupa
+# desde a cámara, que quedaba en 78 cando o azul do equipo é 130. A luz
+# clave vén de arriba e a cámara mira case de fronte: entre as dúas non
+# hai quen ilumine o que se ve.
+#
+# A arte clásica non ten este problema porque non está iluminada: píntase
+# a cara frontal co ton base e ponse un realce arriba. Isto é o
+# equivalente físico desa decisión.
+frontal = bpy.data.objects.new('frontal', bpy.data.lights.new('frontal', type='SUN'))
+frontal.data.energy = 2.2
+escena.collection.objects.link(frontal)
+
+# ---------- transformación de vista ----------
+# Blender vén con AgX, un mapeador fílmico que desatura e escurece a
+# propósito para que un render pareza fotografía. Aquí é veneno: a
+# paleta do xogo entra por un lado e sae apagada polo outro, e os
+# sprites quedaban 35 puntos de luminancia por debaixo do debuxo
+# clásico. Con Standard, o azul do equipo sae sendo o azul do equipo.
+try:
+    escena.view_settings.view_transform = 'Standard'
+    escena.view_settings.look = 'None'
+except Exception as e:
+    print('AVISO: non se puido fixar a transformación de vista:', e)
 
 mundo = bpy.data.worlds.new('mundo')
 mundo.use_nodes = True
 mundo.node_tree.nodes['Background'].inputs['Color'].default_value = (0.16, 0.19, 0.22, 1)
-mundo.node_tree.nodes['Background'].inputs['Strength'].default_value = 1.0
+mundo.node_tree.nodes['Background'].inputs['Strength'].default_value = 0.9
 escena.world = mundo
 
 # ---------- cámara ----------
@@ -124,6 +152,9 @@ def situar(yaw_node):
     p = math.pi / 2 - PITCH
     cam.location = (d * math.sin(p) * math.sin(yaw), -d * math.sin(p) * math.cos(yaw), d * math.cos(p))
     cam.rotation_euler = (p, 0, yaw)
+    # A frontal apunta igual que a cámara: un sol emite ao longo do seu
+    # -Z, o mesmo eixe polo que mira unha cámara.
+    frontal.rotation_euler = (p, 0, yaw)
 
 
 # ---------- motor ----------

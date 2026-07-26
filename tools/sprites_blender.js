@@ -73,14 +73,40 @@ function contornear(im, gr){
      - as cores redúcense a poucos chanzos, que é o que fai que se lea
        como debuxo e non como fotografía diminuta
    ============================================================ */
-function endurecer(s, niveis){
+/* O contraste sepárase da cuantización a propósito: primeiro ábrese o
+   rango, despois cuantízase. Ao revés os tons xa colapsaron e estirar
+   non recupera nada — só separa os poucos chanzos que quedasen.
+
+   O pivote non é 128 senón a luminancia MEDIA das pezas do corpo: un
+   robot azul vive por debaixo do medio da escala, e pivotar en 128
+   escurecíao enteiro en vez de abrir a diferenza entre luz e sombra. */
+function endurecer(s, niveis, gañancia){
   const paso = 255/(niveis - 1);
+  const k = gañancia || 1;
+  let suma = 0, n = 0;
+  for(let i = 0; i < s.ancho*s.alto; i++){
+    const o = i*4;
+    if(s.px[o+3] < 110) continue;
+    suma += 0.2126*s.px[o] + 0.7152*s.px[o+1] + 0.0722*s.px[o+2];
+    n++;
+  }
+  const piv = n ? suma/n : 128;
   const px = Buffer.from(s.px);
   for(let i = 0; i < s.ancho*s.alto; i++){
     const o = i*4;
     if(px[o+3] < 110){ px[o] = px[o+1] = px[o+2] = px[o+3] = 0; continue; }
     px[o+3] = 255;
-    for(let k = 0; k < 3; k++) px[o+k] = Math.min(255, Math.round(Math.round(px[o+k]/paso)*paso));
+    /* A ganancia vai sobre a LUMINANCIA e despois escálanse as tres
+       canles polo mesmo factor. Aplicándoa canle a canle, o vermello dun
+       azul (que xa é baixo) cae por debaixo de cero e recórtase: o
+       resultado non era máis contrastado, era outro ton. Así só cambia
+       o brillo e a cor do equipo mantense. */
+    const l = 0.2126*px[o] + 0.7152*px[o+1] + 0.0722*px[o+2];
+    const f = l > 1 ? Math.max(0, piv + (l - piv)*k) / l : 1;
+    for(let c = 0; c < 3; c++){
+      const v = px[o+c]*f;
+      px[o+c] = Math.max(0, Math.min(255, Math.round(Math.round(v/paso)*paso)));
+    }
   }
   return { ancho: s.ancho, alto: s.alto, px };
 }
@@ -135,7 +161,7 @@ function xerar(clase, cadros, opc = {}){
     let rec = { ancho: w, alto: h, px };
     while(rec.alto > ALT*2) rec = reducir(rec, Math.max(1, rec.ancho >> 1), rec.alto >> 1);
     const fin = reducir(rec, Math.max(1, Math.round(rec.ancho * ALT / rec.alto)), ALT);
-    fóra[c.nome] = opc.brando ? fin : endurecer(fin, opc.niveis || 6);
+    fóra[c.nome] = opc.brando ? fin : endurecer(fin, opc.niveis || 6, opc.contraste || 1);
   }
   return fóra;
 }
