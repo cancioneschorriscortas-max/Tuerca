@@ -18,7 +18,12 @@
    ============================================================ */
 const { Robot } = require('./vox3d.js');
 
-const DIAG = -38 * Math.PI / 180;   /* arma cruzada sobre o corpo */
+const DIAG = -14 * Math.PI / 180;   /* cruce leve: con brazo dobrado, os -38 orixinais (pensados para brazo colgando) mandaban a arma por riba da cabeza */
+/* MUÑECA: co antebrazo dobrado, o que era "adiante" para o artiluxio pasa
+   a ser "arriba" e a arma apunta ao ceo. Esta rotación fixa en x é o pulso
+   que a volve poñer horizontal — como fai calquera que sostén un fusil
+   co brazo dobrado. */
+const MUNECA = 0.88;
 
 /* Cada peza: id (se articula), centro, tam, cor, piv, eixe.
    `ang` é o ángulo FIXO de montaxe; a pose súmase por riba. */
@@ -30,14 +35,16 @@ const ESQUELETO = {
     { id:'torso',   centro:[0, 0.38, 0.20],  tam:[0.70,0.16,0.36], cor:'azul',   piv:[0,-0.30,0],     eixe:'x' },
     /* Brazo longo abondo para que a man baixe do torso (A1): sen iso o
        membro fúndese no corpo e de perfil desaparece. */
-    { id:'brazo_e', centro:[-0.63,0.03,0.10],tam:[0.26,0.86,0.30], cor:'azul',   piv:[-0.63,0.46,0],  eixe:'x' },
-    { id:'brazo_d', centro:[ 0.63,0.03,0.10],tam:[0.26,0.86,0.30], cor:'azul',   piv:[ 0.63,0.46,0],  eixe:'x' },
+    { id:'brazo_e',    centro:[-0.63,0.24,0.06],tam:[0.26,0.44,0.30], cor:'azul', piv:[-0.63,0.46,0],  eixe:'x' },
+    { id:'brazo_d',    centro:[ 0.63,0.24,0.06],tam:[0.26,0.44,0.30], cor:'azul', piv:[ 0.63,0.46,0],  eixe:'x' },
+    { id:'antebrazo_e',centro:[-0.63,-0.21,0.06],tam:[0.24,0.46,0.28],cor:'azul', piv:[-0.63,0.02,0], eixe:'x', pai:'brazo_e' },
+    { id:'antebrazo_d',centro:[ 0.63,-0.21,0.06],tam:[0.24,0.46,0.28],cor:'azul', piv:[ 0.63,0.02,0], eixe:'x', pai:'brazo_d' },
     { id:'cabeza',  centro:[0, 0.86, 0],     tam:[0.76,0.60,0.70], cor:'metal',  piv:[0,0.60,0],      eixe:'x' },
     { id:'cabeza',  centro:[0, 0.90, 0.38],  tam:[0.50,0.18,0.12], cor:'ollo',   piv:[0,0.60,0],      eixe:'x' },
     /* Arma NA MAN dereita (A7) e fóra da liña media (A6). O pivote é o
        puño: aí agárrase e sobre aí xira. */
-    { id:'arma',    centro:[0.60,-0.32,0.62],tam:[0.18,0.18,1.25], cor:'escuro', piv:[0.60,-0.32,0.10], eixe:'y', ang:DIAG, pai:'brazo_d' },
-    { id:'arma',    centro:[0.56,-0.34,0.20],tam:[0.30,0.26,0.26], cor:'escuro', piv:[0.60,-0.32,0.10], eixe:'y', ang:DIAG, pai:'brazo_d' },
+    { id:'arma',    centro:[0.60,-0.32,0.62],tam:[0.18,0.18,1.25], cor:'escuro', piv:[0.60,-0.32,0.10], eixe:'y', ang:DIAG, angX:MUNECA, pai:'antebrazo_d' },
+    { id:'arma',    centro:[0.56,-0.34,0.20],tam:[0.30,0.26,0.26], cor:'escuro', piv:[0.60,-0.32,0.10], eixe:'y', ang:DIAG, angX:MUNECA, pai:'antebrazo_d' },
   ],
   HEAVY: [
     { id:'perna_e', centro:[-0.42,-0.58,0],  tam:[0.38,0.86,0.42], cor:'azul',   piv:[-0.42,-0.15,0], eixe:'x' },
@@ -45,28 +52,32 @@ const ESQUELETO = {
     { id:'torso',   centro:[0, 0.14, 0],     tam:[1.34,0.98,0.94], cor:'azul',   piv:[0,-0.30,0],     eixe:'x' },
     { id:'torso',   centro:[-0.76,0.44,0],   tam:[0.34,0.34,0.70], cor:'azul',   piv:[0,-0.30,0],     eixe:'x' },
     { id:'torso',   centro:[ 0.76,0.44,0],   tam:[0.34,0.34,0.70], cor:'azul',   piv:[0,-0.30,0],     eixe:'x' },
-    { id:'brazo_e', centro:[-0.80,-0.05,0.10],tam:[0.28,0.78,0.32], cor:'azul',  piv:[-0.80,0.34,0],  eixe:'x' },
-    { id:'brazo_d', centro:[ 0.80,-0.05,0.10],tam:[0.28,0.78,0.32], cor:'azul',  piv:[ 0.80,0.34,0],  eixe:'x' },
+    { id:'brazo_e',    centro:[-0.80,0.13,0.06],tam:[0.30,0.42,0.34], cor:'azul', piv:[-0.80,0.34,0],  eixe:'x' },
+    { id:'brazo_d',    centro:[ 0.80,0.13,0.06],tam:[0.30,0.42,0.34], cor:'azul', piv:[ 0.80,0.34,0],  eixe:'x' },
+    { id:'antebrazo_e',centro:[-0.80,-0.32,0.06],tam:[0.28,0.48,0.32],cor:'azul', piv:[-0.80,-0.08,0],eixe:'x', pai:'brazo_e' },
+    { id:'antebrazo_d',centro:[ 0.80,-0.32,0.06],tam:[0.28,0.48,0.32],cor:'azul', piv:[ 0.80,-0.08,0],eixe:'x', pai:'brazo_d' },
     { id:'cabeza',  centro:[0, 0.94, 0],     tam:[0.80,0.62,0.78], cor:'metal',  piv:[0,0.66,0],      eixe:'x' },
     { id:'cabeza',  centro:[0, 0.98, 0.42],  tam:[0.54,0.18,0.12], cor:'ollo',   piv:[0,0.66,0],      eixe:'x' },
     /* O cañón rotativo pesa: vai na man, non colgado do medio. */
-    { id:'arma',    centro:[0.74,-0.36,0.72],tam:[0.28,0.28,1.50], cor:'escuro', piv:[0.74,-0.36,0.12], eixe:'y', ang:DIAG, pai:'brazo_d' },
-    { id:'arma',    centro:[0.70,-0.36,0.16],tam:[0.40,0.40,0.34], cor:'escuro', piv:[0.74,-0.36,0.12], eixe:'y', ang:DIAG, pai:'brazo_d' },
+    { id:'arma',    centro:[0.74,-0.36,0.72],tam:[0.28,0.28,1.50], cor:'escuro', piv:[0.74,-0.36,0.12], eixe:'y', ang:DIAG, angX:MUNECA, pai:'antebrazo_d' },
+    { id:'arma',    centro:[0.70,-0.36,0.16],tam:[0.40,0.40,0.34], cor:'escuro', piv:[0.74,-0.36,0.12], eixe:'y', ang:DIAG, angX:MUNECA, pai:'antebrazo_d' },
   ],
   ENGINEER: [
     { id:'perna_e', centro:[-0.30,-0.60,0],  tam:[0.28,0.88,0.34], cor:'azul',   piv:[-0.30,-0.16,0], eixe:'x' },
     { id:'perna_d', centro:[ 0.30,-0.60,0],  tam:[0.28,0.88,0.34], cor:'azul',   piv:[ 0.30,-0.16,0], eixe:'x' },
     { id:'torso',   centro:[0, 0.10, 0],     tam:[0.88,0.82,0.74], cor:'azul',   piv:[0,-0.28,0],     eixe:'x' },
     { id:'torso',   centro:[0, 0.14,-0.50],  tam:[0.62,0.80,0.30], cor:'ambar',  piv:[0,-0.28,0],     eixe:'x' },
-    { id:'brazo_e', centro:[-0.58,0.03,0.08],tam:[0.24,0.82,0.28], cor:'azul',   piv:[-0.58,0.44,0],  eixe:'x' },
-    { id:'brazo_d', centro:[ 0.58,0.03,0.08],tam:[0.24,0.82,0.28], cor:'azul',   piv:[ 0.58,0.44,0],  eixe:'x' },
+    { id:'brazo_e',    centro:[-0.58,0.23,0.06],tam:[0.24,0.42,0.28], cor:'azul', piv:[-0.58,0.44,0],  eixe:'x' },
+    { id:'brazo_d',    centro:[ 0.58,0.23,0.06],tam:[0.24,0.42,0.28], cor:'azul', piv:[ 0.58,0.44,0],  eixe:'x' },
+    { id:'antebrazo_e',centro:[-0.58,-0.20,0.06],tam:[0.22,0.44,0.26],cor:'azul', piv:[-0.58,0.02,0], eixe:'x', pai:'brazo_e' },
+    { id:'antebrazo_d',centro:[ 0.58,-0.20,0.06],tam:[0.22,0.44,0.26],cor:'azul', piv:[ 0.58,0.02,0], eixe:'x', pai:'brazo_d' },
     { id:'cabeza',  centro:[0, 0.84, 0],     tam:[0.70,0.58,0.66], cor:'metal',  piv:[0,0.58,0],      eixe:'x' },
     { id:'cabeza',  centro:[0, 0.88, 0.36],  tam:[0.46,0.17,0.12], cor:'ollo',   piv:[0,0.58,0],      eixe:'x' },
     /* O SOPLETE só pode ir nunha man. Máis groso que antes: era tan fino
        que desaparecía en varias direccións (L1). E leva boquilla, que é
        o que o fai recoñecible como ferramenta e non como pau. */
-    { id:'arma',    centro:[0.56,-0.30,0.44],tam:[0.20,0.22,0.72], cor:'ambar',  piv:[0.56,-0.30,0.08], eixe:'y', ang:DIAG, pai:'brazo_d' },
-    { id:'arma',    centro:[0.56,-0.30,0.84],tam:[0.14,0.14,0.26], cor:'metal',  piv:[0.56,-0.30,0.08], eixe:'y', ang:DIAG, pai:'brazo_d' },
+    { id:'arma',    centro:[0.56,-0.30,0.44],tam:[0.20,0.22,0.72], cor:'ambar',  piv:[0.56,-0.30,0.08], eixe:'y', ang:DIAG, angX:MUNECA, pai:'antebrazo_d' },
+    { id:'arma',    centro:[0.56,-0.30,0.84],tam:[0.14,0.14,0.26], cor:'metal',  piv:[0.56,-0.30,0.08], eixe:'y', ang:DIAG, angX:MUNECA, pai:'antebrazo_d' },
   ],
 };
 
@@ -90,11 +101,13 @@ const BALANCEO = { GRUNT: 0.55, HEAVY: 0.42, ENGINEER: 0.50 };
    REPOUSO e cada estado leva a súa.
    ============================================================ */
 const POSE_BASE = {
-  /* Negativo = cara adiante. O brazo da arma sobe máis; o outro
-     acompaña, coma quen sostén o guardamáns. */
-  GRUNT:    { brazo_d: -0.62, brazo_e: -0.34, torso: 0.04 },
-  HEAVY:    { brazo_d: -0.50, brazo_e: -0.26, torso: 0.03 },
-  ENGINEER: { brazo_d: -0.55, brazo_e: -0.22, torso: 0.05 },
+  /* Coa articulación de cóbado xa se pode SOSTER: o brazo alto baixa
+     case pegado ao corpo e o antebrazo sobe. Iso é o que fai que a arma
+     quede diante do peito e se vexa desde TODAS as direccións, en vez de
+     escorzarse a un muñón como pasaba rotando o brazo enteiro. */
+  GRUNT:    { brazo_d: -0.14, antebrazo_d: -1.15, brazo_e: -0.10, antebrazo_e: -0.85, torso: 0.04 },
+  HEAVY:    { brazo_d: -0.10, antebrazo_d: -1.00, brazo_e: -0.08, antebrazo_e: -0.75, torso: 0.03 },
+  ENGINEER: { brazo_d: -0.12, antebrazo_d: -1.10, brazo_e: -0.08, antebrazo_e: -0.55, torso: 0.05 },
 };
 
 /* ============================================================
@@ -107,13 +120,13 @@ function pose(cls, estado, fase){
 
   switch(estado){
     case 'ANDAR':
-      return { perna_e: s*A, perna_d: -s*A, brazo_e: -s*A*0.5, brazo_d: s*A*0.5 };
+      return { perna_e: s*A, perna_d: -s*A, brazo_e: -s*A*0.45, brazo_d: s*A*0.45 };
 
     case 'DISPARAR': {
       /* Retroceso: a arma vai cara atrás e volve. Nas oito direccións
          sae de balde — non hai que redebuxar nada. */
       const r = Math.max(0, Math.sin(fase * Math.PI));
-      return { arma: r*0.22, brazo_d: -r*0.18, torso: -r*0.06 };
+      return { arma: r*0.22, antebrazo_d: -r*0.20, torso: -r*0.06 };
     }
 
     case 'CURAR': {
@@ -121,13 +134,13 @@ function pose(cls, estado, fase){
          torso ten articulación no esqueleto precisamente para isto,
          aínda que o ciclo de andar non a use. */
       const t = 0.5 + 0.5*Math.sin(fase * 2 * Math.PI);
-      return { torso: 0.28 + t*0.06, brazo_d: 0.55 + t*0.12,
+      return { torso: 0.28 + t*0.06, brazo_d: 0.30, antebrazo_d: 0.45 + t*0.12,
                cabeza: 0.18, arma: 0.35 };
     }
 
     case 'IMPACTO': {
       const k = Math.max(0, 1 - fase*2);
-      return { torso: -k*0.30, cabeza: -k*0.22, brazo_e: k*0.25, brazo_d: k*0.20 };
+      return { torso: -k*0.30, cabeza: -k*0.22, brazo_e: k*0.25, brazo_d: k*0.20, antebrazo_d: k*0.20 };
     }
 
     case 'REPOUSO':
@@ -166,7 +179,10 @@ function montar(cls, estado, fase, corEquipo, sen){
     const cor = (pz.cor === 'azul' && corEquipo) ? corEquipo : pz.cor;
     const xiros = [];
     /* A propia: ángulo de montaxe + o que diga a pose. */
-    if(pz.piv) xiros.push({ piv: pz.piv, ang: (pz.ang || 0) + (total[pz.id] || 0), eixe: pz.eixe || 'x' });
+    /* Muñeca primeiro: orienta o artiluxio respecto do antebrazo antes de
+       aplicarlle o ángulo cruzado e as rotacións dos pais. */
+    if(pz.piv && pz.angX) xiros.push({ piv: pz.piv, ang: pz.angX, eixe: 'x' });
+    if(pz.piv) xiros.push({ piv: pz.piv, ang: (pz.ang || 0) + (total[pz.id] || 0), eixe: pz.eixe || x });
     /* E despois as dos pais, subindo pola cadea. Un artiluxio declara
        pai:'brazo_d' e así viaxa coa man en vez de quedar flotando. */
     let pai = pz.pai;

@@ -44,8 +44,13 @@ function torsoPrincipal(cls){
     (a.tam[0]*a.tam[1]*a.tam[2] >= b.tam[0]*b.tam[1]*b.tam[2] ? a : b));
 }
 
+/* A MAN é o extremo do ÚLTIMO segmento do brazo. Desde que hai cóbado ese
+   segmento é o antebrazo: medir no brazo alto daría a altura do cóbado. */
+function segmentoMan(cls, lado){
+  return pezas(cls, 'antebrazo_' + lado).length ? 'antebrazo_' + lado : 'brazo_' + lado;
+}
 function man(cls, lado){
-  const b = pezas(cls, 'brazo_' + lado)[0];
+  const b = pezas(cls, segmentoMan(cls, lado))[0];
   if(!b) return null;
   return { x: b.centro[0], y: abaixo(b), z: b.centro[2] };
 }
@@ -70,10 +75,15 @@ const REGRAS_ESQUELETO = [
     id: 'A2', nome: 'o brazo colga do ombro',
     por: 'o pivote ten que estar no extremo SUPERIOR do brazo; se está no medio, o brazo xira coma unha hélice',
     revisar(cls){
+      /* Vale para os dous segmentos: o brazo colga do ombro e o antebrazo
+         do cóbado. En ambos, o pivote é o extremo de arriba. */
       for(const lado of ['e', 'd']){
-        const b = pezas(cls, 'brazo_' + lado)[0];
-        if(Math.abs(b.piv[1] - arriba(b)) > 0.12){
-          return `o pivote do brazo ${lado} está en y=${b.piv[1].toFixed(2)} e o alto do brazo en ${arriba(b).toFixed(2)}`;
+        for(const seg of ['brazo_' + lado, 'antebrazo_' + lado]){
+          const b = pezas(cls, seg)[0];
+          if(!b) continue;
+          if(Math.abs(b.piv[1] - arriba(b)) > 0.12){
+            return `o pivote de ${seg} está en y=${b.piv[1].toFixed(2)} e o seu alto en ${arriba(b).toFixed(2)}`;
+          }
         }
       }
     },
@@ -155,14 +165,16 @@ const REGRAS_ESQUELETO = [
     id: 'A9', nome: 'o artiluxio non se solta da man en ningunha pose',
     por: 'A7 só miraba o repouso, e así pasou desapercibido que a arma NON era filla do brazo: ao balancear, a man afastábase ata 0.25 e o artiluxio quedaba no aire. Un artiluxio é fillo da man e viaxa con ela SEMPRE, en todas as poses e todas as fases.',
     revisar(cls){
-      const brazo = pezas(cls, 'brazo_d')[0];
+      const seg = segmentoMan(cls, 'd');
+      const brazo = pezas(cls, seg)[0];
+      const paiSeg = (ESQUELETO[cls].find(q => q.id === seg) || {}).pai || null;
       const manRepouso = [brazo.centro[0], abaixo(brazo), brazo.centro[2]];
       for(const p of pezas(cls, 'arma')){
         const agarre = p.piv || p.centro;
         for(const est of ESTADOS){
           for(let i = 0; i < 8; i++){
             const f = i/8;
-            const m = puntoPosado(cls, est, f, manRepouso, 'brazo_d', null);
+            const m = puntoPosado(cls, est, f, manRepouso, seg, paiSeg);
             const a = puntoPosado(cls, est, f, agarre, p.id, p.pai);
             const d = Math.hypot(m[0]-a[0], m[1]-a[1], m[2]-a[2]);
             if(d > 0.32){
