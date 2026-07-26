@@ -3,11 +3,24 @@
 Uso: python3 build.py"""
 import pathlib, re
 ROOT = pathlib.Path(__file__).parent
-FILES = ['config.js', '00-preambulo.js', '00b-i18n.js', '01-nucleo-datos.js', '01b-assets.js', '02-pvp-lobby.js', '03-pvp-sync.js', '04-progresion.js', '05-mapa-camara-neboa.js', '06-audio-voces.js', '06b-voz.js', '07-terreo-batalla.js', '08-social-narrativa.js', '09-economia-combate.js', '10-estructuras.js', '11-retratos-ui.js', '12-debrief-hangar.js', '13-mundial.js', '14-diario.js', '15-luz.js', '16-estado.js', '17-ambiente.js', '18-efectos.js', '99-boot.js']
 # encoding='utf-8' EXPLÍCITO en todo: en Windows o defecto de Python é a
 # codepage ANSI (cp1252) e peta cos emojis dos botóns e cos acentos.
 html = (ROOT / 'index.html').read_text(encoding='utf-8')
 css = (ROOT / 'css/style.css').read_text(encoding='utf-8')
+
+# A lista de scripts LESE do index.html, non se escribe aquí.
+#
+# Antes estaba duplicada nunha constante, e pasou o que tiña que pasar:
+# engadíronse dous ficheiros ao index e non á constante. Como o paso de
+# absorción borra TODAS as etiquetas <script src="js/..."> e as substitúe
+# polo paquete desta lista, os dous novos desapareceron sen erro ningún —
+# a aserción de abaixo seguía contenta porque non quedaba ningún script
+# externo. O dist saía sen eles e servido funcionaba, que é o peor xeito
+# de fallar. Cunha soa fonte iso xa non pode pasar.
+FILES = re.findall(r'<script src="js/([^"]+)"></script>', html)
+assert FILES, 'o index.html non declara ningún script en js/'
+_falta = [f for f in FILES if not (ROOT / 'js' / f).exists()]
+assert not _falta, 'o index.html referencia ficheiros que non existen: %s' % _falta
 js = '\n'.join((ROOT / 'js' / f).read_text(encoding='utf-8') for f in FILES)
 # As imaxes de interface NON se inlinan en base64: son texturas pesadas e
 # medrarían un terzo ao codificar. Van soltas a dist/ui/, coma as voces.

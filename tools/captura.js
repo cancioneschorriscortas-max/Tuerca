@@ -177,8 +177,17 @@ window.addEventListener('load', function(){
 </script>
 ` : '';
 
-const sonda = path.join(I, '_captura_tmp.html');
-let html = fs.readFileSync(path.join(I, 'index.html'), 'utf8');
+/* --dist captura o HTML ENSAMBLADO en vez do index de desenvolvemento.
+   Existe porque xa fallou: engadíronse dous scripts ao index e non á
+   lista do build, así que servido funcionaba e o ficheiro que se
+   distribúe non. Comprobar só o index non demostra que o xogo funcione.
+   A sonda vai ao lado do orixinal para que as rutas relativas (ui/,
+   voces/) sigan resolvendo igual. */
+const usarDist = ten('dist');
+const orixe = usarDist ? path.join(I, 'dist', 'tuerca.html') : path.join(I, 'index.html');
+if(!fs.existsSync(orixe)) throw new Error('non existe ' + orixe + (usarDist ? ' — corre antes build.py' : ''));
+const sonda = path.join(path.dirname(orixe), '_captura_tmp.html');
+let html = fs.readFileSync(orixe, 'utf8');
 html = html.replace('</body>', arranque + semente + '</body>');
 fs.writeFileSync(sonda, html, 'utf8');
 
