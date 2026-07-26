@@ -376,6 +376,41 @@ const REGRAS_RENDER = [
     },
   },
   {
+    id: 'L5', nome: 'as direccións van na orde que espera o xogo',
+    por: 'O xogo escolle o sprite cun índice calculado do vector de movemento. Ese índice deducírase da matriz de rotación, e estaba MAL: as tropas avanzaban co fusil apuntando cara atrás. Só se viu porque alguén mirou o mapa. A orde é 0 de fronte, 2 á dereita, 4 de costas, 6 á esquerda. Ademais destapou que Blender xiraba ao revés que vox3d: o mesmo índice daba direccións opostas segundo o renderizador. Queda fixado aquí para os dous.',
+    revisar(cls){
+      const sp = (d) => sprite(montar(cls, 'REPOUSO', 0), 30, d*2*Math.PI/8);
+      /* O visor: brillante e cian, non o ten ningunha outra peza. Visible
+         de fronte e nada en absoluto de costas. */
+      const visor = (s) => {
+        let n = 0;
+        for(let i = 0; i < s.ancho*s.alto; i++){
+          const r = s.px[i*4], g = s.px[i*4+1], b = s.px[i*4+2];
+          if(s.px[i*4+3] > 110 && g > 140 && b > 140 && r < g - 35) n++;
+        }
+        return n;
+      };
+      const fronte = visor(sp(0)), costas = visor(sp(4));
+      if(fronte <= costas) return `o índice 0 debería ser de fronte: visor ${fronte} px, e de costas (4) ${costas}`;
+      if(costas > fronte*0.25) return `o índice 4 debería ser de costas, pero vense ${costas} px de visor`;
+      /* E o artiluxio ten que caer ao lado que toca. */
+      const lado = (s) => {
+        let ax = 0, an = 0, bx = 0, bn = 0;
+        for(let y = 0; y < s.alto; y++) for(let x = 0; x < s.ancho; x++){
+          const i = (y*s.ancho + x)*4;
+          if(s.px[i+3] < 110) continue;
+          bx += x; bn++;
+          if(s.px[i] > 150 && s.px[i+1] > 120 && s.px[i+2] < 110){ ax += x; an++; }   /* ámbar */
+          else if(s.px[i] < 90 && s.px[i+1] < 95 && s.px[i+2] < 105 && s.px[i] > 20){ ax += x; an++; }
+        }
+        return an && bn ? (ax/an) - (bx/bn) : 0;
+      };
+      const dta = lado(sp(2)), esq = lado(sp(6));
+      if(!(dta > 0)) return `no índice 2 (dereita) o artiluxio debería quedar á dereita do corpo, e queda en ${dta.toFixed(1)}`;
+      if(!(esq < 0)) return `no índice 6 (esquerda) o artiluxio debería quedar á esquerda do corpo, e queda en ${esq.toFixed(1)}`;
+    },
+  },
+  {
     id: 'L4', nome: 'a clase distínguese das demais nas oito direccións',
     por: 'É A REGRA QUE IMPORTA, e da que L1 era só un síntoma. Nun RTS decídese a quen se dispara nun golpe de vista: se dúas clases se ven igual desde algunha dirección, esa dirección está rota. Non ten por que ser a arma quen as distinga — ao enxeñeiro recoñéceselle por detrás pola mochila.',
     revisar(cls){

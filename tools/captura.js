@@ -84,12 +84,29 @@ window.addEventListener('load', function(){
         });
       }
       DATA.opCount = 2;   /* mapa procedural, o máis representativo */
+      ${op('semente', null) != null ? `window._semente = ${Number(op('semente', 0)) >>> 0};` : ''}
       document.getElementById('hangar').style.display = 'none';
       document.getElementById('battle').style.display = 'block';
       game = newBattle(roster);
       ${senLuz ? 'LUZ.activa = false; SOMBRA.activa = false;' : 'LUZ.activa = true; SOMBRA.activa = true;'}
       ${hora != null ? 'LUZ.horaForzada = ' + Number(hora) + ';' : ''}
       for(var s = 0; s < ${pasos}; s++) simStep(game);
+      ${ten('sprites-vellos') ? 'SPR3D_ACTIVO = false;' : ''}
+      ${ten('enfocar') ? `
+      /* Centra a cámara nas propias tropas e achégaa. Sen isto cada
+         captura encadra un anaco distinto do mapa segundo onde acabase
+         a cámara, e un A/B de dúas imaxes con distinto encadre non
+         demostra nada. */
+      (function(){
+        var vivos = game.units.filter(function(u){ return !u.dead && u.team === 0; });
+        if(!vivos.length) return;
+        var mx = 0, my = 0;
+        vivos.forEach(function(u){ mx += u.x; my += u.y; });
+        mx /= vivos.length; my /= vivos.length;
+        camZoom = ${Number(op('zoom', '3'))};
+        cam.x = mx - cv.width/(2*camZoom);
+        cam.y = my - cv.height/(2*camZoom);
+      })();` : ''}
       requestAnimationFrame(loop);
       ${ten('efectos') ? `
       /* Dispara os efectos de lectura preto da cámara para poder velos:

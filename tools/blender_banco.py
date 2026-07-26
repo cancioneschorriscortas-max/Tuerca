@@ -115,7 +115,11 @@ escena.camera = cam
 def situar(yaw_node):
     # Media volta: a yaw 0 de Blender a cámara está no -Y, que mirando
     # desde Node é o -Z, é dicir as costas.
-    yaw = yaw_node + math.pi
+    # E o SIGNO invertido: movendo a cámara arredor do modelo vaise na
+    # dirección contraria a xirar o modelo baixo unha cámara fixa, que é
+    # o que fai vox3d. Sen isto os dous renderizadores dan o mesmo índice
+    # para direccións opostas, e a regra L5 caza a discrepancia.
+    yaw = math.pi - yaw_node
     d = 10.0
     p = math.pi / 2 - PITCH
     cam.location = (d * math.sin(p) * math.sin(yaw), -d * math.sin(p) * math.cos(yaw), d * math.cos(p))

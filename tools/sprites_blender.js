@@ -59,15 +59,45 @@ function contornear(im, gr){
   return { ancho: im.ancho, alto: im.alto, px: fóra };
 }
 
+/* ============================================================
+   ENDURECER — de render 3D a arte de píxel.
+
+   Un render reducido de 256 a 22 píxeles trae 130 tons e 78 valores de
+   alfa nun sprite de 17×22. A arte do xogo usa cinco ou seis tons e
+   bordo opaco. Por iso os sprites de Blender saían brandos ao lado do
+   debuxo procedural: non era o escalado do lenzo, eran os propios
+   píxeles, que nacían medio transparentes e medio mesturados.
+
+   Dúas operacións, as dúas necesarias:
+     - o alfa pasa a ser todo ou nada, para que a silueta teña bordo
+     - as cores redúcense a poucos chanzos, que é o que fai que se lea
+       como debuxo e non como fotografía diminuta
+   ============================================================ */
+function endurecer(s, niveis){
+  const paso = 255/(niveis - 1);
+  const px = Buffer.from(s.px);
+  for(let i = 0; i < s.ancho*s.alto; i++){
+    const o = i*4;
+    if(px[o+3] < 110){ px[o] = px[o+1] = px[o+2] = px[o+3] = 0; continue; }
+    px[o+3] = 255;
+    for(let k = 0; k < 3; k++) px[o+k] = Math.min(255, Math.round(Math.round(px[o+k]/paso)*paso));
+  }
+  return { ancho: s.ancho, alto: s.alto, px };
+}
+
 /* cadros: [{nome, estado, fase, yaw}]  ->  {nome: {ancho,alto,px}} */
 function xerar(clase, cadros, opc = {}){
   const ALT = opc.alt || 22, RES = opc.res || 256;
   const tmp = opc.tmp || path.join(__dirname, '..', 'capturas', '_blender', clase);
   fs.mkdirSync(tmp, { recursive: true });
 
+  /* opc.cor tinxe as pezas de equipo (azul / vermello / metal). Vai aquí e
+     non nun paso de recolorado posterior porque montar() xa o sabe facer,
+     e así o sombreado de Blender calcúlase sobre a cor final en vez de
+     tinxir un gris xa iluminado. */
   const traballo = cadros.map(c => ({
     nome: c.nome, yaw: c.yaw,
-    pezas: montar(clase, c.estado, c.fase).pezas.map(([verts, cor]) => ({ verts, cor })),
+    pezas: montar(clase, c.estado, c.fase, opc.cor).pezas.map(([verts, cor]) => ({ verts, cor })),
   }));
   const entrada = path.join(tmp, 'traballo.json');
   fs.writeFileSync(entrada, JSON.stringify({ caras: CARAS, cadros: traballo, luminosas: [PAL.ollo] }), 'utf8');
@@ -88,7 +118,10 @@ function xerar(clase, cadros, opc = {}){
   }
   /* O grosor mídese sobre a escala FINAL, non sobre a do render. E o
      encadre medra ese mesmo grosor, ou o contorno sae cortado polos bordos. */
-  const GROSO = Math.max(1, Math.round((caixa.y1 - caixa.y0 + 1)/ALT * 0.55));
+  /* Un píxel final COMPLETO. A 0.55 o contorno cubría media cela, e o
+     limiar de alfa do endurecido borrábao: quedaban os sprites sen liña
+     escura, que é o que os facía perder contra o debuxo procedural. */
+  const GROSO = Math.max(1, Math.round((caixa.y1 - caixa.y0 + 1)/ALT));
   caixa = { x0: Math.max(0, caixa.x0-GROSO), y0: Math.max(0, caixa.y0-GROSO),
             x1: Math.min(RES-1, caixa.x1+GROSO), y1: Math.min(RES-1, caixa.y1+GROSO) };
 
@@ -101,9 +134,10 @@ function xerar(clase, cadros, opc = {}){
       im.px.copy(px, y*w*4, ((y+caixa.y0)*im.ancho + caixa.x0)*4, ((y+caixa.y0)*im.ancho + caixa.x0 + w)*4);
     let rec = { ancho: w, alto: h, px };
     while(rec.alto > ALT*2) rec = reducir(rec, Math.max(1, rec.ancho >> 1), rec.alto >> 1);
-    fóra[c.nome] = reducir(rec, Math.max(1, Math.round(rec.ancho * ALT / rec.alto)), ALT);
+    const fin = reducir(rec, Math.max(1, Math.round(rec.ancho * ALT / rec.alto)), ALT);
+    fóra[c.nome] = opc.brando ? fin : endurecer(fin, opc.niveis || 6);
   }
   return fóra;
 }
 
-module.exports = { xerar, contornear, contornoDe, CARAS };
+module.exports = { xerar, endurecer, contornear, contornoDe, CARAS };

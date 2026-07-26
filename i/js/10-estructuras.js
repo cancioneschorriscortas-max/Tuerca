@@ -1561,11 +1561,25 @@ function draw(g){
        Vai ANTES dos acentos de identidade (medallas, soldadura, estrela, nome),
        que pintan POR RIBA e seguen visibles — son sagrados en TUERCA. */
     {
-      const _mv = Math.abs(u.x - (u.tx ?? u.x)) + Math.abs(u.y - (u.ty ?? u.y)) > 2;
+      const _dx = (u.tx ?? u.x) - u.x, _dy = (u.ty ?? u.y) - u.y;
+      const _mv = Math.abs(_dx) + Math.abs(_dy) > 2;
       const _fr = _mv ? ((g.t >> 3) & 1) : 0;
       let _fc = u.team === 0 ? 1 : -1;
-      if(_mv && Math.abs((u.tx ?? u.x) - u.x) > 1) _fc = ((u.tx ?? u.x) > u.x) ? 1 : -1;
-      drawRobot(ctx, u.x, u.y, u.cls, u.team, _fr, _fc);
+      if(_mv && Math.abs(_dx) > 1) _fc = (_dx > 0) ? 1 : -1;
+      /* (v0.63) SPRITES 3D: 8 direccións reais no canto de espellar dúas.
+         A dirección conxélase ao pararse — se non, unha unidade quieta
+         volvería mirar ao sur e daría un tirón sen moverse do sitio. */
+      let _pintado = false;
+      if(typeof spr3dDebuxar === 'function'){
+        if(_mv) u._dir3d = spr3dDir(_dx, _dy);
+        else if(u._dir3d === undefined) u._dir3d = u.team === 0 ? 2 : 6;   /* quieto: cara ao inimigo (2 = dereita) */
+        const _fc3 = (u.fireCool || 46);
+        const _disp = u.cool > _fc3 - 12;
+        const _est = _disp ? 'DISPARAR' : (_mv ? 'ANDAR' : 'REPOUSO');
+        const _f3 = _disp ? (((_fc3 - u.cool) / 3) | 0) : (_mv ? ((g.t >> 3) & 3) : 0);
+        _pintado = spr3dDebuxar(ctx, u.cls, u.team, u.x, u.y, _est, u._dir3d, _f3);
+      }
+      if(!_pintado) drawRobot(ctx, u.x, u.y, u.cls, u.team, _fr, _fc);
       /* (v0.54) MUESCAS DE KILLS no torso (carreira completa): unha raia
          branca por baixa (máx 4) e unha DOURADA por cada 5 (máx 3) — como
          as marcas de vitoria nos avións. Recoñeces o veterano sen abrir a
