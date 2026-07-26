@@ -65,13 +65,19 @@ function caixaVerts(c, s){
 /* ---------- Modelo ---------- */
 class Robot {
   constructor(){ this.pezas = []; }
-  caixa(centro, tam, cor, piv = null, ang = 0, eixe = 'x'){
+  /* `xiros` é unha LISTA de rotacións {piv, ang, eixe} que se aplican en
+     orde: primeiro a propia da peza, despois as dos seus pais. Iso é o
+     que permite que unha arma colgue do brazo — sen encadeado, o brazo
+     móvese e o artiluxio queda no aire. */
+  caixa(centro, tam, cor, xiros = []){
     let v = caixaVerts(centro, tam);
-    if(piv){
-      const R = rot(eixe, ang);
+    for(const x of (Array.isArray(xiros) ? xiros : [xiros])){
+      if(!x || !x.piv || !x.ang) continue;
+      const R = rot(x.eixe || 'x', x.ang);
+      const p0 = x.piv;
       v = v.map(p => {
-        const q = aplicar(R, [p[0]-piv[0], p[1]-piv[1], p[2]-piv[2]]);
-        return [q[0]+piv[0], q[1]+piv[1], q[2]+piv[2]];
+        const q = aplicar(R, [p[0]-p0[0], p[1]-p0[1], p[2]-p0[2]]);
+        return [q[0]+p0[0], q[1]+p0[1], q[2]+p0[2]];
       });
     }
     this.pezas.push([v, PAL[cor] || PAL.azul]);

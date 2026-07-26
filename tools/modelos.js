@@ -36,8 +36,8 @@ const ESQUELETO = {
     { id:'cabeza',  centro:[0, 0.90, 0.38],  tam:[0.50,0.18,0.12], cor:'ollo',   piv:[0,0.60,0],      eixe:'x' },
     /* Arma NA MAN dereita (A7) e fóra da liña media (A6). O pivote é o
        puño: aí agárrase e sobre aí xira. */
-    { id:'arma',    centro:[0.60,-0.32,0.62],tam:[0.18,0.18,1.25], cor:'escuro', piv:[0.60,-0.32,0.10], eixe:'y', ang:DIAG },
-    { id:'arma',    centro:[0.56,-0.34,0.20],tam:[0.30,0.26,0.26], cor:'escuro', piv:[0.60,-0.32,0.10], eixe:'y', ang:DIAG },
+    { id:'arma',    centro:[0.60,-0.32,0.62],tam:[0.18,0.18,1.25], cor:'escuro', piv:[0.60,-0.32,0.10], eixe:'y', ang:DIAG, pai:'brazo_d' },
+    { id:'arma',    centro:[0.56,-0.34,0.20],tam:[0.30,0.26,0.26], cor:'escuro', piv:[0.60,-0.32,0.10], eixe:'y', ang:DIAG, pai:'brazo_d' },
   ],
   HEAVY: [
     { id:'perna_e', centro:[-0.42,-0.58,0],  tam:[0.38,0.86,0.42], cor:'azul',   piv:[-0.42,-0.15,0], eixe:'x' },
@@ -50,8 +50,8 @@ const ESQUELETO = {
     { id:'cabeza',  centro:[0, 0.94, 0],     tam:[0.80,0.62,0.78], cor:'metal',  piv:[0,0.66,0],      eixe:'x' },
     { id:'cabeza',  centro:[0, 0.98, 0.42],  tam:[0.54,0.18,0.12], cor:'ollo',   piv:[0,0.66,0],      eixe:'x' },
     /* O cañón rotativo pesa: vai na man, non colgado do medio. */
-    { id:'arma',    centro:[0.74,-0.36,0.72],tam:[0.28,0.28,1.50], cor:'escuro', piv:[0.74,-0.36,0.12], eixe:'y', ang:DIAG },
-    { id:'arma',    centro:[0.70,-0.36,0.16],tam:[0.40,0.40,0.34], cor:'escuro', piv:[0.74,-0.36,0.12], eixe:'y', ang:DIAG },
+    { id:'arma',    centro:[0.74,-0.36,0.72],tam:[0.28,0.28,1.50], cor:'escuro', piv:[0.74,-0.36,0.12], eixe:'y', ang:DIAG, pai:'brazo_d' },
+    { id:'arma',    centro:[0.70,-0.36,0.16],tam:[0.40,0.40,0.34], cor:'escuro', piv:[0.74,-0.36,0.12], eixe:'y', ang:DIAG, pai:'brazo_d' },
   ],
   ENGINEER: [
     { id:'perna_e', centro:[-0.30,-0.60,0],  tam:[0.28,0.88,0.34], cor:'azul',   piv:[-0.30,-0.16,0], eixe:'x' },
@@ -65,13 +65,37 @@ const ESQUELETO = {
     /* O SOPLETE só pode ir nunha man. Máis groso que antes: era tan fino
        que desaparecía en varias direccións (L1). E leva boquilla, que é
        o que o fai recoñecible como ferramenta e non como pau. */
-    { id:'arma',    centro:[0.56,-0.30,0.44],tam:[0.20,0.22,0.72], cor:'ambar',  piv:[0.56,-0.30,0.08], eixe:'y', ang:DIAG },
-    { id:'arma',    centro:[0.56,-0.30,0.84],tam:[0.14,0.14,0.26], cor:'metal',  piv:[0.56,-0.30,0.08], eixe:'y', ang:DIAG },
+    { id:'arma',    centro:[0.56,-0.30,0.44],tam:[0.20,0.22,0.72], cor:'ambar',  piv:[0.56,-0.30,0.08], eixe:'y', ang:DIAG, pai:'brazo_d' },
+    { id:'arma',    centro:[0.56,-0.30,0.84],tam:[0.14,0.14,0.26], cor:'metal',  piv:[0.56,-0.30,0.08], eixe:'y', ang:DIAG, pai:'brazo_d' },
   ],
 };
 
 /* Amplitude do balanceo por clase: o HEAVY move menos porque pesa. */
 const BALANCEO = { GRUNT: 0.55, HEAVY: 0.42, ENGINEER: 0.50 };
+
+/* ============================================================
+   POSE BASE — a postura de garda. Aplícase SEMPRE, por debaixo de
+   calquera estado.
+
+   O motivo é de deseño, non técnico: o xogo só distingue "movéndose"
+   e "quieto" (fi = move ? ciclo : 0). Non hai estado de disparo nin
+   de repouso separados. Polo tanto a única pose que existe ten que
+   valer para montar garda, apuntar e agardar ordes á vez.
+
+   Cos brazos colgando lía como unha unidade de folga. Coa arma
+   preparada le ben nas dúas situacións: un soldado andando coa arma
+   arriba é normal; un soldado parado coa arma abaixo, non.
+
+   Se algún día o xogo gaña estados de verdade, esta base baixa a
+   REPOUSO e cada estado leva a súa.
+   ============================================================ */
+const POSE_BASE = {
+  /* Negativo = cara adiante. O brazo da arma sobe máis; o outro
+     acompaña, coma quen sostén o guardamáns. */
+  GRUNT:    { brazo_d: -0.62, brazo_e: -0.34, torso: 0.04 },
+  HEAVY:    { brazo_d: -0.50, brazo_e: -0.26, torso: 0.03 },
+  ENGINEER: { brazo_d: -0.55, brazo_e: -0.22, torso: 0.05 },
+};
 
 /* ============================================================
    POSE — devolve {articulación: radiáns}. NON sabe nada de caixas.
@@ -122,18 +146,76 @@ function pose(cls, estado, fase){
 function montar(cls, estado, fase, corEquipo, sen){
   const esq = ESQUELETO[cls];
   if(!esq) throw new Error('clase descoñecida: ' + cls);
+  /* POSE BASE + estado. A base é a postura de garda, e vai SEMPRE:
+     mentres o xogo non distinga entre estar quieto e combater, a única
+     pose que hai ten que valer para as dúas cousas. */
+  const b = POSE_BASE[cls] || {};
   const p = pose(cls, estado, fase);
+  const total = {};
+  for(const k of new Set([...Object.keys(b), ...Object.keys(p)])){
+    total[k] = (b[k] || 0) + (p[k] || 0);
+  }
+
+  /* Índice de pivotes por articulación, para encadear pais. */
+  const pivDe = {};
+  for(const pz of esq) if(pz.id && pz.piv && !pivDe[pz.id]) pivDe[pz.id] = { piv: pz.piv, eixe: pz.eixe || 'x' };
+
   const r = new Robot();
   for(const pz of esq){
     if(sen && sen.includes(pz.id)) continue;
     const cor = (pz.cor === 'azul' && corEquipo) ? corEquipo : pz.cor;
-    const ang = (pz.ang || 0) + (p[pz.id] || 0);
-    r.caixa(pz.centro, pz.tam, cor, pz.piv || null, ang, pz.eixe || 'x');
+    const xiros = [];
+    /* A propia: ángulo de montaxe + o que diga a pose. */
+    if(pz.piv) xiros.push({ piv: pz.piv, ang: (pz.ang || 0) + (total[pz.id] || 0), eixe: pz.eixe || 'x' });
+    /* E despois as dos pais, subindo pola cadea. Un artiluxio declara
+       pai:'brazo_d' e así viaxa coa man en vez de quedar flotando. */
+    let pai = pz.pai;
+    const vistos = new Set();
+    while(pai && pivDe[pai] && !vistos.has(pai)){
+      vistos.add(pai);
+      xiros.push({ piv: pivDe[pai].piv, ang: total[pai] || 0, eixe: pivDe[pai].eixe });
+      pai = (esq.find(q => q.id === pai) || {}).pai;
+    }
+    r.caixa(pz.centro, pz.tam, cor, xiros);
   }
   return r;
+}
+
+/* ============================================================
+   PUNTO POSADO — onde acaba un punto do esqueleto despois de aplicar
+   base + estado + a cadea de pais. Serve para comprobar que a man e o
+   agarre do artiluxio seguen xuntos en TODAS as fases, non só en
+   repouso: sen parentesco, o brazo balancea e a arma queda no aire.
+   ============================================================ */
+function _xirar(p, piv, ang, eixe){
+  const c = Math.cos(ang), s = Math.sin(ang);
+  const [x, y, z] = [p[0]-piv[0], p[1]-piv[1], p[2]-piv[2]];
+  let q;
+  if(eixe === 'x') q = [x, y*c - z*s, y*s + z*c];
+  else if(eixe === 'y') q = [x*c + z*s, y, -x*s + z*c];
+  else q = [x*c - y*s, x*s + y*c, z];
+  return [q[0]+piv[0], q[1]+piv[1], q[2]+piv[2]];
+}
+
+function puntoPosado(cls, estado, fase, punto, idPropio, pai){
+  const esq = ESQUELETO[cls];
+  const b = POSE_BASE[cls] || {}, p = pose(cls, estado, fase);
+  const ang = (id) => (b[id] || 0) + (p[id] || 0);
+  const pivDe = {};
+  for(const pz of esq) if(pz.id && pz.piv && !pivDe[pz.id]) pivDe[pz.id] = { piv: pz.piv, eixe: pz.eixe || 'x' };
+
+  let q = punto;
+  if(idPropio && pivDe[idPropio]) q = _xirar(q, pivDe[idPropio].piv, ang(idPropio), pivDe[idPropio].eixe);
+  let a = pai, vistos = new Set();
+  while(a && pivDe[a] && !vistos.has(a)){
+    vistos.add(a);
+    q = _xirar(q, pivDe[a].piv, ang(a), pivDe[a].eixe);
+    a = (esq.find(x => x.id === a) || {}).pai;
+  }
+  return q;
 }
 
 const ESTADOS = ['REPOUSO', 'ANDAR', 'DISPARAR', 'CURAR', 'IMPACTO'];
 const CLASES = Object.keys(ESQUELETO);
 
-module.exports = { ESQUELETO, BALANCEO, pose, montar, ESTADOS, CLASES, DIAG };
+module.exports = { ESQUELETO, BALANCEO, POSE_BASE, pose, montar, puntoPosado, ESTADOS, CLASES, DIAG };

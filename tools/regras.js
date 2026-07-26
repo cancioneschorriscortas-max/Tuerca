@@ -13,7 +13,7 @@
      node tools/regras.js            informe de todas as clases
      node tools/regras.js --clase HEAVY
    ============================================================ */
-const { ESQUELETO, montar, pose, ESTADOS, CLASES } = require('./modelos.js');
+const { ESQUELETO, montar, pose, puntoPosado, ESTADOS, CLASES } = require('./modelos.js');
 const { sprite } = require('./vox3d.js');
 
 /* ---------- Vocabulario ----------
@@ -148,6 +148,28 @@ const REGRAS_ESQUELETO = [
         const piv = p.piv || p.centro;
         const d = Math.min(...mans.map(m => Math.hypot(piv[0]-m.x, piv[1]-m.y)));
         if(d > 0.30) return `o pivote do artiluxio está a ${d.toFixed(2)} da man máis próxima`;
+      }
+    },
+  },
+  {
+    id: 'A9', nome: 'o artiluxio non se solta da man en ningunha pose',
+    por: 'A7 só miraba o repouso, e así pasou desapercibido que a arma NON era filla do brazo: ao balancear, a man afastábase ata 0.25 e o artiluxio quedaba no aire. Un artiluxio é fillo da man e viaxa con ela SEMPRE, en todas as poses e todas as fases.',
+    revisar(cls){
+      const brazo = pezas(cls, 'brazo_d')[0];
+      const manRepouso = [brazo.centro[0], abaixo(brazo), brazo.centro[2]];
+      for(const p of pezas(cls, 'arma')){
+        const agarre = p.piv || p.centro;
+        for(const est of ESTADOS){
+          for(let i = 0; i < 8; i++){
+            const f = i/8;
+            const m = puntoPosado(cls, est, f, manRepouso, 'brazo_d', null);
+            const a = puntoPosado(cls, est, f, agarre, p.id, p.pai);
+            const d = Math.hypot(m[0]-a[0], m[1]-a[1], m[2]-a[2]);
+            if(d > 0.32){
+              return `${est} fase ${f.toFixed(2)}: a man e o agarre están a ${d.toFixed(2)}`;
+            }
+          }
+        }
       }
     },
   },
