@@ -27,9 +27,17 @@ const PAL = {
 };
 
 /* Dirección da luz, normalizada. Mesmos valores có orixinal. */
-const LUZ = (() => { const v = [-0.45, -0.75, 0.48];
-  const n = Math.hypot(...v); return v.map(x => x / n); })();
-const AMB = 0.52, DIF = 0.62;
+const norm = (v) => { const n = Math.hypot(...v); return v.map(x => x / n); };
+const LUZ = norm([-0.45, -0.75, 0.48]);
+/* (v2) SEGUNDO FOCO, feble e desde o lado oposto. Cun só foco, cada cara
+   ten UN valor e o modelo enteiro sae con seis tons por cor: por iso o
+   reconto de tons quedaba en 90-110 fronte aos 406 da arte. Un recheo
+   contrario dá valores intermedios nas caras que antes quedaban planas. */
+const RECHEO = norm([0.55, 0.30, -0.40]);
+const AMB = 0.44, DIF = 0.56, DIF2 = 0.16;
+/* Gradiente vertical DENTRO de cada cara: as superficies grandes deixan
+   de ser manchas planas. É o que máis tons engade por liña escrita. */
+const GRAD = 0.13;
 const CONTORNO = [14, 18, 10];
 
 /* ---------- Álxebra ---------- */
@@ -98,12 +106,13 @@ function render(rb, W, H, escala, yaw = 0, pitch = 0.38){
       const nn = aplicar(M, n);
       if(nn[2] <= 0) continue;                    /* cara de atrás */
       const dot = nn[0]*LUZ[0] + nn[1]*LUZ[1] + nn[2]*LUZ[2];
-      const luz = AMB + DIF * Math.max(0, dot);
-      const c3 = [cor[0]*luz, cor[1]*luz, cor[2]*luz];
+      const dot2 = nn[0]*RECHEO[0] + nn[1]*RECHEO[1] + nn[2]*RECHEO[2];
+      const luz = AMB + DIF * Math.max(0, dot) + DIF2 * Math.max(0, dot2);
       const p = idx.map(i => vv[i]);
       const sx = p.map(q => q[0]*escala + W/2);
       const sy = p.map(q => -q[1]*escala + H*0.74);
       const sz = p.map(q => q[2]);
+      const vy = p.map(q => q[1]);   /* altura no espazo de cámara, para o gradiente */
 
       for(const tri of [[0,1,2],[0,2,3]]){
         const x = tri.map(i => sx[i]), y = tri.map(i => sy[i]), z = tri.map(i => sz[i]);
@@ -128,7 +137,12 @@ function render(rb, W, H, escala, yaw = 0, pitch = 0.38){
                preto da cámara (mírase cara a +z). */
             if(-zz >= zbuf[i]) continue;
             zbuf[i] = -zz;
-            col[i*3] = c3[0]; col[i*3+1] = c3[1]; col[i*3+2] = c3[2];
+            /* Gradiente vertical: máis luz arriba. Interpólase a altura
+               do fragmento dentro do triángulo, así que cada cara grande
+               deixa de ser unha mancha dun só valor. */
+            const yy = w0*vy[0] + w1*vy[1] + w2*vy[2];
+            const k = luz * (1 + GRAD * yy);
+            col[i*3] = cor[0]*k; col[i*3+1] = cor[1]*k; col[i*3+2] = cor[2]*k;
             masc[i] = 1;
           }
         }
