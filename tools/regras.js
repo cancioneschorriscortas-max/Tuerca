@@ -454,6 +454,25 @@ const REGRAS_RENDER = [
     },
   },
   {
+    id: 'L6', nome: 'a cor de bando vese desde calquera dirección',
+    por: 'A cor de equipo non é decoración: é a información que di a quen se pode disparar. Un modelo pode pasar todas as demais regras e aínda así vestirse de placas metálicas ata que xa non se sabe de que bando é. Ao facer o HEAVY con placa peitoral e hombreiras metálicas pareceume que pasara iso; a medida dixo que non (48%, na media das outras), pero a impresión estaba fundada e o risco é real, así que queda medido en vez de a ollo.',
+    revisar(cls){
+      let eq = 0, tot = 0;
+      for(let d = 0; d < 8; d++){
+        const s = sprite(montar(cls, 'ANDAR', 0.25), 26, d*2*Math.PI/8, 4);
+        for(let i = 0; i < s.ancho*s.alto; i++){
+          if(!s.px[i*4+3]) continue;
+          tot++;
+          /* O azul do equipo, sombreado ou non. O metal ([150,156,166])
+             non pasa este filtro: ten as tres canles moi xuntas. */
+          if(s.px[i*4+2] > s.px[i*4] + 25 && s.px[i*4+2] > 60) eq++;
+        }
+      }
+      const p = eq*100/Math.max(1, tot);
+      if(p < 35) return `só o ${p.toFixed(0)}% do sprite leva a cor do bando (mínimo 35%)`;
+    },
+  },
+  {
     id: 'L3', nome: 'de perfil non desaparece',
     por: 'se a área de perfil é moito menor cá frontal, ao xirar o robot semella encoller',
     revisar(cls){

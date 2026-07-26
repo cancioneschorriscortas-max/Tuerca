@@ -91,6 +91,22 @@ window.addEventListener('load', function(){
       ${senLuz ? 'LUZ.activa = false; SOMBRA.activa = false;' : 'LUZ.activa = true; SOMBRA.activa = true;'}
       ${hora != null ? 'LUZ.horaForzada = ' + Number(hora) + ';' : ''}
       for(var s = 0; s < ${pasos}; s++) simStep(game);
+      ${ten('todas-as-clases') ? `
+      /* Unha de cada clase, en fila. Para revisar arte non serve agardar
+         a que a partida fabrique un sniper: pode tardar media hora ou non
+         chegar nunca. Póñense DESPOIS de simular para que non se movan
+         nin morran antes da captura. */
+      (function(){
+        var base = game.units.filter(function(u){ return !u.dead && u.team === 0; })[0];
+        if(!base) return;
+        var clases = ['GRUNT','HEAVY','ENGINEER','SNIPER','BOMBARDERO'];
+        game.units = game.units.filter(function(u){ return u.team !== 0; });
+        clases.forEach(function(c, i){
+          var u = mkUnit(0, c, base.x + i*46, base.y, null);
+          u.tx = u.x; u.ty = u.y;      /* quietos: pose de garda */
+          game.units.push(u);
+        });
+      })();` : ''}
       ${ten('sprites-vellos') ? 'SPR3D_ACTIVO = false;' : ''}
       ${ten('enfocar') ? `
       /* Centra a cámara nas propias tropas e achégaa. Sen isto cada

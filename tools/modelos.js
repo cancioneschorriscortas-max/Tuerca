@@ -28,39 +28,70 @@ const PULSO_ARMA = 0;
 /* Cada peza: id (se articula), centro, tam, cor, piv, eixe.
    `ang` é o ángulo FIXO de montaxe; a pose súmase por riba. */
 const ESQUELETO = {
+  /* O GRUNT é a vara de medir: nin ancho nin estreito. Adelgazouno un
+     chisco (o torso pasou de 1.00 a 0.86) para deixarlle sitio ao HEAVY
+     por riba e ao SNIPER por baixo — con cinco clases, o que importa non
+     é o ancho de cada unha senón que se distingan entre elas. */
   GRUNT: [
-    { id:'perna_e', centro:[-0.32,-0.62,0],  tam:[0.30,0.90,0.36], cor:'azul',   piv:[-0.32,-0.17,0], eixe:'x' },
-    { id:'perna_d', centro:[ 0.32,-0.62,0],  tam:[0.30,0.90,0.36], cor:'azul',   piv:[ 0.32,-0.17,0], eixe:'x' },
-    { id:'torso',   centro:[0, 0.10, 0],     tam:[1.00,0.85,0.80], cor:'azul',   piv:[0,-0.30,0],     eixe:'x' },
-    { id:'torso',   centro:[0, 0.38, 0.20],  tam:[0.70,0.16,0.36], cor:'azul',   piv:[0,-0.30,0],     eixe:'x' },
+    { id:'perna_e', centro:[-0.28,-0.62,0],  tam:[0.26,0.90,0.32], cor:'azul',   piv:[-0.28,-0.17,0], eixe:'x' },
+    { id:'perna_d', centro:[ 0.28,-0.62,0],  tam:[0.26,0.90,0.32], cor:'azul',   piv:[ 0.28,-0.17,0], eixe:'x' },
+    { id:'torso',   centro:[0, 0.10, 0],     tam:[0.86,0.85,0.70], cor:'azul',   piv:[0,-0.30,0],     eixe:'x' },
+    { id:'torso',   centro:[0, 0.38, 0.18],  tam:[0.62,0.16,0.32], cor:'azul',   piv:[0,-0.30,0],     eixe:'x' },
     /* Brazo longo abondo para que a man baixe do torso (A1): sen iso o
        membro fúndese no corpo e de perfil desaparece. */
-    { id:'brazo_e',    centro:[-0.63,0.24,0.06],tam:[0.26,0.44,0.30], cor:'azul', piv:[-0.63,0.46,0],  eixe:'x' },
-    { id:'brazo_d',    centro:[ 0.63,0.24,0.06],tam:[0.26,0.44,0.30], cor:'azul', piv:[ 0.63,0.46,0],  eixe:'x' },
-    { id:'antebrazo_e',centro:[-0.63,-0.21,0.06],tam:[0.24,0.46,0.28],cor:'azul', piv:[-0.63,0.02,0], eixe:'x', pai:'brazo_e' },
-    { id:'antebrazo_d',centro:[ 0.63,-0.21,0.06],tam:[0.24,0.46,0.28],cor:'azul', piv:[ 0.63,0.02,0], eixe:'x', pai:'brazo_d' },
-    { id:'cabeza',  centro:[0, 0.86, 0],     tam:[0.76,0.60,0.70], cor:'metal',  piv:[0,0.60,0],      eixe:'x' },
-    { id:'cabeza',  centro:[0, 0.90, 0.38],  tam:[0.50,0.18,0.12], cor:'ollo',   piv:[0,0.60,0],      eixe:'x' },
+    { id:'brazo_e',    centro:[-0.56,0.24,0.06],tam:[0.24,0.44,0.28], cor:'azul', piv:[-0.56,0.46,0],  eixe:'x' },
+    { id:'brazo_d',    centro:[ 0.56,0.24,0.06],tam:[0.24,0.44,0.28], cor:'azul', piv:[ 0.56,0.46,0],  eixe:'x' },
+    { id:'antebrazo_e',centro:[-0.56,-0.21,0.06],tam:[0.22,0.46,0.26],cor:'azul', piv:[-0.56,0.02,0], eixe:'x', pai:'brazo_e' },
+    { id:'antebrazo_d',centro:[ 0.56,-0.21,0.06],tam:[0.22,0.46,0.26],cor:'azul', piv:[ 0.56,0.02,0], eixe:'x', pai:'brazo_d' },
+    { id:'cabeza',  centro:[0, 0.86, 0],     tam:[0.68,0.58,0.62], cor:'metal',  piv:[0,0.60,0],      eixe:'x' },
+    { id:'cabeza',  centro:[0, 0.90, 0.34],  tam:[0.46,0.18,0.12], cor:'ollo',   piv:[0,0.60,0],      eixe:'x' },
     /* Arma NA MAN dereita (A7) e fóra da liña media (A6). O pivote é o
        puño: aí agárrase e sobre aí xira. */
-    { id:'arma',    centro:[0.60,-0.32,0.62],tam:[0.18,0.18,1.25], cor:'escuro', piv:[0.60,-0.32,0.10], eixe:'y', ang:DIAG, pulso:PULSO_ARMA, pai:'antebrazo_d' },
-    { id:'arma',    centro:[0.56,-0.34,0.20],tam:[0.30,0.26,0.26], cor:'escuro', piv:[0.60,-0.32,0.10], eixe:'y', ang:DIAG, pulso:PULSO_ARMA, pai:'antebrazo_d' },
+    { id:'arma',    centro:[0.54,-0.32,0.62],tam:[0.18,0.18,1.25], cor:'escuro', piv:[0.54,-0.32,0.10], eixe:'y', ang:DIAG, pulso:PULSO_ARMA, pai:'antebrazo_d' },
+    { id:'arma',    centro:[0.50,-0.34,0.20],tam:[0.30,0.26,0.26], cor:'escuro', piv:[0.54,-0.32,0.10], eixe:'y', ang:DIAG, pulso:PULSO_ARMA, pai:'antebrazo_d' },
   ],
+  /* O HEAVY xoga TODO á silueta. A 22 píxeles non se lle ven os detalles,
+     así que o que ten que cantar é o contorno: hombreiras enormes que
+     suben por riba da liña dos ombros, a cabeza afundida entre elas (sen
+     pescozo, coma un boxeador cubríndose) e unha placa peitoral que o
+     ensancha de fronte. Un bloque con esquinas, non un boneco máis gordo. */
   HEAVY: [
-    { id:'perna_e', centro:[-0.42,-0.58,0],  tam:[0.38,0.86,0.42], cor:'azul',   piv:[-0.42,-0.15,0], eixe:'x' },
-    { id:'perna_d', centro:[ 0.42,-0.58,0],  tam:[0.38,0.86,0.42], cor:'azul',   piv:[ 0.42,-0.15,0], eixe:'x' },
-    { id:'torso',   centro:[0, 0.14, 0],     tam:[1.34,0.98,0.94], cor:'azul',   piv:[0,-0.30,0],     eixe:'x' },
-    { id:'torso',   centro:[-0.76,0.44,0],   tam:[0.34,0.34,0.70], cor:'azul',   piv:[0,-0.30,0],     eixe:'x' },
-    { id:'torso',   centro:[ 0.76,0.44,0],   tam:[0.34,0.34,0.70], cor:'azul',   piv:[0,-0.30,0],     eixe:'x' },
-    { id:'brazo_e',    centro:[-0.80,0.13,0.06],tam:[0.30,0.42,0.34], cor:'azul', piv:[-0.80,0.34,0],  eixe:'x' },
-    { id:'brazo_d',    centro:[ 0.80,0.13,0.06],tam:[0.30,0.42,0.34], cor:'azul', piv:[ 0.80,0.34,0],  eixe:'x' },
-    { id:'antebrazo_e',centro:[-0.80,-0.32,0.06],tam:[0.28,0.48,0.32],cor:'azul', piv:[-0.80,-0.08,0],eixe:'x', pai:'brazo_e' },
-    { id:'antebrazo_d',centro:[ 0.80,-0.32,0.06],tam:[0.28,0.48,0.32],cor:'azul', piv:[ 0.80,-0.08,0],eixe:'x', pai:'brazo_d' },
-    { id:'cabeza',  centro:[0, 0.94, 0],     tam:[0.80,0.62,0.78], cor:'metal',  piv:[0,0.66,0],      eixe:'x' },
-    { id:'cabeza',  centro:[0, 0.98, 0.42],  tam:[0.54,0.18,0.12], cor:'ollo',   piv:[0,0.66,0],      eixe:'x' },
+    { id:'perna_e', centro:[-0.44,-0.56,0],  tam:[0.42,0.82,0.46], cor:'azul',   piv:[-0.44,-0.15,0], eixe:'x' },
+    { id:'perna_d', centro:[ 0.44,-0.56,0],  tam:[0.42,0.82,0.46], cor:'azul',   piv:[ 0.44,-0.15,0], eixe:'x' },
+    { id:'torso',   centro:[0, 0.14, 0],     tam:[1.30,0.98,0.94], cor:'azul',   piv:[0,-0.30,0],     eixe:'x' },
+    /* Placa peitoral: sobresae por diante e dálle ombreira recta de fronte. */
+    { id:'torso',   centro:[0, 0.06, 0.42],  tam:[1.06,0.66,0.20], cor:'metal',  piv:[0,-0.30,0],     eixe:'x' },
+    /* TAMBOR de munición ás costas. Entrou por unha regra e quedou por
+       ser boa idea: L3 medía que de fronte ocupaba 1.55 veces o que de
+       perfil, e o robot semellaba encoller ao xirar. Ensanchar as
+       hombreiras non arranxaba nada porque de perfil unha tapa a outra e
+       só conta unha; o que fai falla é volume no eixe do fondo, que non
+       está duplicado. Un cargador ás costas dállo, e de paso lese como o
+       que é: quen leva o cañón rotativo leva a munición. */
+    { id:'torso',   centro:[0, 0.24,-0.60],  tam:[0.78,0.86,0.38], cor:'escuro', piv:[0,-0.30,0],     eixe:'x' },
+    { id:'torso',   centro:[0, 0.24,-0.80],  tam:[0.34,0.62,0.12], cor:'metal',  piv:[0,-0.30,0],     eixe:'x' },
+    /* HOMBREIRAS. Son a marca da clase: anchas, altas e cadradas, e
+       chegan máis lonxe cós propios brazos para que a silueta as amose
+       aínda de perfil.
+
+       O FONDO (1.02) non é decorativo: coas hombreiras planas, a regra L3
+       cazaba que de fronte medía 1.56 veces o que de perfil, e o robot
+       desaparecía ao xirar. Unha hombreira que sobresae ten que sobresaír
+       en todas as direccións. */
+    { id:'torso',   centro:[-0.86,0.52,0],   tam:[0.42,0.50,1.02], cor:'azul',   piv:[0,-0.30,0],     eixe:'x' },
+    { id:'torso',   centro:[ 0.86,0.52,0],   tam:[0.42,0.50,1.02], cor:'azul',   piv:[0,-0.30,0],     eixe:'x' },
+    { id:'torso',   centro:[-0.86,0.76,0],   tam:[0.34,0.14,0.86], cor:'metal',  piv:[0,-0.30,0],     eixe:'x' },
+    { id:'torso',   centro:[ 0.86,0.76,0],   tam:[0.34,0.14,0.86], cor:'metal',  piv:[0,-0.30,0],     eixe:'x' },
+    { id:'brazo_e',    centro:[-0.82,0.13,0.06],tam:[0.32,0.42,0.36], cor:'azul', piv:[-0.82,0.34,0],  eixe:'x' },
+    { id:'brazo_d',    centro:[ 0.82,0.13,0.06],tam:[0.32,0.42,0.36], cor:'azul', piv:[ 0.82,0.34,0],  eixe:'x' },
+    { id:'antebrazo_e',centro:[-0.82,-0.32,0.06],tam:[0.30,0.48,0.34],cor:'azul', piv:[-0.82,-0.08,0],eixe:'x', pai:'brazo_e' },
+    { id:'antebrazo_d',centro:[ 0.82,-0.32,0.06],tam:[0.30,0.48,0.34],cor:'azul', piv:[ 0.82,-0.08,0],eixe:'x', pai:'brazo_d' },
+    /* Cabeza baixa e ancha: métese entre as hombreiras en vez de asomar. */
+    { id:'cabeza',  centro:[0, 0.82, 0],     tam:[0.72,0.50,0.70], cor:'metal',  piv:[0,0.62,0],      eixe:'x' },
+    { id:'cabeza',  centro:[0, 0.84, 0.38],  tam:[0.46,0.14,0.12], cor:'ollo',   piv:[0,0.62,0],      eixe:'x' },
     /* O cañón rotativo pesa: vai na man, non colgado do medio. */
-    { id:'arma',    centro:[0.74,-0.36,0.72],tam:[0.28,0.28,1.50], cor:'escuro', piv:[0.74,-0.36,0.12], eixe:'y', ang:DIAG, pulso:PULSO_ARMA, pai:'antebrazo_d' },
-    { id:'arma',    centro:[0.70,-0.36,0.16],tam:[0.40,0.40,0.34], cor:'escuro', piv:[0.74,-0.36,0.12], eixe:'y', ang:DIAG, pulso:PULSO_ARMA, pai:'antebrazo_d' },
+    { id:'arma',    centro:[0.76,-0.36,0.72],tam:[0.30,0.30,1.50], cor:'escuro', piv:[0.76,-0.36,0.12], eixe:'y', ang:DIAG, pulso:PULSO_ARMA, pai:'antebrazo_d' },
+    { id:'arma',    centro:[0.72,-0.36,0.16],tam:[0.42,0.42,0.34], cor:'escuro', piv:[0.76,-0.36,0.12], eixe:'y', ang:DIAG, pulso:PULSO_ARMA, pai:'antebrazo_d' },
   ],
   ENGINEER: [
     { id:'perna_e', centro:[-0.30,-0.60,0],  tam:[0.28,0.88,0.34], cor:'azul',   piv:[-0.30,-0.16,0], eixe:'x' },
@@ -78,6 +109,58 @@ const ESQUELETO = {
        o que o fai recoñecible como ferramenta e non como pau. */
     { id:'arma',    centro:[0.56,-0.30,0.44],tam:[0.20,0.22,0.72], cor:'ambar',  piv:[0.56,-0.30,0.08], eixe:'y', ang:DIAG, pulso:PULSO_ARMA, pai:'antebrazo_d' },
     { id:'arma',    centro:[0.56,-0.30,0.84],tam:[0.14,0.14,0.26], cor:'metal',  piv:[0.56,-0.30,0.08], eixe:'y', ang:DIAG, pulso:PULSO_ARMA, pai:'antebrazo_d' },
+  ],
+  /* O SNIPER é o oposto exacto do HEAVY, e a propósito: onde aquel é
+     ancho e cadrado, este é alto e estreito. Con cinco clases xa non
+     abonda con que cada unha sexa "recoñecible"; teñen que ocupar sitios
+     distintos do mesmo eixe, que é o que mide a regra L4.
+
+     A marca propia é o CANO: o máis longo de todas as clases con
+     diferenza, e o visor prolongado por riba da cabeza. */
+  SNIPER: [
+    { id:'perna_e', centro:[-0.24,-0.66,0],  tam:[0.22,1.00,0.28], cor:'azul',   piv:[-0.24,-0.16,0], eixe:'x' },
+    { id:'perna_d', centro:[ 0.24,-0.66,0],  tam:[0.22,1.00,0.28], cor:'azul',   piv:[ 0.24,-0.16,0], eixe:'x' },
+    { id:'torso',   centro:[0, 0.14, 0],     tam:[0.72,0.86,0.58], cor:'azul',   piv:[0,-0.30,0],     eixe:'x' },
+    { id:'torso',   centro:[0, 0.44, 0.10],  tam:[0.52,0.20,0.44], cor:'escuro', piv:[0,-0.30,0],     eixe:'x' },
+    { id:'brazo_e',    centro:[-0.48,0.28,0.06],tam:[0.20,0.44,0.24], cor:'azul', piv:[-0.48,0.50,0],  eixe:'x' },
+    { id:'brazo_d',    centro:[ 0.48,0.28,0.06],tam:[0.20,0.44,0.24], cor:'azul', piv:[ 0.48,0.50,0],  eixe:'x' },
+    { id:'antebrazo_e',centro:[-0.48,-0.16,0.06],tam:[0.18,0.44,0.22],cor:'azul', piv:[-0.48,0.06,0], eixe:'x', pai:'brazo_e' },
+    { id:'antebrazo_d',centro:[ 0.48,-0.16,0.06],tam:[0.18,0.44,0.22],cor:'azul', piv:[ 0.48,0.06,0], eixe:'x', pai:'brazo_d' },
+    { id:'cabeza',  centro:[0, 0.86, 0],     tam:[0.56,0.52,0.54], cor:'metal',  piv:[0,0.60,0],      eixe:'x' },
+    /* Visor alongado: sobresae por diante e por riba, e é o que se ve
+       cando o robot mira de costas ou de perfil. */
+    { id:'cabeza',  centro:[0, 0.92, 0.34],  tam:[0.36,0.14,0.30], cor:'ollo',   piv:[0,0.60,0],      eixe:'x' },
+    { id:'cabeza',  centro:[0, 1.10, -0.10], tam:[0.10,0.26,0.10], cor:'escuro', piv:[0,0.60,0],      eixe:'x' },
+    /* Cano longo e fino. É a clase á que se lle perdoa que sexa delgado
+       porque mide case dous corpos de longo: iso lese en calquera das
+       oito direccións. */
+    { id:'arma',    centro:[0.46,-0.28,0.86],tam:[0.14,0.14,1.80], cor:'escuro', piv:[0.46,-0.28,0.08], eixe:'y', ang:DIAG, pulso:PULSO_ARMA, pai:'antebrazo_d' },
+    { id:'arma',    centro:[0.44,-0.30,0.18],tam:[0.24,0.22,0.28], cor:'escuro', piv:[0.46,-0.28,0.08], eixe:'y', ang:DIAG, pulso:PULSO_ARMA, pai:'antebrazo_d' },
+    { id:'arma',    centro:[0.46,-0.18,0.52],tam:[0.10,0.14,0.34], cor:'metal',  piv:[0.46,-0.28,0.08], eixe:'y', ang:DIAG, pulso:PULSO_ARMA, pai:'antebrazo_d' },
+  ],
+  /* O BOMBARDEIRO ten que distinguirse do HEAVY, que é o seu veciño en
+     corpulencia. Faino coa COR: dous depósitos laranxas ás costas, que
+     son a única peza laranxa de todo o xogo e o fan recoñecible mesmo de
+     costas — que é xusto cando o artiluxio non se ve.
+
+     E o artiluxio é o contrario do cano do sniper: curto e groso. */
+  BOMBARDERO: [
+    { id:'perna_e', centro:[-0.34,-0.60,0],  tam:[0.32,0.88,0.38], cor:'azul',   piv:[-0.34,-0.16,0], eixe:'x' },
+    { id:'perna_d', centro:[ 0.34,-0.60,0],  tam:[0.32,0.88,0.38], cor:'azul',   piv:[ 0.34,-0.16,0], eixe:'x' },
+    { id:'torso',   centro:[0, 0.12, 0],     tam:[1.02,0.90,0.78], cor:'azul',   piv:[0,-0.30,0],     eixe:'x' },
+    { id:'torso',   centro:[-0.40,0.30,-0.52],tam:[0.34,0.72,0.34], cor:'laranxa',piv:[0,-0.30,0],    eixe:'x' },
+    { id:'torso',   centro:[ 0.40,0.30,-0.52],tam:[0.34,0.72,0.34], cor:'laranxa',piv:[0,-0.30,0],    eixe:'x' },
+    { id:'torso',   centro:[0, 0.52,-0.44],  tam:[0.62,0.16,0.22], cor:'escuro', piv:[0,-0.30,0],     eixe:'x' },
+    { id:'brazo_e',    centro:[-0.66,0.22,0.06],tam:[0.26,0.44,0.30], cor:'azul', piv:[-0.66,0.44,0],  eixe:'x' },
+    { id:'brazo_d',    centro:[ 0.66,0.22,0.06],tam:[0.26,0.44,0.30], cor:'azul', piv:[ 0.66,0.44,0],  eixe:'x' },
+    { id:'antebrazo_e',centro:[-0.66,-0.22,0.06],tam:[0.24,0.46,0.28],cor:'azul', piv:[-0.66,0.00,0], eixe:'x', pai:'brazo_e' },
+    { id:'antebrazo_d',centro:[ 0.66,-0.22,0.06],tam:[0.24,0.46,0.28],cor:'azul', piv:[ 0.66,0.00,0], eixe:'x', pai:'brazo_d' },
+    { id:'cabeza',  centro:[0, 0.84, 0],     tam:[0.66,0.54,0.62], cor:'metal',  piv:[0,0.58,0],      eixe:'x' },
+    { id:'cabeza',  centro:[0, 0.86, 0.34],  tam:[0.42,0.16,0.12], cor:'ollo',   piv:[0,0.58,0],      eixe:'x' },
+    /* Tubo curto e gordo, coa boca laranxa: a mesma cor cós depósitos,
+       para que se lea que unha cousa alimenta a outra. */
+    { id:'arma',    centro:[0.62,-0.32,0.40],tam:[0.34,0.34,0.66], cor:'escuro', piv:[0.62,-0.32,0.10], eixe:'y', ang:DIAG, pulso:PULSO_ARMA, pai:'antebrazo_d' },
+    { id:'arma',    centro:[0.62,-0.32,0.78],tam:[0.26,0.26,0.16], cor:'laranxa',piv:[0.62,-0.32,0.10], eixe:'y', ang:DIAG, pulso:PULSO_ARMA, pai:'antebrazo_d' },
   ],
 };
 
@@ -145,7 +228,10 @@ function pulsoAuto(esq, pz, total){
 }
 
 /* Amplitude do balanceo por clase: o HEAVY move menos porque pesa. */
-const BALANCEO = { GRUNT: 0.55, HEAVY: 0.42, ENGINEER: 0.50 };
+const BALANCEO = { GRUNT: 0.55, HEAVY: 0.42, ENGINEER: 0.50,
+  /* O sniper move pouco porque camiña coidando o disparo; o bombardeiro
+     leva depósitos ás costas e tampouco corre. */
+  SNIPER: 0.46, BOMBARDERO: 0.44 };
 
 /* ============================================================
    POSE BASE — a postura de garda. Aplícase SEMPRE, por debaixo de
@@ -171,6 +257,10 @@ const OBXECTIVO_MAN = {
   GRUNT:    { d: [-0.30, 0.46], e: [-0.34, 0.30] },   /* [y, z] respecto do ombro */
   HEAVY:    { d: [-0.34, 0.44], e: [-0.40, 0.26] },
   ENGINEER: { d: [-0.28, 0.44], e: [-0.38, 0.20] },
+  /* O sniper leva a man dereita máis adiantada e a esquerda debaixo do
+     cano: é o único que agarra con dúas mans, e nótase na pose. */
+  SNIPER:   { d: [-0.26, 0.46], e: [-0.30, 0.40] },
+  BOMBARDERO:{ d: [-0.32, 0.44], e: [-0.38, 0.24] },
 };
 
 function poseBaseIK(cls){
@@ -189,7 +279,8 @@ function poseBaseIK(cls){
   return fóra;
 }
 
-const TORSO_BASE = { GRUNT: 0.04, HEAVY: 0.03, ENGINEER: 0.05 };
+const TORSO_BASE = { GRUNT: 0.04, HEAVY: 0.03, ENGINEER: 0.05,
+                     SNIPER: 0.06, BOMBARDERO: 0.03 };
 
 const POSE_BASE = new Proxy({}, {
   get(_, cls){
