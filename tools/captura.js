@@ -97,15 +97,19 @@ window.addEventListener('load', function(){
          captura encadra un anaco distinto do mapa segundo onde acabase
          a cámara, e un A/B de dúas imaxes con distinto encadre non
          demostra nada. */
-      (function(){
+      (function fixar(){
         var vivos = game.units.filter(function(u){ return !u.dead && u.team === 0; });
-        if(!vivos.length) return;
-        var mx = 0, my = 0;
-        vivos.forEach(function(u){ mx += u.x; my += u.y; });
-        mx /= vivos.length; my /= vivos.length;
-        camZoom = ${Number(op('zoom', '3'))};
-        cam.x = mx - cv.width/(2*camZoom);
-        cam.y = my - cv.height/(2*camZoom);
+        if(vivos.length){
+          var mx = 0, my = 0;
+          vivos.forEach(function(u){ mx += u.x; my += u.y; });
+          mx /= vivos.length; my /= vivos.length;
+          /* Cada fotograma: o xogo recalcula o zoom pola súa conta e
+             pisa calquera valor posto unha soa vez. */
+          camZoom = ${Number(op('zoom', '1.8'))};
+          cam.x = mx - cv.width/(2*camZoom);
+          cam.y = my - cv.height/(2*camZoom);
+        }
+        requestAnimationFrame(fixar);
       })();` : ''}
       requestAnimationFrame(loop);
       ${ten('efectos') ? `
