@@ -19,11 +19,11 @@
 const { Robot } = require('./vox3d.js');
 
 const DIAG = -14 * Math.PI / 180;   /* cruce leve: con brazo dobrado, os -38 orixinais (pensados para brazo colgando) mandaban a arma por riba da cabeza */
-/* MUÑECA: co antebrazo dobrado, o que era "adiante" para o artiluxio pasa
-   a ser "arriba" e a arma apunta ao ceo. Esta rotación fixa en x é o pulso
-   que a volve poñer horizontal — como fai calquera que sostén un fusil
-   co brazo dobrado. */
-const MUNECA = 0.88;
+/* PULSO: inclinación FINAL que ten que levar o artiluxio, non o ángulo do
+   pulso. 0 = horizontal. O ángulo real calcúlase restando o que xa
+   acumulou a cadea do brazo, así que segue sendo horizontal en calquera
+   pose e fase en vez de valer só para a que se axustou a man. */
+const PULSO_ARMA = 0;
 
 /* Cada peza: id (se articula), centro, tam, cor, piv, eixe.
    `ang` é o ángulo FIXO de montaxe; a pose súmase por riba. */
@@ -43,8 +43,8 @@ const ESQUELETO = {
     { id:'cabeza',  centro:[0, 0.90, 0.38],  tam:[0.50,0.18,0.12], cor:'ollo',   piv:[0,0.60,0],      eixe:'x' },
     /* Arma NA MAN dereita (A7) e fóra da liña media (A6). O pivote é o
        puño: aí agárrase e sobre aí xira. */
-    { id:'arma',    centro:[0.60,-0.32,0.62],tam:[0.18,0.18,1.25], cor:'escuro', piv:[0.60,-0.32,0.10], eixe:'y', ang:DIAG, angX:MUNECA, pai:'antebrazo_d' },
-    { id:'arma',    centro:[0.56,-0.34,0.20],tam:[0.30,0.26,0.26], cor:'escuro', piv:[0.60,-0.32,0.10], eixe:'y', ang:DIAG, angX:MUNECA, pai:'antebrazo_d' },
+    { id:'arma',    centro:[0.60,-0.32,0.62],tam:[0.18,0.18,1.25], cor:'escuro', piv:[0.60,-0.32,0.10], eixe:'y', ang:DIAG, pulso:PULSO_ARMA, pai:'antebrazo_d' },
+    { id:'arma',    centro:[0.56,-0.34,0.20],tam:[0.30,0.26,0.26], cor:'escuro', piv:[0.60,-0.32,0.10], eixe:'y', ang:DIAG, pulso:PULSO_ARMA, pai:'antebrazo_d' },
   ],
   HEAVY: [
     { id:'perna_e', centro:[-0.42,-0.58,0],  tam:[0.38,0.86,0.42], cor:'azul',   piv:[-0.42,-0.15,0], eixe:'x' },
@@ -59,8 +59,8 @@ const ESQUELETO = {
     { id:'cabeza',  centro:[0, 0.94, 0],     tam:[0.80,0.62,0.78], cor:'metal',  piv:[0,0.66,0],      eixe:'x' },
     { id:'cabeza',  centro:[0, 0.98, 0.42],  tam:[0.54,0.18,0.12], cor:'ollo',   piv:[0,0.66,0],      eixe:'x' },
     /* O cañón rotativo pesa: vai na man, non colgado do medio. */
-    { id:'arma',    centro:[0.74,-0.36,0.72],tam:[0.28,0.28,1.50], cor:'escuro', piv:[0.74,-0.36,0.12], eixe:'y', ang:DIAG, angX:MUNECA, pai:'antebrazo_d' },
-    { id:'arma',    centro:[0.70,-0.36,0.16],tam:[0.40,0.40,0.34], cor:'escuro', piv:[0.74,-0.36,0.12], eixe:'y', ang:DIAG, angX:MUNECA, pai:'antebrazo_d' },
+    { id:'arma',    centro:[0.74,-0.36,0.72],tam:[0.28,0.28,1.50], cor:'escuro', piv:[0.74,-0.36,0.12], eixe:'y', ang:DIAG, pulso:PULSO_ARMA, pai:'antebrazo_d' },
+    { id:'arma',    centro:[0.70,-0.36,0.16],tam:[0.40,0.40,0.34], cor:'escuro', piv:[0.74,-0.36,0.12], eixe:'y', ang:DIAG, pulso:PULSO_ARMA, pai:'antebrazo_d' },
   ],
   ENGINEER: [
     { id:'perna_e', centro:[-0.30,-0.60,0],  tam:[0.28,0.88,0.34], cor:'azul',   piv:[-0.30,-0.16,0], eixe:'x' },
@@ -76,10 +76,73 @@ const ESQUELETO = {
     /* O SOPLETE só pode ir nunha man. Máis groso que antes: era tan fino
        que desaparecía en varias direccións (L1). E leva boquilla, que é
        o que o fai recoñecible como ferramenta e non como pau. */
-    { id:'arma',    centro:[0.56,-0.30,0.44],tam:[0.20,0.22,0.72], cor:'ambar',  piv:[0.56,-0.30,0.08], eixe:'y', ang:DIAG, angX:MUNECA, pai:'antebrazo_d' },
-    { id:'arma',    centro:[0.56,-0.30,0.84],tam:[0.14,0.14,0.26], cor:'metal',  piv:[0.56,-0.30,0.08], eixe:'y', ang:DIAG, angX:MUNECA, pai:'antebrazo_d' },
+    { id:'arma',    centro:[0.56,-0.30,0.44],tam:[0.20,0.22,0.72], cor:'ambar',  piv:[0.56,-0.30,0.08], eixe:'y', ang:DIAG, pulso:PULSO_ARMA, pai:'antebrazo_d' },
+    { id:'arma',    centro:[0.56,-0.30,0.84],tam:[0.14,0.14,0.26], cor:'metal',  piv:[0.56,-0.30,0.08], eixe:'y', ang:DIAG, pulso:PULSO_ARMA, pai:'antebrazo_d' },
   ],
 };
+
+/* ============================================================
+   CINEMÁTICA INVERSA de dous ósos.
+
+   Deixar de adiviñar ángulos. Dise ONDE ten que estar a man e saen os
+   ángulos de ombro e cóbado, exactos. Se o punto queda fóra do alcance,
+   o brazo estírase cara a el en vez de romper.
+
+   O brazo articula nun só plano (o yz, eixe x), así que abonda coa lei
+   do coseno. Non fai falla resolvedor iterativo ningún.
+   ============================================================ */
+/* `cara` escolle CARA ONDE apunta o cóbado. Sempre hai dúas solucións que
+   deixan a man no mesmo sitio, e son moi distintas de ver: co cóbado
+   arriba o robot parece encollerse de ombros, e co cóbado abaixo sostén
+   a arma. Non é un axuste fino: é unha decisión anatómica, e por iso é un
+   argumento con nome en vez de un signo escondido na fórmula. */
+function ikBrazo(l1, l2, dy, dz, cobadoAbaixo = true){
+  const s = cobadoAbaixo ? -1 : 1;
+  const d = Math.min(Math.hypot(dy, dz), (l1 + l2) * 0.999);
+  /* En repouso os ósos apuntan cara a -y (colgan). Cun xiro θ arredor de
+     x, a punta vai a (-cos θ, -sin θ) en (y, z): θ POSITIVO leva a man
+     cara atrás. Por iso o ángulo cara ao obxectivo leva signo negativo. */
+  const cara = -Math.atan2(dz, -dy);
+  /* Lei do coseno: apertura no ombro entre o óso alto e a liña recta ao
+     obxectivo, e dobra do cóbado. */
+  const cosA = Math.max(-1, Math.min(1, (l1*l1 + d*d - l2*l2) / (2*l1*d)));
+  const cosB = Math.max(-1, Math.min(1, (l1*l1 + l2*l2 - d*d) / (2*l1*l2)));
+  return { ombro: cara - s*Math.acos(cosA), cobado: s*(Math.PI - Math.acos(cosB)) };
+}
+
+/* Cinemática DIRECTA do mesmo brazo: onde acaba a man cos ángulos dados.
+   Existe para poder COMPROBAR a IK en vez de xulgala mirando o render. */
+function fkBrazo(l1, l2, ombro, cobado){
+  const y1 = -l1*Math.cos(ombro), z1 = -l1*Math.sin(ombro);
+  const t = ombro + cobado;
+  return [y1 - l2*Math.cos(t), z1 - l2*Math.sin(t)];
+}
+
+/* ============================================================
+   PULSO AUTOMÁTICO.
+
+   Un artiluxio pendurado do antebrazo herda TODAS as rotacións en x da
+   cadea, así que calquera ángulo de pulso fixo só vale para a pose coa
+   que se axustou: en canto o brazo balancea andando ou retrocede
+   disparando, a arma apunta ao ceo ou ao chan.
+
+   Isto devolve o ángulo que fai falla para que a inclinación final sexa
+   `pz.pulso`, sexa cal sexa a pose. A rotación propia da peza non conta
+   se vai noutro eixe (o cruce da arma é en y e non a inclina).
+   ============================================================ */
+function pulsoAuto(esq, pz, total){
+  let acc = 0, a = pz.pai;
+  const vistos = new Set();
+  while(a && !vistos.has(a)){
+    vistos.add(a);
+    const p = esq.find(q => q.id === a);
+    if(!p) break;
+    if((p.eixe || 'x') === 'x') acc += total[a] || 0;
+    a = p.pai;
+  }
+  if((pz.eixe || 'x') === 'x') acc += (pz.ang || 0) + (total[pz.id] || 0);
+  return (pz.pulso || 0) - acc;
+}
 
 /* Amplitude do balanceo por clase: o HEAVY move menos porque pesa. */
 const BALANCEO = { GRUNT: 0.55, HEAVY: 0.42, ENGINEER: 0.50 };
@@ -100,15 +163,41 @@ const BALANCEO = { GRUNT: 0.55, HEAVY: 0.42, ENGINEER: 0.50 };
    Se algún día o xogo gaña estados de verdade, esta base baixa a
    REPOUSO e cada estado leva a súa.
    ============================================================ */
-const POSE_BASE = {
-  /* Coa articulación de cóbado xa se pode SOSTER: o brazo alto baixa
-     case pegado ao corpo e o antebrazo sobe. Iso é o que fai que a arma
-     quede diante do peito e se vexa desde TODAS as direccións, en vez de
-     escorzarse a un muñón como pasaba rotando o brazo enteiro. */
-  GRUNT:    { brazo_d: -0.14, antebrazo_d: -1.15, brazo_e: -0.10, antebrazo_e: -0.85, torso: 0.04 },
-  HEAVY:    { brazo_d: -0.10, antebrazo_d: -1.00, brazo_e: -0.08, antebrazo_e: -0.75, torso: 0.03 },
-  ENGINEER: { brazo_d: -0.12, antebrazo_d: -1.10, brazo_e: -0.08, antebrazo_e: -0.55, torso: 0.05 },
+/* ONDE vai a man, non que ángulo leva o ombro. Estes son os únicos
+   números que se escriben a man agora, e son medibles nun debuxo:
+   "a man dereita á altura do peito, adiantada; a esquerda un pouco máis
+   preto do corpo". Os ángulos saen da IK. */
+const OBXECTIVO_MAN = {
+  GRUNT:    { d: [-0.30, 0.46], e: [-0.34, 0.30] },   /* [y, z] respecto do ombro */
+  HEAVY:    { d: [-0.34, 0.44], e: [-0.40, 0.26] },
+  ENGINEER: { d: [-0.28, 0.44], e: [-0.38, 0.20] },
 };
+
+function poseBaseIK(cls){
+  const esq = ESQUELETO[cls];
+  const obx = OBXECTIVO_MAN[cls];
+  if(!obx) return {};
+  const fóra = {};
+  for(const lado of ['d', 'e']){
+    const alto = esq.find(p => p.id === 'brazo_' + lado);
+    const ante = esq.find(p => p.id === 'antebrazo_' + lado);
+    if(!alto || !ante) continue;
+    const r = ikBrazo(alto.tam[1], ante.tam[1], obx[lado][0], obx[lado][1]);
+    fóra['brazo_' + lado] = r.ombro;
+    fóra['antebrazo_' + lado] = r.cobado;
+  }
+  return fóra;
+}
+
+const TORSO_BASE = { GRUNT: 0.04, HEAVY: 0.03, ENGINEER: 0.05 };
+
+const POSE_BASE = new Proxy({}, {
+  get(_, cls){
+    if(typeof cls !== "string" || !ESQUELETO[cls]) return undefined;
+    return Object.assign(poseBaseIK(cls), { torso: TORSO_BASE[cls] || 0 });
+  },
+  has(_, cls){ return typeof cls === "string" && !!ESQUELETO[cls]; },
+});
 
 /* ============================================================
    POSE — devolve {articulación: radiáns}. NON sabe nada de caixas.
@@ -181,7 +270,7 @@ function montar(cls, estado, fase, corEquipo, sen){
     /* A propia: ángulo de montaxe + o que diga a pose. */
     /* Muñeca primeiro: orienta o artiluxio respecto do antebrazo antes de
        aplicarlle o ángulo cruzado e as rotacións dos pais. */
-    if(pz.piv && pz.angX) xiros.push({ piv: pz.piv, ang: pz.angX, eixe: 'x' });
+    if(pz.piv && pz.pulso !== undefined) xiros.push({ piv: pz.piv, ang: pulsoAuto(esq, pz, total), eixe: 'x' });
     if(pz.piv) xiros.push({ piv: pz.piv, ang: (pz.ang || 0) + (total[pz.id] || 0), eixe: pz.eixe || x });
     /* E despois as dos pais, subindo pola cadea. Un artiluxio declara
        pai:'brazo_d' e así viaxa coa man en vez de quedar flotando. */
@@ -213,7 +302,7 @@ function _xirar(p, piv, ang, eixe){
   return [q[0]+piv[0], q[1]+piv[1], q[2]+piv[2]];
 }
 
-function puntoPosado(cls, estado, fase, punto, idPropio, pai){
+function puntoPosado(cls, estado, fase, punto, idPropio, pai, peza){
   const esq = ESQUELETO[cls];
   const b = POSE_BASE[cls] || {}, p = pose(cls, estado, fase);
   const ang = (id) => (b[id] || 0) + (p[id] || 0);
@@ -221,6 +310,13 @@ function puntoPosado(cls, estado, fase, punto, idPropio, pai){
   for(const pz of esq) if(pz.id && pz.piv && !pivDe[pz.id]) pivDe[pz.id] = { piv: pz.piv, eixe: pz.eixe || 'x' };
 
   let q = punto;
+  /* Mesma orde ca montar(): pulso, propia, e despois os pais. Sen isto a
+     regra do nivelado mediría a arma SEN a compensación e daría falso. */
+  if(peza && peza.pulso !== undefined && peza.piv){
+    const total = {};
+    for(const k of new Set([...Object.keys(b), ...Object.keys(p)])) total[k] = ang(k);
+    q = _xirar(q, peza.piv, pulsoAuto(esq, peza, total), 'x');
+  }
   if(idPropio && pivDe[idPropio]) q = _xirar(q, pivDe[idPropio].piv, ang(idPropio), pivDe[idPropio].eixe);
   let a = pai, vistos = new Set();
   while(a && pivDe[a] && !vistos.has(a)){
@@ -234,4 +330,4 @@ function puntoPosado(cls, estado, fase, punto, idPropio, pai){
 const ESTADOS = ['REPOUSO', 'ANDAR', 'DISPARAR', 'CURAR', 'IMPACTO'];
 const CLASES = Object.keys(ESQUELETO);
 
-module.exports = { ESQUELETO, BALANCEO, POSE_BASE, pose, montar, puntoPosado, ESTADOS, CLASES, DIAG };
+module.exports = { ESQUELETO, BALANCEO, POSE_BASE, OBXECTIVO_MAN, ikBrazo, fkBrazo, pose, montar, puntoPosado, ESTADOS, CLASES, DIAG };

@@ -13,7 +13,8 @@
      node tools/regras.js            informe de todas as clases
      node tools/regras.js --clase HEAVY
    ============================================================ */
-const { ESQUELETO, montar, pose, puntoPosado, ESTADOS, CLASES } = require('./modelos.js');
+const { ESQUELETO, montar, pose, puntoPosado, ESTADOS, CLASES,
+        OBXECTIVO_MAN, ikBrazo, fkBrazo } = require('./modelos.js');
 const { sprite } = require('./vox3d.js');
 
 /* ---------- Vocabulario ----------
@@ -175,10 +176,67 @@ const REGRAS_ESQUELETO = [
           for(let i = 0; i < 8; i++){
             const f = i/8;
             const m = puntoPosado(cls, est, f, manRepouso, seg, paiSeg);
-            const a = puntoPosado(cls, est, f, agarre, p.id, p.pai);
+            const a = puntoPosado(cls, est, f, agarre, p.id, p.pai, p);
             const d = Math.hypot(m[0]-a[0], m[1]-a[1], m[2]-a[2]);
             if(d > 0.32){
               return `${est} fase ${f.toFixed(2)}: a man e o agarre están a ${d.toFixed(2)}`;
+            }
+          }
+        }
+      }
+    },
+  },
+  {
+    id: 'A10', nome: 'a man chega onde se lle dixo',
+    por: 'a pose base xa non son ángulos escritos a man senón un DESTINO para a man, resolto por cinemática inversa. Esta regra comproba a IK coa cinemática directa: se algún día alguén cambia as lonxitudes dos ósos e o destino queda fóra de alcance, o brazo estírase en silencio e a pose degrádase sen que ninguén se decate. Aquí sáltase.',
+    revisar(cls){
+      const obx = OBXECTIVO_MAN[cls];
+      if(!obx) return;
+      for(const lado of ['d', 'e']){
+        const alto = pezas(cls, 'brazo_' + lado)[0];
+        const ante = pezas(cls, 'antebrazo_' + lado)[0];
+        if(!alto || !ante) continue;
+        const l1 = alto.tam[1], l2 = ante.tam[1];
+        const [ty, tz] = obx[lado];
+        if(Math.hypot(ty, tz) > (l1 + l2) * 0.98){
+          return `man ${lado}: o destino está a ${Math.hypot(ty,tz).toFixed(2)} e o brazo mide ${(l1+l2).toFixed(2)} — fóra de alcance`;
+        }
+        const r = ikBrazo(l1, l2, ty, tz);
+        const [ay, az] = fkBrazo(l1, l2, r.ombro, r.cobado);
+        const err = Math.hypot(ay - ty, az - tz);
+        if(err > 0.001) return `man ${lado}: pedíase [${ty}, ${tz}] e queda en [${ay.toFixed(3)}, ${az.toFixed(3)}]`;
+        /* As dúas solucións da IK deixan a man no mesmo sitio, así que o
+           erro de arriba non distingue entre elas. O que as distingue é o
+           CÓBADO: co brazo levantado o robot parece encollerse de ombros.
+           Isto pasou de verdade e só se viu ao renderizar. */
+        const cy = -l1 * Math.cos(r.ombro);
+        if(cy > -l1 * 0.35){
+          return `cóbado ${lado} en y=${cy.toFixed(2)}: vai cara arriba, non colga do ombro`;
+        }
+      }
+    },
+  },
+  {
+    id: 'A11', nome: 'o artiluxio queda nivelado en calquera pose',
+    por: 'un artiluxio pendurado do antebrazo herda as rotacións do ombro e do cóbado, así que un ángulo de pulso FIXO só vale para a pose coa que se axustou: andando ou disparando, o cano acaba apuntando ao ceo. O pulso calcúlase agora restando o que acumulou a cadea, e isto compróbao en todos os estados e fases.',
+    revisar(cls){
+      for(const p of pezas(cls, 'arma')){
+        if(p.pulso === undefined) return `a peza arma non declara pulso: volveuse a un ángulo fixo`;
+        /* Punta do cano fronte ao agarre: se o artiluxio está nivelado,
+           os dous quedan á mesma altura. Mídese na xeometría posada, non
+           nos ángulos, para que valla aínda que cambie a montaxe. */
+        const agarre = p.piv || p.centro;
+        const longo = p.tam.indexOf(Math.max(...p.tam));
+        const punta = agarre.slice();
+        punta[longo] += p.tam[longo];
+        for(const est of ESTADOS){
+          for(let i = 0; i < 8; i++){
+            const f = i/8;
+            const a = puntoPosado(cls, est, f, agarre, p.id, p.pai, p);
+            const b = puntoPosado(cls, est, f, punta, p.id, p.pai, p);
+            const subida = Math.abs(b[1] - a[1]) / p.tam[longo];
+            if(subida > 0.35){
+              return `${est} fase ${f.toFixed(2)}: o artiluxio inclínase ${(Math.asin(Math.min(1,subida))*180/Math.PI).toFixed(0)}°`;
             }
           }
         }

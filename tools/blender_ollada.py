@@ -134,8 +134,11 @@ try:
 except Exception:
     pass
 
-VISTAS = [('fronte', 0.0), ('tres cuartos', -math.pi/4),
-          ('perfil', -math.pi/2), ('costas', math.pi)]
+# A yaw 0 a cámara queda no lado -Y de Blender, que é o -Z de Node: o
+# LOMBO do robot, porque o ollo mira a +Z. As vistas estaban etiquetadas
+# ao revés e por iso ningunha amosaba a cara.
+VISTAS = [('fronte', math.pi), ('tres cuartos', 3*math.pi/4),
+          ('perfil', math.pi/2), ('costas', 0.0)]
 
 tiras = []
 for nome, yaw in VISTAS:
