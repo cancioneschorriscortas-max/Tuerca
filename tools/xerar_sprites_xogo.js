@@ -26,6 +26,13 @@ const op = (n, d) => { const i = argv.indexOf('--' + n); return i >= 0 && argv[i
 const ALT = parseInt(op('alt', '22'), 10);
 const RES = parseInt(op('res', '256'), 10);
 const REUSAR = argv.includes('--reusar');
+/* CHANZOS de luz do sombreado (cel shading). O sprite final ten 22
+   píxeles e chégase a el reducindo un render de 256: cun sombreado suave,
+   ese reducido promedia un degradado, inventa tons intermedios e a
+   cuantización posterior deixa moteado. Con chanzos as zonas xa nacen
+   planas e o promedio dunha zona plana é a propia cor.
+   --toon 0 volve ao sombreado suave para comparar. */
+const TOON = parseInt(op('toon', '3'), 10);
 const DIRS = 8;
 
 /* Cor de equipo -> entrada da paleta de vox3d. O 'metal' do neutral tinxe
@@ -77,7 +84,7 @@ for(const cls of CLASES){
   banco[cls] = {};
   for(const [eq, cor] of EQUIPOS){
     process.stdout.write(`  ${cls} equipo ${eq} (${cor})... `);
-    const m = xerar(cls, cadros, { alt: ALT, res: RES, reusar: REUSAR, cor,
+    const m = xerar(cls, cadros, { alt: ALT, res: RES, reusar: REUSAR, cor, toon: TOON,
                                    tmp: path.join(__dirname, '..', 'capturas', '_blender', cls + '_' + cor) });
     const a = atlas(m);
     const f = path.join(tmpDir, `${cls}_${eq}.png`);

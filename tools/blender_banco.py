@@ -59,28 +59,91 @@ materiais = {}
 LUMINOSAS = {tuple(c) for c in T.get('luminosas', [])}
 
 
+def lin(c):
+    """sRGB -> lineal. Blender traballa en lineal e se non sae lavado."""
+    c = c / 255.0
+    return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+
+
 def material(cor):
     clave = tuple(cor)
     if clave in materiais:
         return materiais[clave]
     m = bpy.data.materials.new(name='cor_%d_%d_%d' % clave)
     m.use_nodes = True
-    bsdf = m.node_tree.nodes['Principled BSDF']
-
-    def lin(c):
-        c = c / 255.0
-        return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
-
     rgb = (lin(cor[0]), lin(cor[1]), lin(cor[2]), 1.0)
-    bsdf.inputs['Base Color'].default_value = rgb
-    bsdf.inputs['Roughness'].default_value = 0.52
-    bsdf.inputs['Metallic'].default_value = 0.18
-    if clave in LUMINOSAS:
-        bsdf.inputs['Emission Color'].default_value = rgb
-        bsdf.inputs['Emission Strength'].default_value = 0.55
-        bsdf.inputs['Metallic'].default_value = 0.0
+
+    # O visor vai sempre emisivo e sen chanzos: é un piloto aceso, non
+    # unha superficie iluminada, e ten que valer en todas as direccións.
+    if clave in LUMINOSAS or not TOON:
+        bsdf = m.node_tree.nodes['Principled BSDF']
+        bsdf.inputs['Base Color'].default_value = rgb
+        bsdf.inputs['Roughness'].default_value = 0.52
+        bsdf.inputs['Metallic'].default_value = 0.18
+        if clave in LUMINOSAS:
+            bsdf.inputs['Emission Color'].default_value = rgb
+            # Con cel shading a luz frontal baixa a 0.45, e o visor —que
+            # segue sendo material normal— perdía o difuso con ela. Sobe a
+            # emisión para que o piloto siga acendido igual.
+            bsdf.inputs['Emission Strength'].default_value = 1.05 if TOON else 0.55
+            bsdf.inputs['Metallic'].default_value = 0.0
+        materiais[clave] = m
+        return m
+
+    # --- cel shading ---
+    # Difuso -> a cor resultante -> luminancia -> rampla de interpolación
+    # CONSTANTE (de aí os chanzos duros) -> emisión, para que a vista non
+    # a volva tocar. `Shader to RGB` só existe en EEVEE; é o motivo de
+    # que este pipeline non poida usar Cycles.
+    nt = m.node_tree
+    nt.nodes.clear()
+    dif = nt.nodes.new('ShaderNodeBsdfDiffuse')
+    dif.inputs['Color'].default_value = (1, 1, 1, 1)   # a cor pona a rampla
+    s2r = nt.nodes.new('ShaderNodeShaderToRGB')
+    bw = nt.nodes.new('ShaderNodeRGBToBW')
+    ramp = nt.nodes.new('ShaderNodeValToRGB')
+    emi = nt.nodes.new('ShaderNodeEmission')
+    out = nt.nodes.new('ShaderNodeOutputMaterial')
+
+    cr = ramp.color_ramp
+    cr.interpolation = 'CONSTANT'
+    chanzos = _CHANZOS.get(TOON, _CHANZOS[3])
+    while len(cr.elements) > 1:
+        cr.elements.remove(cr.elements[-1])
+    for i, (pos, k) in enumerate(chanzos):
+        el = cr.elements[0] if i == 0 else cr.elements.new(pos)
+        el.position = pos
+        el.color = (min(1.0, rgb[0]*k), min(1.0, rgb[1]*k), min(1.0, rgb[2]*k), 1.0)
+
+    nt.links.new(dif.outputs['BSDF'], s2r.inputs['Shader'])
+    nt.links.new(s2r.outputs['Color'], bw.inputs['Color'])
+    nt.links.new(bw.outputs['Val'], ramp.inputs['Fac'])
+    nt.links.new(ramp.outputs['Color'], emi.inputs['Color'])
+    nt.links.new(emi.outputs['Emission'], out.inputs['Surface'])
     materiais[clave] = m
     return m
+
+
+# TOON: cantos chanzos de luz ten cada material. 0 desactívao e volve ao
+# sombreado suave.
+#
+# Por que importa: o sprite final ten 22 píxeles, e chégase a el reducindo
+# un render de 256. Cun sombreado suave, ese reducido promedia un
+# degradado e inventa tons intermedios que despois hai que cuantizar, e a
+# cuantización dun degradado deixa moteado nos bordos das zonas. Con
+# chanzos, as zonas xa son planas ANTES de reducir: o promedio dunha zona
+# plana é a propia cor, e só os bordos entre zonas mesturan.
+#
+# É a diferenza entre pintar e fotografar un obxecto pintado.
+TOON = int(T.get('toon', 0))
+# Multiplicadores de cada chanzo sobre a cor base. O 1.0 é a cor da
+# paleta tal cal, e ten que caer na banda máis ampla: é a que se ve.
+_CHANZOS = {
+    2: [(0.00, 0.58), (0.52, 1.00)],
+    3: [(0.00, 0.52), (0.38, 1.00), (0.80, 1.30)],
+    4: [(0.00, 0.46), (0.30, 0.74), (0.55, 1.00), (0.84, 1.32)],
+}
+
 
 
 # ---------- luces ----------
@@ -109,8 +172,16 @@ escena.collection.objects.link(recheo)
 # A arte clásica non ten este problema porque non está iluminada: píntase
 # a cara frontal co ton base e ponse un realce arriba. Isto é o
 # equivalente físico desa decisión.
+#
+# CON CEL SHADING case desaparece, e é importante entender por que. A
+# frontal existía para CALIBRAR o brillo: subir a cara que mira á cámara
+# ata a cor da paleta. Cos chanzos iso xa non fai falla, porque a rampla
+# asigna a cor directamente — a banda central É a cor da paleta. E ademais
+# estorba: iluminando por igual todo o que mira á cámara, mete case todo
+# na mesma banda e o robot queda plano. Medido: 39 dos 51 píxeles do
+# corpo nun só ton, e ese a 1.13 veces a paleta.
 frontal = bpy.data.objects.new('frontal', bpy.data.lights.new('frontal', type='SUN'))
-frontal.data.energy = 2.2
+frontal.data.energy = 0.45 if TOON else 2.2
 escena.collection.objects.link(frontal)
 
 # ---------- transformación de vista ----------

@@ -121,22 +121,27 @@ const ESQUELETO = {
     { id:'perna_e', centro:[-0.24,-0.66,0],  tam:[0.22,1.00,0.28], cor:'azul',   piv:[-0.24,-0.16,0], eixe:'x' },
     { id:'perna_d', centro:[ 0.24,-0.66,0],  tam:[0.22,1.00,0.28], cor:'azul',   piv:[ 0.24,-0.16,0], eixe:'x' },
     { id:'torso',   centro:[0, 0.14, 0],     tam:[0.72,0.86,0.58], cor:'azul',   piv:[0,-0.30,0],     eixe:'x' },
-    { id:'torso',   centro:[0, 0.44, 0.10],  tam:[0.52,0.20,0.44], cor:'escuro', piv:[0,-0.30,0],     eixe:'x' },
+    { id:'torso',   centro:[0, 0.44, 0.10],  tam:[0.54,0.22,0.46], cor:'violeta',piv:[0,-0.30,0],     eixe:'x' },
     { id:'brazo_e',    centro:[-0.48,0.28,0.06],tam:[0.20,0.44,0.24], cor:'azul', piv:[-0.48,0.50,0],  eixe:'x' },
     { id:'brazo_d',    centro:[ 0.48,0.28,0.06],tam:[0.20,0.44,0.24], cor:'azul', piv:[ 0.48,0.50,0],  eixe:'x' },
     { id:'antebrazo_e',centro:[-0.48,-0.16,0.06],tam:[0.18,0.44,0.22],cor:'azul', piv:[-0.48,0.06,0], eixe:'x', pai:'brazo_e' },
     { id:'antebrazo_d',centro:[ 0.48,-0.16,0.06],tam:[0.18,0.44,0.22],cor:'azul', piv:[ 0.48,0.06,0], eixe:'x', pai:'brazo_d' },
-    { id:'cabeza',  centro:[0, 0.86, 0],     tam:[0.56,0.52,0.54], cor:'metal',  piv:[0,0.60,0],      eixe:'x' },
+    /* CASCO VIOLETA. É a marca da clase, e vai na cabeza por unha razón
+       medible: probeino primeiro no colar, na cresta e na mira, e a cor
+       quedaba entre o 0% e o 3% do sprite —nunha das oito direccións
+       desaparecía de todo. A cabeza é a única peza que se ve desde as
+       oito e que non tapa ningunha outra. */
+    { id:'cabeza',  centro:[0, 0.86, 0],     tam:[0.58,0.54,0.56], cor:'violeta',piv:[0,0.60,0],      eixe:'x' },
     /* Visor alongado: sobresae por diante e por riba, e é o que se ve
        cando o robot mira de costas ou de perfil. */
     { id:'cabeza',  centro:[0, 0.92, 0.34],  tam:[0.36,0.14,0.30], cor:'ollo',   piv:[0,0.60,0],      eixe:'x' },
-    { id:'cabeza',  centro:[0, 1.10, -0.10], tam:[0.10,0.26,0.10], cor:'escuro', piv:[0,0.60,0],      eixe:'x' },
+    { id:'cabeza',  centro:[0, 1.08, -0.08], tam:[0.12,0.30,0.12], cor:'violeta',piv:[0,0.60,0],      eixe:'x' },
     /* Cano longo e fino. É a clase á que se lle perdoa que sexa delgado
        porque mide case dous corpos de longo: iso lese en calquera das
        oito direccións. */
     { id:'arma',    centro:[0.46,-0.28,0.86],tam:[0.14,0.14,1.80], cor:'escuro', piv:[0.46,-0.28,0.08], eixe:'y', ang:DIAG, pulso:PULSO_ARMA, pai:'antebrazo_d' },
     { id:'arma',    centro:[0.44,-0.30,0.18],tam:[0.24,0.22,0.28], cor:'escuro', piv:[0.46,-0.28,0.08], eixe:'y', ang:DIAG, pulso:PULSO_ARMA, pai:'antebrazo_d' },
-    { id:'arma',    centro:[0.46,-0.18,0.52],tam:[0.10,0.14,0.34], cor:'metal',  piv:[0.46,-0.28,0.08], eixe:'y', ang:DIAG, pulso:PULSO_ARMA, pai:'antebrazo_d' },
+    { id:'arma',    centro:[0.46,-0.17,0.52],tam:[0.12,0.18,0.40], cor:'violeta',piv:[0.46,-0.28,0.08], eixe:'y', ang:DIAG, pulso:PULSO_ARMA, pai:'antebrazo_d' },
   ],
   /* O BOMBARDEIRO ten que distinguirse do HEAVY, que é o seu veciño en
      corpulencia. Faino coa COR: dous depósitos laranxas ás costas, que

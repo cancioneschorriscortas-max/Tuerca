@@ -24,6 +24,11 @@ const PAL = {
   ambar:   [200, 168, 50],
   laranxa: [226, 128, 52],
   ollo:    [150, 245, 245],
+  /* Cor propia do SNIPER. Escolleuse medindo a distancia a todo o que
+     xa se usa (incluídos o terreo e a estrada) e ás dúas cores de bando,
+     que é o erro grave: unha cor de clase que se confunda co equipo
+     mente sobre a quen se pode disparar. */
+  violeta: [158, 96, 208],
 };
 
 /* Dirección da luz, normalizada. Mesmos valores có orixinal. */

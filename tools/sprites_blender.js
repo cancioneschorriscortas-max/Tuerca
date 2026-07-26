@@ -80,8 +80,14 @@ function contornear(im, gr){
    O pivote non é 128 senón a luminancia MEDIA das pezas do corpo: un
    robot azul vive por debaixo do medio da escala, e pivotar en 128
    escurecíao enteiro en vez de abrir a diferenza entre luz e sombra. */
+/* niveis = 0 -> NON se cuantiza a cor, só se endurece o alfa.
+   É o que hai que usar co cel shading, e o motivo é que se non se
+   cuantiza DÚAS veces: a rampla xa deixa as cores exactas da paleta, e
+   volver recortalas a seis chanzos por canle lévaas a outro sitio. O
+   azul do equipo (74,138,216) acababa en (153,153,204), un lavanda
+   pálido — e iso era o que se vía no mapa. */
 function endurecer(s, niveis, gañancia){
-  const paso = 255/(niveis - 1);
+  const paso = niveis > 1 ? 255/(niveis - 1) : 0;
   const k = gañancia || 1;
   let suma = 0, n = 0;
   for(let i = 0; i < s.ancho*s.alto; i++){
@@ -105,8 +111,52 @@ function endurecer(s, niveis, gañancia){
     const f = l > 1 ? Math.max(0, piv + (l - piv)*k) / l : 1;
     for(let c = 0; c < 3; c++){
       const v = px[o+c]*f;
-      px[o+c] = Math.max(0, Math.min(255, Math.round(Math.round(v/paso)*paso)));
+      px[o+c] = Math.max(0, Math.min(255, paso ? Math.round(Math.round(v/paso)*paso) : Math.round(v)));
     }
+  }
+  return { ancho: s.ancho, alto: s.alto, px };
+}
+
+/* ============================================================
+   PALETA DO CEL SHADING.
+
+   Cunha rampla de chanzos sábese EXACTAMENTE que cores pode dar o
+   render: cada entrada da paleta multiplicada por cada chanzo. Así que
+   en vez de cuantizar a unha grella uniforme —que non pasa polas cores
+   da paleta e converteu o azul do equipo nun lavanda— axústase cada
+   píxel á cor máis próxima desa lista.
+
+   É a diferenza entre redondear e escoller. Redondeando, (74,138,216)
+   ía parar a (153,153,204); escollendo, queda en (74,138,216).
+   ============================================================ */
+const _CHANZOS_CEL = { 2: [0.58, 1.00], 3: [0.52, 1.00, 1.30], 4: [0.46, 0.74, 1.00, 1.32] };
+
+function paletaCel(toon){
+  const ks = _CHANZOS_CEL[toon] || _CHANZOS_CEL[3];
+  const fóra = [[12, 14, 12]];                 /* o contorno */
+  for(const base of Object.values(PAL))
+    for(const k of ks)
+      fóra.push(base.map(v => Math.max(0, Math.min(255, Math.round(v*k)))));
+  return fóra;
+}
+
+function axustarAPaleta(s, paleta){
+  const px = Buffer.from(s.px);
+  const cache = new Map();
+  for(let i = 0; i < s.ancho*s.alto; i++){
+    const o = i*4;
+    if(px[o+3] < 110) continue;
+    const clave = (px[o] << 16) | (px[o+1] << 8) | px[o+2];
+    let mellor = cache.get(clave);
+    if(!mellor){
+      let d = Infinity;
+      for(const c of paleta){
+        const q = (c[0]-px[o])**2 + (c[1]-px[o+1])**2 + (c[2]-px[o+2])**2;
+        if(q < d){ d = q; mellor = c; }
+      }
+      cache.set(clave, mellor);
+    }
+    px[o] = mellor[0]; px[o+1] = mellor[1]; px[o+2] = mellor[2];
   }
   return { ancho: s.ancho, alto: s.alto, px };
 }
@@ -126,7 +176,7 @@ function xerar(clase, cadros, opc = {}){
     pezas: montar(clase, c.estado, c.fase, opc.cor).pezas.map(([verts, cor]) => ({ verts, cor })),
   }));
   const entrada = path.join(tmp, 'traballo.json');
-  fs.writeFileSync(entrada, JSON.stringify({ caras: CARAS, cadros: traballo, luminosas: [PAL.ollo] }), 'utf8');
+  fs.writeFileSync(entrada, JSON.stringify({ caras: CARAS, cadros: traballo, luminosas: [PAL.ollo], toon: opc.toon || 0 }), 'utf8');
 
   if(!opc.reusar){
     execFileSync(atoparBlender(), ['--background', '--python', path.join(__dirname, 'blender_banco.py'),
@@ -161,9 +211,11 @@ function xerar(clase, cadros, opc = {}){
     let rec = { ancho: w, alto: h, px };
     while(rec.alto > ALT*2) rec = reducir(rec, Math.max(1, rec.ancho >> 1), rec.alto >> 1);
     const fin = reducir(rec, Math.max(1, Math.round(rec.ancho * ALT / rec.alto)), ALT);
-    fóra[c.nome] = opc.brando ? fin : endurecer(fin, opc.niveis || 6, opc.contraste || 1);
+    const nv = opc.niveis !== undefined ? opc.niveis : (opc.toon ? 0 : 6);
+    const duro = opc.brando ? fin : endurecer(fin, nv, opc.contraste || 1);
+    fóra[c.nome] = (opc.toon && !opc.brando) ? axustarAPaleta(duro, paletaCel(opc.toon)) : duro;
   }
   return fóra;
 }
 
-module.exports = { xerar, endurecer, contornear, contornoDe, CARAS };
+module.exports = { xerar, endurecer, axustarAPaleta, paletaCel, contornear, contornoDe, CARAS };
