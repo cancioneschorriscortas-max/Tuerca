@@ -80,9 +80,18 @@ function mkLobby(net, ui){
       if(L.pechada) return;
       if(!datos){ ui.salaPechada && ui.salaPechada(); return; }
       ui.estado && ui.estado(datos, L.rol);
-      /* O host promove a sala a LISTO cando os dous confirmaron */
+      /* O host promove a sala a LISTO cando os dous confirmaron.
+         A condición di desde ONDE se pode promover, non desde onde non.
+         Antes era `estado !== 'listo'`, e iso incluía 'batalla': en canto
+         o host arrancaba e poñía a sala en batalla, esta mesma liña
+         volvía escribir 'listo' por riba. O convidado, que só arranca ao
+         ver 'batalla', quedaba na sala para sempre — e o host xogando só.
+         Que fose intermitente era a proba: dependía de se o convidado
+         alcanzaba a ver o 'batalla' antes de que se pisase. */
+      const PROMOVIBLES = ['agardando', 'entrebatallas'];
       if(L.rol === 'host' && datos.host && datos.guest
-         && datos.host.listo && datos.guest.listo && datos.estado !== 'listo'){
+         && datos.host.listo && datos.guest.listo
+         && PROMOVIBLES.includes(datos.estado)){
         net.update(`salas/${L.sala}`, {estado: 'listo'});
       }
     }));
