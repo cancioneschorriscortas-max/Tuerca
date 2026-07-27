@@ -4,7 +4,7 @@
 
 **Un RTS territorial onde cada robot ten nome, memoria, cicatrices e dereito a morrer mal.**
 
-[![versión](https://img.shields.io/badge/versión-v0.81-c8a832?style=flat-square)](https://github.com/cancioneschorriscortas-max/Tuerca)
+[![versión](https://img.shields.io/badge/versión-v0.83-c8a832?style=flat-square)](https://github.com/cancioneschorriscortas-max/Tuerca)
 [![dependencias](https://img.shields.io/badge/dependencias-0-4f8aff?style=flat-square)](#)
 [![ficheiro único](https://img.shields.io/badge/build-1%20ficheiro%20HTML-9fb37a?style=flat-square)](#)
 [![idiomas](https://img.shields.io/badge/idiomas-galego%20·%20castelán%20·%20inglés-ff5340?style=flat-square)](#)
@@ -97,8 +97,13 @@ O filtro de deseño de todo o proxecto é un só:
 ## Capturas
 
 <div align="center">
-<img src="docs/hangar.png" width="45%" alt="Hangar">
-<img src="docs/arquivo.png" width="45%" alt="Arquivo">
+
+<img src="docs/arquivo.png" width="45%" alt="Arquivo: informe de baixa dunha unidade caída, con quen estaba preto, os seus vínculos, a última transmisión e a nota do arquivista">
+<img src="docs/pezas.png" width="45%" alt="Banco de pezas: fundir compoñentes por chatarra ou empregalos para reconstruír unidades caídas">
+
+<sub><b>Arquivo</b> — cada caído deixa expediente, coas súas últimas palabras reais.<br>
+<b>Banco de pezas</b> — fundir dá chatarra; reconstruír herda a experiencia do doador. Fundir é irreversible.</sub>
+
 </div>
 
 ---
