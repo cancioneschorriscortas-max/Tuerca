@@ -1577,7 +1577,14 @@ function draw(g){
         const _disp = u.cool > _fc3 - 12;
         const _est = _disp ? 'DISPARAR' : (_mv ? 'ANDAR' : 'REPOUSO');
         const _f3 = _disp ? (((_fc3 - u.cool) / 3) | 0) : (_mv ? ((g.t >> 3) & 3) : 0);
-        _pintado = spr3dDebuxar(ctx, u.cls, u.team, u.x, u.y, _est, u._dir3d, _f3);
+        /* (v0.64) MONTAXE POR PEZAS, detrás do F10. Mentres o xogador non
+           poida montar robots, próbase coa mesma clase en todos os slots:
+           se as dúas vías dan o mesmo, o camiño está ben. */
+        if(typeof MON3D_ACTIVO !== 'undefined' && MON3D_ACTIVO && typeof mon3dDebuxar === 'function'){
+          if(!u._mont3d) u._mont3d = mon3dDeClase(u.cls);
+          _pintado = mon3dDebuxar(ctx, u._mont3d, u.team, u.x, u.y + 8, _est, u._dir3d, _f3);
+        }
+        if(!_pintado) _pintado = spr3dDebuxar(ctx, u.cls, u.team, u.x, u.y, _est, u._dir3d, _f3);
       }
       if(!_pintado) drawRobot(ctx, u.x, u.y, u.cls, u.team, _fr, _fc);
       /* (v0.54) MUESCAS DE KILLS no torso (carreira completa): unha raia

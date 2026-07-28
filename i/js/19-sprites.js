@@ -79,6 +79,18 @@ function spr3dDebuxar(ctx, cls, equipo, x, y, estado, dir, fase){
   return true;
 }
 
+/* F10: usa o camiño de MONTAXE POR PEZAS en vez do sprite da clase. As
+   dúas vías deberían dar o mesmo cando as pezas son todas da mesma
+   clase: é a proba de que compoñer funciona, feita no xogo real e non
+   nunha táboa de números. */
+let MON3D_ACTIVO = false;
+addEventListener('keydown', (e) => {
+  if(e.key !== 'F10') return;
+  MON3D_ACTIVO = !MON3D_ACTIVO;
+  if(typeof toast === 'function') toast(MON3D_ACTIVO ? 'montaxe por pezas' : 'sprite de clase');
+  e.preventDefault();
+});
+
 /* F9: alterna en vivo. Guárdase para que sobreviva a un recargado. */
 addEventListener('keydown', (e) => {
   if(e.key !== 'F9') return;

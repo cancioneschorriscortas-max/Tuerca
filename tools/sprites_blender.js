@@ -192,16 +192,23 @@ function xerar(clase, cadros, opc = {}){
     caixa = caixa ? { x0: Math.min(caixa.x0,b.x0), y0: Math.min(caixa.y0,b.y0),
                       x1: Math.max(caixa.x1,b.x1), y1: Math.max(caixa.y1,b.y1) } : b;
   }
+  /* O encadre pódese impoñer desde fóra. Fai falla para o xerador de
+     PEZAS: se cada peza se recorta polo seu propio contorno, ao apilalas
+     cada unha vén cun encadre distinto e xa non cadran. Cun encadre
+     común, apilar é debuxar unha enriba doutra. */
+  const caixaPropia = caixa;
+  if(opc.caixaFixa) caixa = { ...opc.caixaFixa };
   /* O grosor mídese sobre a escala FINAL, non sobre a do render. E o
      encadre medra ese mesmo grosor, ou o contorno sae cortado polos bordos. */
   /* Un píxel final COMPLETO. A 0.55 o contorno cubría media cela, e o
      limiar de alfa do endurecido borrábao: quedaban os sprites sen liña
      escura, que é o que os facía perder contra o debuxo procedural. */
-  const GROSO = Math.max(1, Math.round((caixa.y1 - caixa.y0 + 1)/ALT));
-  caixa = { x0: Math.max(0, caixa.x0-GROSO), y0: Math.max(0, caixa.y0-GROSO),
+  const GROSO = opc.groso || Math.max(1, Math.round((caixa.y1 - caixa.y0 + 1)/ALT));
+  if(!opc.caixaFixa) caixa = { x0: Math.max(0, caixa.x0-GROSO), y0: Math.max(0, caixa.y0-GROSO),
             x1: Math.min(RES-1, caixa.x1+GROSO), y1: Math.min(RES-1, caixa.y1+GROSO) };
 
   const fóra = {};
+  Object.defineProperty(fóra, 'caixa', { value: caixaPropia, enumerable: false });
   const w = caixa.x1 - caixa.x0 + 1, h = caixa.y1 - caixa.y0 + 1;
   for(const c of cadros){
     const im = contornear(cru[c.nome], GROSO);

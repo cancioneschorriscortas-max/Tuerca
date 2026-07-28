@@ -108,6 +108,7 @@ window.addEventListener('load', function(){
         });
       })();` : ''}
       ${ten('sprites-vellos') ? 'SPR3D_ACTIVO = false;' : ''}
+      ${ten('pezas') ? 'MON3D_ACTIVO = true;' : ''}
       ${ten('enfocar') ? `
       /* Centra a cámara nas propias tropas e achégaa. Sen isto cada
          captura encadra un anaco distinto do mapa segundo onde acabase
