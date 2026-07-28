@@ -124,9 +124,11 @@ const REGRAS_ESQUELETO = [
   },
   {
     id: 'A5', nome: 'a cabeza pousa sobre o torso',
-    por: 'un oco entre cabeza e torso vese como unha peza flotando; unha sobreposición grande come o pescozo',
+    por: 'un oco entre cabeza e torso vese como unha peza flotando; unha sobreposición grande come o pescozo. Mídese contra o CORPO, non contra todo o que se chame torso: as hombreiras e as mochilas van no mesmo id e chegan máis arriba, e con elas a conta daba que a cabeza se afundía medio corpo. É a mesma corrección que xa levaba A4, e destapouna a mestura de pezas.',
     revisar(cls){
-      const t = caixaDe(cls, 'torso'), c = caixaDe(cls, 'cabeza');
+      const corpo = torsoPrincipal(cls);
+      const t = { y1: corpo.centro[1] + corpo.tam[1]/2 };
+      const c = caixaDe(cls, 'cabeza');
       const oco = c.y0 - t.y1;
       if(oco > 0.06) return `hai ${oco.toFixed(2)} de oco entre a cabeza e o torso`;
       if(oco < -0.30) return `a cabeza métese ${(-oco).toFixed(2)} dentro do torso`;
