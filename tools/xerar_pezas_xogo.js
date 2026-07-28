@@ -118,10 +118,14 @@ const ALT = Math.max(8, Math.round(unidades * PX_UNIDADE));
 console.log(`\n  encadre común ${union.x1-union.x0+1}×${altUnion} px de render`);
 console.log(`  = ${unidades.toFixed(2)} unidades → ${ALT} px de sprite\n`);
 
-/* onde cae a orixe do mundo dentro dese encadre, xa en píxeles de sprite */
+/* Onde cae a orixe do mundo dentro dese encadre, xa en píxeles de sprite.
+   TRAMPA: no rasterizador propio a orixe vai en H*0.74 —está posta así
+   para deixar sitio ás pernas— pero en Blender a cámara ORBITA a orixe e
+   míraa, así que proxecta no centro exacto da imaxe. Usar aquí o 0.74 do
+   rasterizador desprazaría cada peza 61 píxeles de render. */
 const escalaSprite = ALT / altUnion;
 const orixeX = (RES/2 - union.x0) * escalaSprite;
-const orixeY = (RES*0.74 - union.y0) * escalaSprite;
+const orixeY = (RES/2 - union.y0) * escalaSprite;
 
 console.log('  pasada 2 de 2: reencadrar á escala común...');
 const banco = {};
