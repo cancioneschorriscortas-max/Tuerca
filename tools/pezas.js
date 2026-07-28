@@ -86,8 +86,14 @@ function ancoras(cls){
   const piv3 = (id) => { const p = esq.find(q => q.id === id); return p && p.piv ? p.piv : [0,0,0]; };
   return {
     pescozo:  [0, arriba, 0],
-    ombroD:   piv3('brazo_d'),
-    ombroE:   piv3('brazo_e'),
+    /* O OMBRO é mixto igual ca a cadeira, e pola mesma razón. En vertical
+       é articulación: o brazo colga á altura do seu eixe de xiro. En
+       horizontal é apoio: a cara interna do brazo pousa no COSTADO do
+       corpo. Sen isto, un brazo estreito de SNIPER montado nun chasis de
+       HEAVY quedaba metido no torso, e un de HEAVY nun SNIPER saía
+       flotando. Eran a metade dos fallos que quedaban. */
+    ombroD:   [ lado, piv3('brazo_d')[1], piv3('brazo_d')[2]],
+    ombroE:   [-lado, piv3('brazo_e')[1], piv3('brazo_e')[2]],
     /* A CADEIRA é mixta, e é o que máis custou ver. En horizontal é
        articulación: a perna vai onde o chasis ten a cadeira. En vertical
        é apoio: a perna colga do FONDO da pelve. Tratándoa como pivote
@@ -113,9 +119,16 @@ function apoioDe(slot, caixas){
     /* a cabeza apóiase pola súa cara de abaixo, centrada en x */
     case 'CABEZA': return [0, _lim(caixas, 1, -1), 0];
     /* brazos e pernas polo seu PIVOTE: son articulacións */
-    case 'BRAZO_DER': case 'BRAZO_ESQ': {
+    case 'BRAZO_DER': {
       const raiz = caixas.find(c => c.id === RAIZ_DE[slot]) || caixas[0];
-      return raiz.piv || raiz.centro;
+      const p = raiz.piv || raiz.centro;
+      /* cara interna en x (a que mira ao corpo); pivote en y e z */
+      return [_lim([raiz], 0, -1), p[1], p[2]];
+    }
+    case 'BRAZO_ESQ': {
+      const raiz = caixas.find(c => c.id === RAIZ_DE[slot]) || caixas[0];
+      const p = raiz.piv || raiz.centro;
+      return [_lim([raiz], 0, +1), p[1], p[2]];
     }
     case 'PERNA_DER': case 'PERNA_ESQ': {
       const raiz = caixas.find(c => c.id === RAIZ_DE[slot]) || caixas[0];

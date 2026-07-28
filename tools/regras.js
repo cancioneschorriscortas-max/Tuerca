@@ -398,19 +398,27 @@ const REGRAS_RENDER = [
       const fronte = visor(sp(0)), costas = visor(sp(4));
       if(fronte <= costas) return `o índice 0 debería ser de fronte: visor ${fronte} px, e de costas (4) ${costas}`;
       if(costas > fronte*0.25) return `o índice 4 debería ser de costas, pero vense ${costas} px de visor`;
-      /* E o artiluxio ten que caer ao lado que toca. */
-      const lado = (s) => {
-        let ax = 0, an = 0, bx = 0, bn = 0;
-        for(let y = 0; y < s.alto; y++) for(let x = 0; x < s.ancho; x++){
-          const i = (y*s.ancho + x)*4;
-          if(s.px[i+3] < 110) continue;
-          bx += x; bn++;
-          if(s.px[i] > 150 && s.px[i+1] > 120 && s.px[i+2] < 110){ ax += x; an++; }   /* ámbar */
-          else if(s.px[i] < 90 && s.px[i+1] < 95 && s.px[i+2] < 105 && s.px[i] > 20){ ax += x; an++; }
-        }
-        return an && bn ? (ax/an) - (bx/bn) : 0;
+      /* E o artiluxio ten que caer ao lado que toca.
+         Identifícase pola CAPA, non pola cor. Detectalo por cor —ámbar
+         ou gris escuro— parecía práctico ata que un chasis con tambor de
+         munición escuro entrou na conta e dixo que o soplete dun
+         ENGINEER estaba á esquerda cando se ve á dereita. A capa sábeo
+         sen adiviñar. */
+      const lado = (d) => {
+        const g = porGrupos(cls, 'REPOUSO', 0, 'peza');
+        const yaw = d*2*Math.PI/8;
+        const cx = (pezas) => {
+          if(!pezas) return null;
+          const r = render({ pezas }, RW, RH, RESCALA, yaw, RPITCH);
+          let s = 0, n = 0;
+          for(let y = 0; y < RH; y++) for(let x = 0; x < RW; x++)
+            if(r.masc[y*RW + x]){ s += x; n++; }
+          return n ? s/n : null;
+        };
+        const brazo = cx(g.BRAZO_D), corpo = cx(g.TORSO);
+        return (brazo == null || corpo == null) ? 0 : brazo - corpo;
       };
-      const dta = lado(sp(2)), esq = lado(sp(6));
+      const dta = lado(2), esq = lado(6);
       if(!(dta > 0)) return `no índice 2 (dereita) o artiluxio debería quedar á dereita do corpo, e queda en ${dta.toFixed(1)}`;
       if(!(esq < 0)) return `no índice 6 (esquerda) o artiluxio debería quedar á esquerda do corpo, e queda en ${esq.toFixed(1)}`;
     },
