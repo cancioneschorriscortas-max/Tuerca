@@ -136,6 +136,55 @@ def material(cor):
 #
 # É a diferenza entre pintar e fotografar un obxecto pintado.
 TOON = int(T.get('toon', 0))
+
+# ---------- pase de PROFUNDIDADE ----------
+# Para poder compoñer un robot a partir de pezas renderizadas por
+# separado non abonda con apilalas ordenadas: as caixas dos modelos
+# interpenétranse a propósito (a cabeza métese no torso) e a xeometría
+# que se interpenetra non ten unha orde de pintado correcta. Medido en
+# tools/proba_capas.js: ata un 15% de píxeles mal.
+#
+# A saída é que cada peza leve tamén a súa profundidade, e que ao
+# xuntalas gañe o píxel máis próximo. Isto renderiza esa profundidade
+# como cor: cada material substitúese por un que emite a distancia á
+# cámara, normalizada ao rango [Z0, Z1] que a cámara ortográfica fixa.
+#
+# Faise cun material e non co compositor porque en modo sen cabeceira o
+# nodo de saída de ficheiro engade numeración de fotograma aos nomes, e
+# aquí interesa controlar exactamente onde vai cada imaxe.
+PROFUNDIDADE = bool(T.get('profundidade', 0))
+# SEN SOMBRAS: obrigatorio se as pezas se van renderizar por separado e
+# compoñer despois. Unha peza soa non proxecta sombra sobre as veciñas
+# nin comparte recunchos con elas, así que a sombra e a oclusión ambiental
+# son xusto o que NON se pode reproducir compoñendo. Medido: coas sombras
+# postas, compoñer erra ata un 12.7% dos píxeles, e todo o erro é de cor
+# dentro da silueta (a silueta cadra ao píxel).
+SEN_SOMBRAS = bool(T.get('sensombras', 0))
+Z0, Z1 = T.get('zrango', [8.0, 12.0])
+
+
+def material_profundidade():
+    m = bpy.data.materials.get('_prof') or bpy.data.materials.new('_prof')
+    if m.node_tree and len(m.node_tree.nodes) > 2:
+        return m
+    m.use_nodes = True
+    nt = m.node_tree
+    nt.nodes.clear()
+    cam = nt.nodes.new('ShaderNodeCameraData')
+    mapa = nt.nodes.new('ShaderNodeMapRange')
+    emi = nt.nodes.new('ShaderNodeEmission')
+    out = nt.nodes.new('ShaderNodeOutputMaterial')
+    mapa.inputs['From Min'].default_value = Z0
+    mapa.inputs['From Max'].default_value = Z1
+    # Invertido: 1 = preto, 0 = lonxe. Así o "máis próximo gaña" é
+    # "o valor máis alto gaña", que é máis difícil de confundir.
+    mapa.inputs['To Min'].default_value = 1.0
+    mapa.inputs['To Max'].default_value = 0.0
+    mapa.clamp = True
+    nt.links.new(cam.outputs['View Z Depth'], mapa.inputs['Value'])
+    nt.links.new(mapa.outputs['Result'], emi.inputs['Color'])
+    nt.links.new(emi.outputs['Emission'], out.inputs['Surface'])
+    return m
 # Multiplicadores de cada chanzo sobre a cor base. O 1.0 é a cor da
 # paleta tal cal, e ten que caer na banda máis ampla: é a que se ve.
 _CHANZOS = {
@@ -152,11 +201,13 @@ _CHANZOS = {
 sol = bpy.data.objects.new('sol', bpy.data.lights.new('sol', type='SUN'))
 sol.data.energy = 3.4
 sol.data.angle = math.radians(9)
+sol.data.use_shadow = not SEN_SOMBRAS
 sol.rotation_euler = (math.radians(52), 0, math.radians(38))
 escena.collection.objects.link(sol)
 
 recheo = bpy.data.objects.new('recheo', bpy.data.lights.new('recheo', type='SUN'))
 recheo.data.energy = 0.9
+recheo.data.use_shadow = not SEN_SOMBRAS
 recheo.rotation_euler = (math.radians(72), 0, math.radians(-132))
 escena.collection.objects.link(recheo)
 
@@ -191,7 +242,9 @@ escena.collection.objects.link(frontal)
 # sprites quedaban 35 puntos de luminancia por debaixo do debuxo
 # clásico. Con Standard, o azul do equipo sae sendo o azul do equipo.
 try:
-    escena.view_settings.view_transform = 'Standard'
+    # 'Raw' no pase de profundidade: alí o valor do píxel É un número, non
+    # unha cor, e non se lle pode aplicar ningunha curva.
+    escena.view_settings.view_transform = 'Raw' if PROFUNDIDADE else 'Standard'
     escena.view_settings.look = 'None'
 except Exception as e:
     print('AVISO: non se puido fixar a transformación de vista:', e)
@@ -239,7 +292,7 @@ escena.render.resolution_y = RES
 escena.render.film_transparent = True      # o xogo pon o terreo detrás
 try:
     escena.eevee.taa_render_samples = 64
-    escena.eevee.use_gtao = True
+    escena.eevee.use_gtao = not SEN_SOMBRAS
     escena.eevee.gtao_distance = 0.35
 except Exception:
     pass
@@ -254,14 +307,20 @@ def limpar_mallas():
             bpy.data.meshes.remove(m)
 
 
-def construir(pezas):
+def construir(pezas, so_sombra=False):
+    """so_sombra: a xeometría constrúese e proxecta sombra, pero non se
+    ve. Serve para renderizar unha peza SOA sen perder as sombras que lle
+    botan as veciñas — que é a única parte do aspecto que non sobrevive a
+    compoñer por separado."""
     for i, pz in enumerate(pezas):
         malla = bpy.data.meshes.new('p%d' % i)
         malla.from_pydata([a_blender(v) for v in pz['verts']], [], CARAS)
         malla.update()
         ob = bpy.data.objects.new('p%d' % i, malla)
-        ob.data.materials.append(material(pz['cor']))
+        ob.data.materials.append(material_profundidade() if PROFUNDIDADE else material(pz['cor']))
         escena.collection.objects.link(ob)
+        if so_sombra:
+            ob.visible_camera = False
         mod = ob.modifiers.new(name='bisel', type='BEVEL')
         mod.width = 0.014
         mod.segments = 2
@@ -273,6 +332,8 @@ feitos = []
 for cadro in T['cadros']:
     limpar_mallas()
     construir(cadro['pezas'])
+    if cadro.get('sombra'):
+        construir(cadro['sombra'], so_sombra=True)
     situar(cadro['yaw'])
     ruta = os.path.join(DESTINO, cadro['nome'] + '.png')
     escena.render.filepath = ruta
