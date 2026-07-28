@@ -22,7 +22,7 @@
    brazos flotando ou metidos no corpo, porque o HEAVY é 0.44 máis ancho
    có SNIPER.
    ============================================================ */
-const { ESQUELETO, CLASES } = require('./modelos.js');
+const { ESQUELETO, CLASES, OBXECTIVO_MAN } = require('./modelos.js');
 
 /* slot do xogo -> capas de render que achega */
 const SLOT_CAPAS = {
@@ -211,7 +211,27 @@ function esqueletoDe(sel, cat){
     p.centro = [p.centro[0], p.centro[1] + dy, p.centro[2]];
     if(p.piv) p.piv = [p.piv[0], p.piv[1] + dy, p.piv[2]];
   }
+  /* O asentamento exponse: quen precocine sprites por peza ten que
+     sumalo ao desprazamento da ancora, ou a peza queda á altura que
+     tiña antes de asentar. */
+  Object.defineProperty(fóra, 'asento', { value: dy, enumerable: false });
   return fóra;
 }
 
-module.exports = { SLOT_CAPAS, SLOTS, CAPA_SLOT, capaDe, ancoras, catalogo, esqueletoDe, ANCORA_DE };
+/* ---------- a pose dun brazo é DO BRAZO ----------
+   poseBaseIK() calcula os ángulos de ombro e cóbado a partir de onde ten
+   que quedar a man (OBXECTIVO_MAN). Iso estaba indexado por clase, así
+   que nunha montaxe collíase o do CHASIS: o mesmo brazo poñía a man en
+   sitios distintos segundo o corpo onde fose.
+
+   Ademais de raro, impide precociñar o atlas: se unha peza se ve distinta
+   segundo o que leve ao lado, hai que renderizala unha vez por
+   combinación. Así, o brazo lévao consigo e renderízase unha soa vez. */
+function obxectivoDe(sel){
+  const d = OBXECTIVO_MAN[sel.BRAZO_DER] || OBXECTIVO_MAN[sel.CHASIS];
+  const e = OBXECTIVO_MAN[sel.BRAZO_ESQ] || OBXECTIVO_MAN[sel.CHASIS];
+  return { d: (d || {}).d, e: (e || {}).e };
+}
+
+module.exports = { SLOT_CAPAS, SLOTS, CAPA_SLOT, capaDe, ancoras, catalogo,
+                   esqueletoDe, obxectivoDe, ANCORA_DE };

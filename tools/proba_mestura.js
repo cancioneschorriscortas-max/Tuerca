@@ -15,7 +15,7 @@
    Uso: node tools/proba_mestura.js [cantas]
    ============================================================ */
 const { ESQUELETO, OBXECTIVO_MAN, CLASES } = require('./modelos.js');
-const { catalogo, esqueletoDe, SLOTS } = require('./pezas.js');
+const { catalogo, esqueletoDe, obxectivoDe, SLOTS } = require('./pezas.js');
 const { revisar } = require('./regras.js');
 
 const cat = catalogo();
@@ -26,7 +26,7 @@ const CLAVE = '_MESTURA';
    CHASIS: é o corpo quen decide a postura, non os brazos. */
 function instalar(sel){
   ESQUELETO[CLAVE] = esqueletoDe(sel, cat);
-  OBXECTIVO_MAN[CLAVE] = OBXECTIVO_MAN[sel.CHASIS] || OBXECTIVO_MAN[CLASES[0]];
+  OBXECTIVO_MAN[CLAVE] = obxectivoDe(sel);
 }
 function desinstalar(){ delete ESQUELETO[CLAVE]; delete OBXECTIVO_MAN[CLAVE]; }
 
