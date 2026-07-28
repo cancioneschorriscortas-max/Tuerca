@@ -32,7 +32,14 @@ const { montar, ESQUELETO, CLASES, ESTADOS } = require('./modelos.js');
 const GRUPO = (id) => {
   if(id === 'cabeza') return 'CABEZA';
   if(id === 'torso') return 'TORSO';
-  if(id === 'arma') return 'ARMA';
+  /* A ARMA vai co BRAZO DEREITO, non aparte. Non é comodidade: unha man
+     pecha arredor dunha empuñadura, e con caixas iso é interpenetración
+     pura — o brazo e a arma ocupan o mesmo volume e non hai orde que os
+     pinte ben. Medido: era o único conflito presente nas CINCO clases.
+     É tamén o que fai Front Mission (as armas van montadas no brazo) e o
+     que xa facía o mockup do xerador sen dicilo: a peza "BD-1 Fusil de
+     servizo" trae as caixas do brazo E do fusil. */
+  if(id === 'arma') return 'BRAZO_D';
   if(id === 'brazo_e' || id === 'antebrazo_e') return 'BRAZO_E';
   if(id === 'brazo_d' || id === 'antebrazo_d') return 'BRAZO_D';
   if(id === 'perna_e') return 'PERNA_E';

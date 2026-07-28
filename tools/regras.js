@@ -15,7 +15,10 @@
    ============================================================ */
 const { ESQUELETO, montar, pose, puntoPosado, ESTADOS, CLASES,
         OBXECTIVO_MAN, ikBrazo, fkBrazo } = require('./modelos.js');
-const { sprite } = require('./vox3d.js');
+const { sprite, render } = require('./vox3d.js');
+/* Para a regra L7: as mesmas dimensións de render que usa a ferramenta
+   tools/conflitos_orde.js, para que os números sexan comparables. */
+const { porGrupos, W: RW, H: RH, ESCALA: RESCALA, PITCH: RPITCH } = require('./proba_capas.js');
 
 /* ---------- Vocabulario ----------
    Un "punto de agarre" é onde remata o brazo: a man. Un "artiluxio" é
@@ -451,6 +454,37 @@ const REGRAS_RENDER = [
           if(masc[y*W] || masc[y*W + W-1]) return `dirección ${d}: toca o bordo vertical`;
         }
       }
+    },
+  },
+  {
+    id: 'L7', nome: 'as pezas admiten unha orde de pintado',
+    por: 'Para que o xogador poida montar robots hai que compoñelos con pezas renderizadas por separado, e a forma barata de facelo é apilar capas nunha orde por dirección — que é o que fai Diablo II cos seus ficheiros COF. Iso só funciona se para cada par de pezas existe ALGUNHA orde correcta. Non a hai cando ás veces está diante unha e ás veces a outra: entón as pezas interpenétranse e non se poden separar. TOPE é un trinquete: baixa segundo se arranxa a xeometría, e o obxectivo é 0. Nunca debe subir.',
+    revisar(cls){
+      const TOPE = 140, TOL = 0.02;
+      let peor = 0, quen = '';
+      for(const est of ['REPOUSO', 'ANDAR', 'DISPARAR']){
+        for(const fase of [0, 0.5]){
+          const grupos = porGrupos(cls, est, fase, 'peza');
+          const nomes = Object.keys(grupos);
+          for(let d = 0; d < 8; d++){
+            const yaw = d*2*Math.PI/8;
+            const r = {};
+            for(const g of nomes) r[g] = render({ pezas: grupos[g] }, RW, RH, RESCALA, yaw, RPITCH);
+            for(let i = 0; i < nomes.length; i++) for(let j = i+1; j < nomes.length; j++){
+              const A = r[nomes[i]], B = r[nomes[j]];
+              let a = 0, b = 0;
+              for(let p = 0; p < RW*RH; p++){
+                if(!A.masc[p] || !B.masc[p]) continue;
+                const dz = A.zbuf[p] - B.zbuf[p];
+                if(dz < -TOL) a++; else if(dz > TOL) b++;
+              }
+              const mal = (a && b) ? Math.min(a, b) : 0;
+              if(mal > peor){ peor = mal; quen = `${nomes[i]} con ${nomes[j]} (dir ${d}, ${est})`; }
+            }
+          }
+        }
+      }
+      if(peor > TOPE) return `${peor} px sen orde posible: ${quen} — o tope é ${TOPE}`;
     },
   },
   {

@@ -77,21 +77,35 @@ const ESQUELETO = {
        O FONDO (1.02) non é decorativo: coas hombreiras planas, a regra L3
        cazaba que de fronte medía 1.56 veces o que de perfil, e o robot
        desaparecía ao xirar. Unha hombreira que sobresae ten que sobresaír
-       en todas as direccións. */
-    { id:'torso',   centro:[-0.86,0.52,0],   tam:[0.42,0.50,1.02], cor:'azul',   piv:[0,-0.30,0],     eixe:'x' },
-    { id:'torso',   centro:[ 0.86,0.52,0],   tam:[0.42,0.50,1.02], cor:'azul',   piv:[0,-0.30,0],     eixe:'x' },
-    { id:'torso',   centro:[-0.86,0.76,0],   tam:[0.34,0.14,0.86], cor:'metal',  piv:[0,-0.30,0],     eixe:'x' },
-    { id:'torso',   centro:[ 0.86,0.76,0],   tam:[0.34,0.14,0.86], cor:'metal',  piv:[0,-0.30,0],     eixe:'x' },
+       en todas as direccións.
+
+       A ALTURA (baixo en 0.35) tampouco: por debaixo diso métense no
+       brazo, que é outra peza intercambiable, e as dúas quedan sen orde
+       de pintado válida. */
+    { id:'torso',   centro:[-0.86,0.60,0],   tam:[0.42,0.50,1.02], cor:'azul',   piv:[0,-0.30,0],     eixe:'x' },
+    { id:'torso',   centro:[ 0.86,0.60,0],   tam:[0.42,0.50,1.02], cor:'azul',   piv:[0,-0.30,0],     eixe:'x' },
+    { id:'torso',   centro:[-0.86,0.84,0],   tam:[0.34,0.14,0.86], cor:'metal',  piv:[0,-0.30,0],     eixe:'x' },
+    { id:'torso',   centro:[ 0.86,0.84,0],   tam:[0.34,0.14,0.86], cor:'metal',  piv:[0,-0.30,0],     eixe:'x' },
     { id:'brazo_e',    centro:[-0.82,0.13,0.06],tam:[0.32,0.42,0.36], cor:'azul', piv:[-0.82,0.34,0],  eixe:'x' },
     { id:'brazo_d',    centro:[ 0.82,0.13,0.06],tam:[0.32,0.42,0.36], cor:'azul', piv:[ 0.82,0.34,0],  eixe:'x' },
     { id:'antebrazo_e',centro:[-0.82,-0.32,0.06],tam:[0.30,0.48,0.34],cor:'azul', piv:[-0.82,-0.08,0],eixe:'x', pai:'brazo_e' },
     { id:'antebrazo_d',centro:[ 0.82,-0.32,0.06],tam:[0.30,0.48,0.34],cor:'azul', piv:[ 0.82,-0.08,0],eixe:'x', pai:'brazo_d' },
-    /* Cabeza baixa e ancha: métese entre as hombreiras en vez de asomar. */
-    { id:'cabeza',  centro:[0, 0.82, 0],     tam:[0.72,0.50,0.70], cor:'metal',  piv:[0,0.62,0],      eixe:'x' },
-    { id:'cabeza',  centro:[0, 0.84, 0.38],  tam:[0.46,0.14,0.12], cor:'ollo',   piv:[0,0.62,0],      eixe:'x' },
-    /* O cañón rotativo pesa: vai na man, non colgado do medio. */
-    { id:'arma',    centro:[0.76,-0.36,0.72],tam:[0.30,0.30,1.50], cor:'escuro', piv:[0.76,-0.36,0.12], eixe:'y', ang:DIAG, pulso:PULSO_ARMA, pai:'antebrazo_d' },
-    { id:'arma',    centro:[0.72,-0.36,0.16],tam:[0.42,0.42,0.34], cor:'escuro', piv:[0.76,-0.36,0.12], eixe:'y', ang:DIAG, pulso:PULSO_ARMA, pai:'antebrazo_d' },
+    /* Cabeza baixa e ancha: métese ENTRE as hombreiras, non DENTRO do
+       torso. A diferenza importa: entre as hombreiras é silueta, dentro
+       do torso é interpenetración, e o que se interpenetra non se pode
+       compoñer por capas (regra L7). O seu fondo apoia xusto no alto do
+       corpo. */
+    { id:'cabeza',  centro:[0, 0.88, 0],     tam:[0.72,0.50,0.70], cor:'metal',  piv:[0,0.63,0],      eixe:'x' },
+    { id:'cabeza',  centro:[0, 0.90, 0.38],  tam:[0.46,0.14,0.12], cor:'ollo',   piv:[0,0.63,0],      eixe:'x' },
+    /* O cañón rotativo pesa: vai na man, non colgado do medio.
+
+       E vai por FÓRA da liña do torso (x >= 0.65). A caixa da recámara
+       mide 0.42 de ancho, e centrada en 0.72 metíase 0.14 dentro do
+       corpo: 130 píxeles sen orde de pintado posible en repouso, o maior
+       conflito de todas as clases. O brazo pode solaparse coa súa propia
+       arma —van na mesma peza— pero non co torso, que é outra. */
+    { id:'arma',    centro:[0.88,-0.36,0.72],tam:[0.30,0.30,1.50], cor:'escuro', piv:[0.88,-0.36,0.12], eixe:'y', ang:DIAG, pulso:PULSO_ARMA, pai:'antebrazo_d' },
+    { id:'arma',    centro:[0.88,-0.36,0.16],tam:[0.42,0.42,0.34], cor:'escuro', piv:[0.88,-0.36,0.12], eixe:'y', ang:DIAG, pulso:PULSO_ARMA, pai:'antebrazo_d' },
   ],
   ENGINEER: [
     { id:'perna_e', centro:[-0.30,-0.60,0],  tam:[0.28,0.88,0.34], cor:'azul',   piv:[-0.30,-0.16,0], eixe:'x' },
