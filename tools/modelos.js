@@ -60,7 +60,7 @@ const ESQUELETO = {
     { id:'perna_d', centro:[ 0.44,-0.56,0],  tam:[0.42,0.82,0.46], cor:'azul',   piv:[ 0.44,-0.15,0], eixe:'x' },
     { id:'torso',   centro:[0, 0.14, 0],     tam:[1.30,0.98,0.94], cor:'azul',   piv:[0,-0.30,0],     eixe:'x' },
     /* Placa peitoral: sobresae por diante e dálle ombreira recta de fronte. */
-    { id:'torso',   centro:[0, 0.06, 0.42],  tam:[1.06,0.66,0.20], cor:'metal',  piv:[0,-0.30,0],     eixe:'x' },
+    { id:'torso', slot:'PEITO', centro:[0, 0.06, 0.58], tam:[1.06,0.66,0.20], cor:'metal', piv:[0,-0.30,0], eixe:'x' },
     /* TAMBOR de munición ás costas. Entrou por unha regra e quedou por
        ser boa idea: L3 medía que de fronte ocupaba 1.55 veces o que de
        perfil, e o robot semellaba encoller ao xirar. Ensanchar as
@@ -68,9 +68,13 @@ const ESQUELETO = {
        só conta unha; o que fai falla é volume no eixe do fondo, que non
        está duplicado. Un cargador ás costas dállo, e de paso lese como o
        que é: quen leva o cañón rotativo leva a munición. */
-    { id:'torso',   centro:[0, 0.24,-0.60],  tam:[0.78,0.86,0.38], cor:'escuro', piv:[0,-0.30,0],     eixe:'x' },
-    { id:'torso',   centro:[0, 0.24,-0.80],  tam:[0.34,0.62,0.12], cor:'metal',  piv:[0,-0.30,0],     eixe:'x' },
+    { id:'torso', slot:'MOCHILA', centro:[0, 0.24,-0.66], tam:[0.78,0.86,0.38], cor:'escuro', piv:[0,-0.30,0], eixe:'x' },
+    { id:'torso', slot:'MOCHILA', centro:[0, 0.24,-0.86], tam:[0.34,0.62,0.12], cor:'metal', piv:[0,-0.30,0], eixe:'x' },
     /* HOMBREIRAS. Son a marca da clase: anchas, altas e cadradas, e
+       van no slot do BRAZO, non no do torso. Unha hombreira móvese co
+       ombro, e ademais no grupo do torso estendíao ata x=1.07,
+       envolvendo os brazos: desde os lados quedaba á vez diante e detrás
+       deles. Eran 140 px sen orde posible.
        chegan máis lonxe cós propios brazos para que a silueta as amose
        aínda de perfil.
 
@@ -82,10 +86,10 @@ const ESQUELETO = {
        A ALTURA (baixo en 0.35) tampouco: por debaixo diso métense no
        brazo, que é outra peza intercambiable, e as dúas quedan sen orde
        de pintado válida. */
-    { id:'torso',   centro:[-0.86,0.60,0],   tam:[0.42,0.50,1.02], cor:'azul',   piv:[0,-0.30,0],     eixe:'x' },
-    { id:'torso',   centro:[ 0.86,0.60,0],   tam:[0.42,0.50,1.02], cor:'azul',   piv:[0,-0.30,0],     eixe:'x' },
-    { id:'torso',   centro:[-0.86,0.84,0],   tam:[0.34,0.14,0.86], cor:'metal',  piv:[0,-0.30,0],     eixe:'x' },
-    { id:'torso',   centro:[ 0.86,0.84,0],   tam:[0.34,0.14,0.86], cor:'metal',  piv:[0,-0.30,0],     eixe:'x' },
+    { id:'torso', slot:'BRAZO_E', centro:[-0.86,0.60,0], tam:[0.42,0.50,1.02], cor:'azul', piv:[0,-0.30,0], eixe:'x' },
+    { id:'torso', slot:'BRAZO_D', centro:[ 0.86,0.60,0], tam:[0.42,0.50,1.02], cor:'azul', piv:[0,-0.30,0], eixe:'x' },
+    { id:'torso', slot:'BRAZO_E', centro:[-0.86,0.84,0], tam:[0.34,0.14,0.86], cor:'metal', piv:[0,-0.30,0], eixe:'x' },
+    { id:'torso', slot:'BRAZO_D', centro:[ 0.86,0.84,0], tam:[0.34,0.14,0.86], cor:'metal', piv:[0,-0.30,0], eixe:'x' },
     { id:'brazo_e',    centro:[-0.82,0.13,0.06],tam:[0.32,0.42,0.36], cor:'azul', piv:[-0.82,0.34,0],  eixe:'x' },
     { id:'brazo_d',    centro:[ 0.82,0.13,0.06],tam:[0.32,0.42,0.36], cor:'azul', piv:[ 0.82,0.34,0],  eixe:'x' },
     { id:'antebrazo_e',centro:[-0.82,-0.32,0.06],tam:[0.30,0.48,0.34],cor:'azul', piv:[-0.82,-0.08,0],eixe:'x', pai:'brazo_e' },
@@ -111,7 +115,7 @@ const ESQUELETO = {
     { id:'perna_e', centro:[-0.30,-0.60,0],  tam:[0.28,0.88,0.34], cor:'azul',   piv:[-0.30,-0.16,0], eixe:'x' },
     { id:'perna_d', centro:[ 0.30,-0.60,0],  tam:[0.28,0.88,0.34], cor:'azul',   piv:[ 0.30,-0.16,0], eixe:'x' },
     { id:'torso',   centro:[0, 0.10, 0],     tam:[0.88,0.82,0.74], cor:'azul',   piv:[0,-0.28,0],     eixe:'x' },
-    { id:'torso',   centro:[0, 0.14,-0.50],  tam:[0.62,0.80,0.30], cor:'ambar',  piv:[0,-0.28,0],     eixe:'x' },
+    { id:'torso', slot:'MOCHILA', centro:[0, 0.14,-0.54], tam:[0.62,0.80,0.30], cor:'ambar', piv:[0,-0.28,0], eixe:'x' },
     { id:'brazo_e',    centro:[-0.58,0.23,0.06],tam:[0.24,0.42,0.28], cor:'azul', piv:[-0.58,0.44,0],  eixe:'x' },
     { id:'brazo_d',    centro:[ 0.58,0.23,0.06],tam:[0.24,0.42,0.28], cor:'azul', piv:[ 0.58,0.44,0],  eixe:'x' },
     { id:'antebrazo_e',centro:[-0.58,-0.20,0.06],tam:[0.22,0.44,0.26],cor:'azul', piv:[-0.58,0.02,0], eixe:'x', pai:'brazo_e' },
@@ -167,9 +171,9 @@ const ESQUELETO = {
     { id:'perna_e', centro:[-0.34,-0.60,0],  tam:[0.32,0.88,0.38], cor:'azul',   piv:[-0.34,-0.16,0], eixe:'x' },
     { id:'perna_d', centro:[ 0.34,-0.60,0],  tam:[0.32,0.88,0.38], cor:'azul',   piv:[ 0.34,-0.16,0], eixe:'x' },
     { id:'torso',   centro:[0, 0.12, 0],     tam:[1.02,0.90,0.78], cor:'azul',   piv:[0,-0.30,0],     eixe:'x' },
-    { id:'torso',   centro:[-0.40,0.30,-0.52],tam:[0.34,0.72,0.34], cor:'laranxa',piv:[0,-0.30,0],    eixe:'x' },
-    { id:'torso',   centro:[ 0.40,0.30,-0.52],tam:[0.34,0.72,0.34], cor:'laranxa',piv:[0,-0.30,0],    eixe:'x' },
-    { id:'torso',   centro:[0, 0.52,-0.44],  tam:[0.62,0.16,0.22], cor:'escuro', piv:[0,-0.30,0],     eixe:'x' },
+    { id:'torso', slot:'MOCHILA', centro:[-0.40,0.30,-0.57], tam:[0.34,0.72,0.34], cor:'laranxa', piv:[0,-0.30,0], eixe:'x' },
+    { id:'torso', slot:'MOCHILA', centro:[ 0.40,0.30,-0.57], tam:[0.34,0.72,0.34], cor:'laranxa', piv:[0,-0.30,0], eixe:'x' },
+    { id:'torso', slot:'MOCHILA', centro:[0, 0.52,-0.51], tam:[0.62,0.16,0.22], cor:'escuro', piv:[0,-0.30,0], eixe:'x' },
     { id:'brazo_e',    centro:[-0.66,0.22,0.06],tam:[0.26,0.44,0.30], cor:'azul', piv:[-0.66,0.44,0],  eixe:'x' },
     { id:'brazo_d',    centro:[ 0.66,0.22,0.06],tam:[0.26,0.44,0.30], cor:'azul', piv:[ 0.66,0.44,0],  eixe:'x' },
     { id:'antebrazo_e',centro:[-0.66,-0.22,0.06],tam:[0.24,0.46,0.28],cor:'azul', piv:[-0.66,0.00,0], eixe:'x', pai:'brazo_e' },

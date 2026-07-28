@@ -29,7 +29,18 @@ const { montar, ESQUELETO, CLASES, ESTADOS } = require('./modelos.js');
 /* Como se agrupan as caixas en PEZAS intercambiables. É o mesmo reparto
    que terá o xerador, e case o mesmo que xa usa o xogo en
    04-progresion.js (alí as pernas van separadas). */
-const GRUPO = (id) => {
+const GRUPO = (peza) => {
+  /* Acepta a peza enteira para poder ler `slot`. Segue admitindo un id
+     solto por compatibilidade. */
+  const id = typeof peza === 'string' ? peza : (peza && peza.id);
+  const slot = typeof peza === 'object' && peza ? peza.slot : null;
+  /* SLOT explícito manda. Existe polos ACCESORIOS: unha mochila ás
+     costas ou unha placa no peito non son "torso" aínda que viaxen con
+     el. Se van no mesmo grupo, o torso queda á vez diante e detrás do
+     brazo —a placa por diante, a mochila por detrás— e non hai orde
+     posible. Medido no HEAVY: 140 px, e ningunha caixa individual tiña
+     a culpa. Créao o agrupamento. */
+  if(slot) return slot;
   if(id === 'cabeza') return 'CABEZA';
   if(id === 'torso') return 'TORSO';
   /* A ARMA vai co BRAZO DEREITO, non aparte. Non é comodidade: unha man
@@ -71,7 +82,7 @@ function porGrupos(cls, estado, fase, corte){
   const g = {};
   rb.pezas.forEach((pz, i) => {
     const orixe = esq[i] || {};
-    let nome = GRUPO(orixe.id);
+    let nome = GRUPO(orixe);
     if(corte === 'caixa') nome += '#' + i;
     else if(corte === 'profundidade' || corte === 'prof8'){ /* reparto igual ca 'peza' */ }
     else if(corte === 'fondo'){
@@ -120,6 +131,71 @@ function porProfundidade(grupos, yaw, bits){
   return { col, masc, W, H };
 }
 
+/* ============================================================
+   A ORDE CORRECTA — o equivalente a un ficheiro COF de Diablo II.
+
+   Ordenar polo centroide é unha aproximación e falla: o ENGINEER non ten
+   NINGÚN conflito —existe orde correcta— e aínda así o centroide erraba
+   un 8.3%. Diablo II non deduce a orde: gárdaa nunha táboa por dirección
+   e por fotograma. Isto calcúlaa.
+
+   Para cada par mírase quen está diante en máis píxeles; iso dá unha
+   relación "A vai antes ca B". Ordenar respectando esa relación é unha
+   ordenación topolóxica. Se hai ciclos —que é o que significa un
+   conflito— rómpense pola aresta máis feble, que é a que menos píxeles
+   estraga.
+   ============================================================ */
+function ordeCapas(grupos, yaw){
+  const nomes = Object.keys(grupos);
+  const r = {};
+  for(const n of nomes) r[n] = render({ pezas: grupos[n] }, W, H, ESCALA, yaw, PITCH);
+  /* peso[i][j] > 0  =>  j está diante de i (i píntase antes) */
+  const peso = nomes.map(() => nomes.map(() => 0));
+  for(let i = 0; i < nomes.length; i++) for(let j = i+1; j < nomes.length; j++){
+    const A = r[nomes[i]], B = r[nomes[j]];
+    let a = 0, b = 0;
+    for(let p = 0; p < W*H; p++){
+      if(!A.masc[p] || !B.masc[p]) continue;
+      const dz = A.zbuf[p] - B.zbuf[p];
+      if(dz < -0.02) a++; else if(dz > 0.02) b++;   /* a: A diante */
+    }
+    if(a > b) peso[j][i] = a - b; else if(b > a) peso[i][j] = b - a;
+  }
+  /* Ordenación topolóxica por eliminación: en cada paso sae o que menos
+     "débito" acumula, é dicir o que menos píxeles estraga se vai xa. */
+  const quedan = nomes.map((_, i) => i), fóra = [];
+  while(quedan.length){
+    let mellor = 0, mellorCusto = Infinity;
+    for(let k = 0; k < quedan.length; k++){
+      /* Peso ENTRANTE: canto se lle reprocha a este nodo estar diante
+         doutro que aínda non saíu. O que non ten reproches é o que está
+         máis atrás, e vai primeiro. Sumar as arestas saíntes é o erro
+         contrario e devolve a orde invertida. */
+      let custo = 0;
+      for(const o of quedan) if(o !== quedan[k]) custo += peso[o][quedan[k]];
+      if(custo < mellorCusto){ mellorCusto = custo; mellor = k; }
+    }
+    fóra.push(nomes[quedan[mellor]]);
+    quedan.splice(mellor, 1);
+  }
+  return fóra;
+}
+
+/* Compón coa orde calculada en vez de coa do centroide. */
+function porCapasOrde(grupos, yaw){
+  const orde = ordeCapas(grupos, yaw);
+  const col = new Float32Array(W*H*3), masc = new Uint8Array(W*H);
+  for(const n of orde){
+    const r = render({ pezas: grupos[n] }, W, H, ESCALA, yaw, PITCH);
+    for(let i = 0; i < W*H; i++){
+      if(!r.masc[i]) continue;
+      masc[i] = 1;
+      col[i*3] = r.col[i*3]; col[i*3+1] = r.col[i*3+1]; col[i*3+2] = r.col[i*3+2];
+    }
+  }
+  return { col, masc, W, H };
+}
+
 /* Compón por capas e devolve o mesmo formato que render(). */
 function porCapas(grupos, yaw){
   const M = mulM(rot('x', PITCH), rot('y', yaw));
@@ -149,7 +225,7 @@ function comparar(a, b){
   return { silueta, cor, cheo, pc: cheo ? (silueta+cor)*100/cheo : 0 };
 }
 
-module.exports = { porGrupos, porCapas, porProfundidade, comparar, GRUPO, W, H, ESCALA, PITCH };
+module.exports = { porGrupos, porCapas, porCapasOrde, ordeCapas, porProfundidade, comparar, GRUPO, W, H, ESCALA, PITCH };
 
 /* O informe só se corre ao invocar o ficheiro; como módulo, isto
    exporta as funcións de composición, que é o que necesitará o xerador. */
@@ -202,8 +278,8 @@ function aSprite(r, alt){
   return reducir(im, Math.max(1, Math.round(im.ancho * alt / im.alto)), alt);
 }
 console.log('  AO TAMAÑO DO XOGO (22 px)\n');
-console.log('  clase          capas ordenadas    profundidade 8 bits');
-console.log('  ' + '-'.repeat(56));
+console.log('  clase          por centroide    ORDE CALCULADA    profundidade 8b');
+console.log('  ' + '-'.repeat(70));
 for(const cls of CLASES){
   const conta = (modo) => {
     let peor = 0;
@@ -213,7 +289,8 @@ for(const cls of CLASES){
         const yaw = d*2*Math.PI/8;
         const a = aSprite(render(montar(cls, est, fase), W, H, ESCALA, yaw, PITCH), 22);
         const b = aSprite(modo === 'capas' ? porCapas(grupos, yaw)
-                                           : porProfundidade(grupos, yaw, 8), 22);
+          : modo === 'orde' ? porCapasOrde(grupos, yaw)
+          : porProfundidade(grupos, yaw, 8), 22);
         let n = 0, tot = 0;
         for(let i = 0; i < Math.min(a.ancho*a.alto, b.ancho*b.alto); i++){
           const av = a.px[i*4+3] > 110, bv = b.px[i*4+3] > 110;
@@ -229,10 +306,11 @@ for(const cls of CLASES){
     }
     return peor;
   };
-  const cap = conta('capas'), pr = conta('prof');
+  const cap = conta('capas'), ord = conta('orde'), pr = conta('prof');
   console.log('  ' + cls.padEnd(13) +
     (cap.toFixed(1)+'%').padStart(8) + '  (' + Math.round(cap/100*250) + ' px)' +
-    (pr.toFixed(1)+'%').padStart(14) + '  (' + Math.round(pr/100*250) + ' px)');
+    (ord.toFixed(1)+'%').padStart(12) + '  (' + Math.round(ord/100*250) + ' px)' +
+    (pr.toFixed(1)+'%').padStart(12) + '  (' + Math.round(pr/100*250) + ' px)');
 }
 console.log('');
 }

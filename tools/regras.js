@@ -458,9 +458,9 @@ const REGRAS_RENDER = [
   },
   {
     id: 'L7', nome: 'as pezas admiten unha orde de pintado',
-    por: 'Para que o xogador poida montar robots hai que compoñelos con pezas renderizadas por separado, e a forma barata de facelo é apilar capas nunha orde por dirección — que é o que fai Diablo II cos seus ficheiros COF. Iso só funciona se para cada par de pezas existe ALGUNHA orde correcta. Non a hai cando ás veces está diante unha e ás veces a outra: entón as pezas interpenétranse e non se poden separar. TOPE é un trinquete: baixa segundo se arranxa a xeometría, e o obxectivo é 0. Nunca debe subir.',
+    por: 'Para que o xogador poida montar robots hai que compoñelos con pezas renderizadas por separado, e a forma barata de facelo é apilar capas nunha orde por dirección — que é o que fai Diablo II cos seus ficheiros COF. Iso só funciona se para cada par de pezas existe ALGUNHA orde correcta. Non a hai cando ás veces está diante unha e ás veces a outra: entón as pezas interpenétranse e non se poden separar. TOPE é un trinquete: baixa segundo se arranxa o reparto en pezas, e o obxectivo é 0. Nunca debe subir. Foi de 140 a 20 ao sacar do torso o que non era torso: as mochilas, a placa peitoral e as hombreiras.',
     revisar(cls){
-      const TOPE = 140, TOL = 0.02;
+      const TOPE = 20, TOL = 0.02;
       let peor = 0, quen = '';
       for(const est of ['REPOUSO', 'ANDAR', 'DISPARAR']){
         for(const fase of [0, 0.5]){
