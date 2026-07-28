@@ -88,8 +88,14 @@ function ancoras(cls){
     pescozo:  [0, arriba, 0],
     ombroD:   piv3('brazo_d'),
     ombroE:   piv3('brazo_e'),
-    cadeiraD: piv3('perna_d'),
-    cadeiraE: piv3('perna_e'),
+    /* A CADEIRA é mixta, e é o que máis custou ver. En horizontal é
+       articulación: a perna vai onde o chasis ten a cadeira. En vertical
+       é apoio: a perna colga do FONDO da pelve. Tratándoa como pivote
+       puro, unha perna ancha colgada da cadeira estreita dun SNIPER
+       quedaba dentro do corpo — 80 píxeles sen orde posible, o maior
+       conflito da mestura con diferenza. */
+    cadeiraD: [piv3('perna_d')[0], abaixo, piv3('perna_d')[2]],
+    cadeiraE: [piv3('perna_e')[0], abaixo, piv3('perna_e')[2]],
   };
 }
 
@@ -107,10 +113,15 @@ function apoioDe(slot, caixas){
     /* a cabeza apóiase pola súa cara de abaixo, centrada en x */
     case 'CABEZA': return [0, _lim(caixas, 1, -1), 0];
     /* brazos e pernas polo seu PIVOTE: son articulacións */
-    case 'BRAZO_DER': case 'BRAZO_ESQ':
-    case 'PERNA_DER': case 'PERNA_ESQ': {
+    case 'BRAZO_DER': case 'BRAZO_ESQ': {
       const raiz = caixas.find(c => c.id === RAIZ_DE[slot]) || caixas[0];
       return raiz.piv || raiz.centro;
+    }
+    case 'PERNA_DER': case 'PERNA_ESQ': {
+      const raiz = caixas.find(c => c.id === RAIZ_DE[slot]) || caixas[0];
+      const p = raiz.piv || raiz.centro;
+      /* x e z do pivote; y da súa cara de arriba */
+      return [p[0], _lim(caixas, 1, +1), p[2]];
     }
     default: return [0, 0, 0];
   }
@@ -173,6 +184,19 @@ function esqueletoDe(sel, cat){
         piv: c.piv ? suma(c.piv, destino) : undefined,
       });
     }
+  }
+  /* ASENTAR NO CHAN. Nun sistema de pezas a altura total é variable por
+     definición: pernas longas, pernas curtas, un chasis máis alto. Se non
+     se asenta, cada montaxe queda a distinta altura e as que se pasan
+     sáense do cadro de render (a regra L2 cázao).
+     A referencia é o chan do propio chasis, así que unha montaxe feita
+     toda dunha clase pisa exactamente onde pisa esa clase. */
+  const chan = Math.min(...ESQUELETO[chasis.de].map(p => p.centro[1] - p.tam[1]/2));
+  const meu  = Math.min(...fóra.map(p => p.centro[1] - p.tam[1]/2));
+  const dy = chan - meu;
+  if(Math.abs(dy) > 1e-9) for(const p of fóra){
+    p.centro = [p.centro[0], p.centro[1] + dy, p.centro[2]];
+    if(p.piv) p.piv = [p.piv[0], p.piv[1] + dy, p.piv[2]];
   }
   return fóra;
 }
