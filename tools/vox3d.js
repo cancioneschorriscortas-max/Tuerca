@@ -154,7 +154,12 @@ function render(rb, W, H, escala, yaw = 0, pitch = 0.38){
       }
     }
   }
-  return { col, masc, W, H };
+  /* zbuf sae tamén: compoñer varias pezas renderizadas por separado só
+     se pode facer ben coa profundidade de cada píxel. Ordenar capas non
+     abonda porque as caixas do modelo interpenétranse a propósito (a
+     cabeza métese no torso, o brazo cruza por diante) e a xeometría que
+     se interpenetra non ten unha orde de pintado correcta. */
+  return { col, masc, zbuf, W, H };
 }
 
 /* Silueta escura por dilatación.
