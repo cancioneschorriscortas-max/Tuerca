@@ -293,7 +293,13 @@ escena.render.film_transparent = True      # o xogo pon o terreo detrás
 try:
     escena.eevee.taa_render_samples = 64
     escena.eevee.use_gtao = not SEN_SOMBRAS
-    escena.eevee.gtao_distance = 0.35
+    # Canto lonxe alcanza a oclusión ambiental. Regulable desde fóra
+    # porque ao renderizar unha peza soa cun oclusor invisible o valor
+    # de sempre escurecía de máis: a cabeza do GRUNT pasaba de 150 a 111
+    # e con tres chanzos de cel shading iso cruza un paso enteiro, así
+    # que os grises saían oliva. Aquí só se expón a perilla; a proba de
+    # cal vale faise fóra, medindo.
+    escena.eevee.gtao_distance = float(T.get('aodist', 0.35))
 except Exception:
     pass
 

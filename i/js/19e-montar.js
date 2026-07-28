@@ -47,22 +47,35 @@ const MON3D_SLOT_DE = {
   PERNA_D: 'PERNA_DER', PERNA_E: 'PERNA_ESQ',
 };
 
-/* Cantas unidades de mundo hai que subir a montaxe para que pise onde
-   pisa o seu chasis. A altura total é variable —pernas longas, pernas
-   curtas— así que sen isto cada robot quedaría a distinta altura. */
-function mon3dAsento(m){
-  const P = PEZAS3D;
-  const am = P.ancorasMundo[m.CHASIS];
-  if(!am) return 0;
+/* O punto máis baixo da montaxe, en unidades de mundo: onde pisa. Sae de
+   sumar, por cada slot, onde monta no chasis e canto baixa a peza desde
+   ese punto, e quedar co mínimo. */
+const MON3D_SLOTS = ['CABEZA', 'CHASIS', 'BRAZO_DER', 'BRAZO_ESQ', 'PERNA_DER', 'PERNA_ESQ'];
+function mon3dBaixo(m, am){
   let baixo = Infinity;
-  for(const slot of ['CABEZA', 'CHASIS', 'BRAZO_DER', 'BRAZO_ESQ', 'PERNA_DER', 'PERNA_ESQ']){
-    const b = P.baixo[slot + '|' + m[slot]];
+  for(const slot of MON3D_SLOTS){
+    const b = PEZAS3D.baixo[slot + '|' + m[slot]];
     if(b === undefined) continue;
     const anc = am[slot];
     baixo = Math.min(baixo, (anc ? anc[1] : 0) + b);
   }
-  if(!isFinite(baixo)) return 0;
-  return (P.chan[m.CHASIS] || 0) - baixo;
+  return baixo;
+}
+
+/* Onde vai a ORIXE do modelo na pantalla para que os pés caian onde os
+   pon o sprite de clase, que é en y+8: alí os tiña o robot procedural e
+   así cambiar de vía non move as unidades respecto do terreo nin das
+   sombras. A orixe do modelo non está nos pés senón á altura da cadeira,
+   uns dez píxeles máis arriba, e ese desnivel tapábase cun +8 escrito a
+   man no punto de chamada que deixou de valer ao cambiar a escala.
+
+   Ancorando os pés, o asento sae de balde: unha montaxe con pernas máis
+   longas ten o punto máis baixo máis lonxe da orixe e sobe soa. */
+function mon3dPousada(m, dir){
+  const am = PEZAS3D.ancorasMundo[m.CHASIS];
+  const pxUnidade = (PEZAS3D.asentoPx && PEZAS3D.asentoPx[dir]) || -PEZAS3D.escala;
+  const baixo = am ? mon3dBaixo(m, am) : NaN;
+  return 8 - (isFinite(baixo) ? baixo : 0) * pxUnidade;
 }
 
 /* Debuxa a montaxe. Devolve true se puido. */
@@ -75,10 +88,9 @@ function mon3dDebuxar(ctx, m, equipo, x, y, estado, dir, fase){
   const orde = ORDE3D[estado + '/' + dir] || ORDE3D['REPOUSO/' + dir];
   if(!orde) return false;
 
-  /* O asento é un desprazamento no MUNDO, e cun pitch subir unha unidade
-     non move un píxel senón cos(pitch). O factor xa vén proxectado por
-     dirección desde o xerador: aquí só se multiplica. */
-  const asento = mon3dAsento(m) * ((P.asentoPx && P.asentoPx[dir]) || -P.escala);
+  /* Onde cae a orixe do modelo para que os pés pousen en y+8, igual que
+     no camiño de clase. Leva dentro o asento das pernas de outra altura. */
+  const pousada = mon3dPousada(m, dir);
   const suav = ctx.imageSmoothingEnabled;
   ctx.imageSmoothingEnabled = false;
   let algo = false;
@@ -95,7 +107,7 @@ function mon3dDebuxar(ctx, m, equipo, x, y, estado, dir, fase){
     const dxy = anc ? anc[dir] : [0, 0];
     /* orixe do encadre + ancora + recorte do atlas + asento */
     const px = x + dxy[0] + a.ox - P.orixe[0];
-    const py = y + dxy[1] + a.oy - P.orixe[1] + asento;
+    const py = y + dxy[1] + a.oy - P.orixe[1] + pousada;
     ctx.drawImage(a.im, cadro*a.w, 0, a.w, a.h, Math.round(px), Math.round(py), a.w, a.h);
     algo = true;
   }

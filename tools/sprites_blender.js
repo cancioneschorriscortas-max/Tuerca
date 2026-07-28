@@ -171,14 +171,56 @@ function xerar(clase, cadros, opc = {}){
      non nun paso de recolorado posterior porque montar() xa o sabe facer,
      e así o sombreado de Blender calcúlase sobre a cor final en vez de
      tinxir un gris xa iluminado. */
+  /* opc.oclusor: unha clase que se constrúe pero NON se ve —só proxecta
+     sombra e conta para a oclusión ambiental. Fai falla para o atlas por
+     pezas: unha peza renderizada soa non recibe a sombra das súas
+     veciñas, e con tres chanzos de cel shading esa falta salta un paso
+     enteiro de cor. Medíuse: as montaxes saían 14 puntos máis claras que
+     o sprite de clase. É o mesmo truco que usaban Diablo II e Os Sims,
+     e ten a contrapartida de que a oclusión queda cocida contra un corpo
+     canónico; a alternativa, calculala en vivo, é exactamente o que se
+     quixo evitar precociñando. */
   const traballo = cadros.map(c => ({
     nome: c.nome, yaw: c.yaw,
     pezas: montar(clase, c.estado, c.fase, opc.cor).pezas.map(([verts, cor]) => ({ verts, cor })),
+    ...(opc.oclusor ? {
+      sombra: montar(opc.oclusor, c.estado, c.fase, opc.cor).pezas.map(([verts, cor]) => ({ verts, cor })),
+    } : {}),
   }));
   const entrada = path.join(tmp, 'traballo.json');
-  fs.writeFileSync(entrada, JSON.stringify({ caras: CARAS, cadros: traballo, luminosas: [PAL.ollo], toon: opc.toon || 0 }), 'utf8');
+  const texto = JSON.stringify({ caras: CARAS, cadros: traballo, luminosas: [PAL.ollo],
+    toon: opc.toon || 0, ...(opc.aodist !== undefined ? { aodist: opc.aodist } : {}) });
 
-  if(!opc.reusar){
+  /* RETOMABLE. O atlas por pezas son 84 capas de 72 cadros e leva unha
+     hora larga; se se corta pola metade, volver empezar de cero é caro
+     de máis. Se o encargo gardado é idéntico ao que se ía facer e están
+     todos os PNG, esta capa xa está renderizada e sáltase.
+
+     A comparación é contra o JSON completo —xeometría, cores, oclusor e
+     chanzos de cel shading— porque é exactamente o que le Blender: se
+     algo diso cambia, o render vello xa non vale. As opcións de despois
+     (encadre, escala, contorno) non entran aquí porque non tocan o
+     render, só o recorte, e ese si se rehai sempre.
+
+     Non abonda con que o encargo coincida: escríbese ANTES de chamar a
+     Blender, así que unha capa cortada a medias tería o encargo novo e
+     os PNG vellos da pasada anterior, que é a peor combinación posible
+     porque non se distingue mirando. Compróbase tamén que cada PNG sexa
+     POSTERIOR ao encargo, que é o que só cumpren os que se renderizaron
+     de verdade con el. */
+  const feito = (() => {
+    try {
+      if(fs.readFileSync(entrada, 'utf8') !== texto) return false;
+      const cando = fs.statSync(entrada).mtimeMs;
+      return cadros.every(c => {
+        const f = path.join(tmp, c.nome + '.png');
+        return fs.existsSync(f) && fs.statSync(f).mtimeMs >= cando;
+      });
+    } catch(e){ return false; }
+  })();
+
+  if(!feito) fs.writeFileSync(entrada, texto, 'utf8');
+  if(!opc.reusar && !feito){
     execFileSync(atoparBlender(), ['--background', '--python', path.join(__dirname, 'blender_banco.py'),
                                    '--', entrada, tmp, String(RES)], { stdio: 'pipe' });
   }

@@ -133,6 +133,73 @@ con osciladores lentos, e a maquinaria son dous osciladores desafinados a 43 e
 **Shift+A** acende e apaga (persistente). Vai con Shift porque `a` soa move a
 cámara. Axustable en vivo desde a consola: `AMB.vol`, `AMB.agachar`.
 
+## Montaxe por pezas (v0.83)
+
+Un robot que monte o xogador é unha combinación de pezas, e as combinacións
+non se poden precociñar: cinco pezas en seis slots son 15.625 robots. O que
+se precociña son as PEZAS, e o xogo apílaas. É o mesmo que facían os
+ficheiros COF de Diablo II.
+
+```
+node tools/xerar_pezas_xogo.js            # renderiza e escribe js/19d-pezas.js
+node tools/xerar_pezas_xogo.js --reusar   # só reencadra, cos renders en caché
+node tools/banco_montaxe.js               # banco visual: as dúas vías xuntas
+node tools/banco_montaxe.js --medir       # o mesmo, en números
+node tools/proba_montaxe.js GRUNT --bordo # canto se afasta de renderizar a clase
+```
+
+Tres datos xerados, cada un porque se mediu que facía falla: `19d-pezas.js`
+(un sprite por peza e capa, todos á mesma escala e no mesmo encadre),
+`19c-orde.js` (en que orde van as capas, por estado e dirección: de fronte a
+mochila vai debaixo e o brazo dereito enriba, de costas ao revés) e as
+ancoras, xa proxectadas a píxeles. Nunha proxección ortográfica trasladar en
+3D é trasladar en 2D, así que abonda con sumar.
+
+**F10** cambia entre o sprite de clase e a montaxe. Mentres o xogador non
+poida montar robots próbase coa mesma clase en todos os slots: se as dúas
+vías dan o mesmo, o camiño está ben.
+
+Catro trampas, todas silenciosas, todas medidas antes de arranxalas:
+
+**A escala non se escribe a man.** Estaba escrito «10 píxeles por unidade»,
+sacado de «un robot de 2.2 unidades ocupa 22 píxeles». Era falso: o banco de
+clases encadra o robot polo seu contorno REAL, que coa inclinación da cámara
+é máis alto que a caixa, e sae 9.3. As montaxes eran un 19% máis grandes que
+os sprites normais e no xogo non había nada que o denunciase. Agora o
+xerador mídea do banco e a proba comproba que non divirxiron.
+
+**Ancórase polos PÉS.** O sprite de clase apoia os pés en `y+8`; a montaxe
+poñía alí a orixe do modelo, que está á altura da cadeira. Tapábase cun `+8`
+no punto de chamada que valía para unha escala e deixou de valer ao
+corrixila. Ancorando os pés o asento das pernas longas sae de balde.
+
+**Unha peza soa non recibe a oclusión das veciñas**, e con tres chanzos de
+cel shading esa falta salta un paso enteiro de cor: as montaxes saían 14
+puntos máis claras. Renderízase cun oclusor invisible —o resto do robot,
+con `visible_camera=False`— que é o que facían Diablo II e Os Sims. A
+contrapartida é que a oclusión queda cocida contra un corpo canónico;
+calculala en vivo é precisamente o que se quixo evitar precociñando.
+
+**Blender e o rasterizador propio xiran ao revés.** `vox3d` xira o MODELO
+baixo unha cámara fixa e Blender move a CÁMARA arredor do modelo, así que
+as dúas secuencias de direccións corren en sentidos opostos e as imaxes
+saen espelladas en x. Está resolto con `yaw = π − yaw` en
+`blender_banco.py`, e a regra L5 caza a discrepancia se alguén o desfai.
+
+**O contorno escóllese medindo.** A clase leva UN contorno arredor de todo o
+robot; a composición leva un POR PEZA, así que os bordos internos —o pescozo,
+o ombro— existen nunha vía e non na outra. Copiar o groso da clase deixa a
+montaxe escura de máis e a metade déixaa clara de máis. Non hai valor
+deducible: `banco_montaxe.js --erro` dá a diferenza media fronte ao sprite de
+clase sobre as cinco clases e as oito direccións, e o mínimo está no 4 (cor
+5.34) fronte ao 3 (13.42) e ao 5 (9.69). Se cambia a escala ou o cel shading,
+repetir o barrido con `--groso`.
+
+**Non ten sentido buscar o cero.** Compoñer pezas nunca vai dar exactamente o
+mesmo que renderizar a clase enteira: os bordos internos están nunha vía e non
+na outra. `proba_montaxe.js --bordo` reparte o erro en silueta, contorno e cor
+para poder mirar só o que importa.
+
 ## Probas
 
 ```

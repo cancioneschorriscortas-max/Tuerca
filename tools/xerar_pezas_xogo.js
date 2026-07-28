@@ -30,7 +30,7 @@ const fs = require('fs');
 const path = require('path');
 const { ESQUELETO, OBXECTIVO_MAN } = require('./modelos.js');
 const { PAL, rot } = require('./vox3d.js');
-const { escribir } = require('./png.js');
+const { escribir, ler: lerPng } = require('./png.js');
 const { xerar } = require('./sprites_blender.js');
 const { catalogo, SLOTS, SLOT_CAPAS, ANCORA_DE, ancoras, capaDe } = require('./pezas.js');
 
@@ -39,10 +39,39 @@ const op = (n, d) => { const i = argv.indexOf('--' + n); return i >= 0 && argv[i
 const REUSAR = argv.includes('--reusar');
 const RES = parseInt(op('res', '256'), 10);
 const TOON = 3, DIRS = 8, PITCH = 0.38;
-/* 10 píxeles por unidade de mundo: é a escala á que un robot de 2.2
-   unidades sae de 22 píxeles, que é o que xa usa o xogo. */
-const PX_UNIDADE = 10;
 const ORTHO = 2.0/0.42;
+
+/* Píxeles de sprite por unidade de mundo. Ten que ser EXACTAMENTE a
+   mesma que a do banco de clases, porque no mapa conviven as dúas vías:
+   as unidades normais debúxanse do banco e as que monta o xogador por
+   pezas. Se difiren, dous robots iguais saen de distinto tamaño.
+
+   O número non se escribe a man. Escribiuse unha vez —un 10, sacado de
+   "un robot de 2.2 unidades ocupa 22 píxeles"— e era falso: o banco de
+   clases encadra o robot polo seu contorno REAL, que coa inclinación da
+   cámara é máis alto que a caixa, e sae 9.3. As montaxes quedaban un
+   19% máis grandes. Así que se mide do propio banco e non pode derivar.
+   Se aínda non hai renders de clase, queda o valor vello. */
+const PX_UNIDADE = (() => {
+  const dir = path.join(__dirname, '..', 'capturas', '_blender');
+  const alt = 22;                       /* o --alt con que se xera o banco */
+  const escalas = [];
+  for(const cls of Object.keys(ESQUELETO)){
+    const d = path.join(dir, cls + '_azul');
+    if(!fs.existsSync(d)) continue;
+    let y0 = Infinity, y1 = -1;
+    for(const f of fs.readdirSync(d)){
+      if(!f.endsWith('.png')) continue;
+      let im; try { im = lerPng(path.join(d, f)); } catch(e){ continue; }
+      for(let y = 0; y < im.alto; y++) for(let x = 0; x < im.ancho; x++)
+        if(im.px[(y*im.ancho + x)*4 + 3] > 110){ if(y < y0) y0 = y; if(y > y1) y1 = y; }
+    }
+    if(y1 < 0) continue;
+    escalas.push(alt / ((y1 - y0 + 1) / (RES/ORTHO)));
+  }
+  if(!escalas.length) return 10;
+  return escalas.reduce((a, b) => a + b, 0) / escalas.length;
+})();
 
 const EQUIPOS = [['0','azul'], ['1','vermello'], ['2','metal']];
 const ESTADOS = [['ANDAR', 4], ['REPOUSO', 1], ['DISPARAR', 4]];
@@ -90,6 +119,25 @@ function renderizar(t, opc){
      ten a súa propia entrada. */
   ESQUELETO[CL] = t.caixas;
   OBXECTIVO_MAN[CL] = OBXECTIVO_MAN[t.peza.de] || {};
+  /* PROBOUSE renderizar cada peza cun oclusor invisible —o resto do
+     robot, con visible_camera=False— para que recibise a sombra das
+     veciñas, que é o que fixeron Diablo II e Os Sims. NON VALE AQUÍ, e
+     o motivo é o cel shading: a rampla ten tres chanzos constantes, así
+     que a oclusión do pescozo non escurece a cabeza un pouco, cámbialle
+     a cara enteira de chanzo. Medido sobre o cru de Blender, na cara
+     frontal da cabeza do GRUNT:
+
+         clase              150,156,166
+         peza sen oclusor   150,156,166   <- xa é exacta
+         peza con oclusor   111,115,123
+
+     É dicir: sen oclusor a peza xa reproduce a clase. A diferenza de
+     brillo que se ve ao compoñer non vén do render senón do procesado
+     —reducir a 20 píxeles e axustar á paleta—, onde cada peza conserva
+     os seus bordos claros no canto de promedialos coa veciña. Con
+     sombreado duro non hai termo medio, e o termo medio era o que
+     buscaba isto. A perilla segue en sprites_blender.js por se algún
+     día o sombreado deixa de ser de chanzos. */
   const r = xerar(CL, cadros, Object.assign({
     res: RES, toon: TOON, cor: t.cor, reusar: REUSAR,
     tmp: path.join(__dirname, '..', 'capturas', '_pezas', t.slot + '_' + t.peza.id + '_' + t.capa + '_' + t.cor),
@@ -108,10 +156,33 @@ traballos.forEach((t, i) => {
   union = union ? { x0: Math.min(union.x0,c.x0), y0: Math.min(union.y0,c.y0),
                     x1: Math.max(union.x1,c.x1), y1: Math.max(union.y1,c.y1) } : { ...c };
 });
-/* marxe para o contorno */
-const GROSO = 3;
-union = { x0: Math.max(0, union.x0-GROSO), y0: Math.max(0, union.y0-GROSO),
-          x1: Math.min(RES-1, union.x1+GROSO), y1: Math.min(RES-1, union.y1+GROSO) };
+/* Marxe para o contorno. Xenerosa a propósito: o groso real decídeo
+   xerar() coa mesma regra que usa o banco de clases —tantos píxeles de
+   render como faga falla para que saia UN píxel de sprite— e aquí só hai
+   que garantir que caiba. Levaba un 3 escrito a man mentres a clase
+   usaba 6, e ese era todo o misterio do brillo: as pezas tiñan medio
+   contorno, así que saían máis claras e un píxel máis estreitas que o
+   sprite de clase.
+
+   Pero copiar o groso da clase tampouco vale, e por unha razón de fondo:
+   a clase leva UN contorno arredor de todo o robot e a composición leva
+   un POR PEZA, así que os bordos internos —o pescozo, o ombro— existen
+   nunha vía e non na outra. Co groso da clase a montaxe sae escura de
+   máis, e coa metade sae clara de máis.
+
+   Non hai un valor deducible: escóllese medindo cal fai casar a
+   COMPOSICIÓN, que é o que se ve. Barrido sobre as cinco clases e as
+   oito direccións, diferenza media fronte ao sprite de clase:
+
+       groso 3    cor 13.42   tamaño 0.97 px
+       groso 4    cor  5.34   tamaño 0.93 px   <- o mínimo, nos dous
+       groso 5    cor  9.69   tamaño 1.43 px
+
+   Repetir o barrido con --groso se cambia a escala ou o cel shading:
+   node tools/banco_montaxe.js --erro dá o número. */
+const MARXE = 10;
+union = { x0: Math.max(0, union.x0-MARXE), y0: Math.max(0, union.y0-MARXE),
+          x1: Math.min(RES-1, union.x1+MARXE), y1: Math.min(RES-1, union.y1+MARXE) };
 const altUnion = (union.y1 - union.y0 + 1);
 const unidades = altUnion / (RES/ORTHO);
 const ALT = Math.max(8, Math.round(unidades * PX_UNIDADE));
@@ -131,7 +202,8 @@ console.log('  pasada 2 de 2: reencadrar á escala común...');
 const banco = {};
 traballos.forEach((t, i) => {
   process.stdout.write(`\r    ${i+1}/${traballos.length}  ${t.slot} ${t.peza.id} ${t.capa} ${t.cor}        `);
-  const r = renderizar(t, { alt: ALT, groso: GROSO, caixaFixa: union, reusar: true });
+  const r = renderizar(t, { alt: ALT, caixaFixa: union, reusar: true,
+                            groso: parseInt(op('groso', '4'), 10) });
   banco[t.slot + '|' + t.peza.id + '|' + t.capa + '|' + t.eq] =
     { cadros: r, capa: t.capa, slot: t.slot, peza: t.peza.id, eq: t.eq, temEquipo: t.temEquipo };
 });
@@ -273,6 +345,11 @@ fs.writeFileSync(saida, `/* ====================================================
 const PEZAS3D = ${JSON.stringify({
   dirs: DIRS, indice, orixe: [ +orixeX.toFixed(2), +orixeY.toFixed(2) ],
   escala: +escalaMundo.toFixed(3), ancoras: ancorasPx, asentoPx,
+  /* A escala que se mediu do banco de clases. Vai gardada para que unha
+     proba poida comprobar que segue coincidindo coa que se usou: se
+     algún día divirxen, os robots montados sairían de distinto tamaño
+     que os normais e no xogo non habería nada que o denunciase. */
+  escalaClase: +PX_UNIDADE.toFixed(3),
   ancorasMundo, chan: chanDe, baixo: baixoDe, banco: saidaBanco,
 })};
 `, 'utf8');

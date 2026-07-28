@@ -103,3 +103,66 @@ proba('todas as pezas están á mesma escala', () => {
   afirmar(Array.isArray(PEZAS.orixe) && PEZAS.orixe.length === 2,
     'a orixe do encadre non é un par de números');
 });
+
+proba('os pés pousan sempre no mesmo sitio, mestures o que mestures', () => {
+  if(!HAI) return;
+  /* O sprite de clase apoia os pés en y+8. A montaxe ten que facer o
+     mesmo ou as unidades quedarían flotando ou enterradas segundo as
+     pezas que levasen, e como cada combinación ten outra altura o fallo
+     non sería constante: sería distinto en cada robot.
+
+     Antes isto tapábase cun +8 escrito a man no punto de chamada, que
+     valía para unha escala concreta e deixou de valer ao corrixila.
+     Agora a montaxe ancórase polo punto máis baixo, así que a proba é
+     que ese punto caia en +8 para calquera mestura, incluídas as que
+     cambian a lonxitude das pernas. */
+  const src = fs.readFileSync(path.join(JS, '19e-montar.js'), 'utf8');
+  const fn = new Function('PEZAS3D', 'Image',
+    src + '; return { mon3dPousada, mon3dBaixo, mon3dDeClase };');
+  const { mon3dPousada, mon3dBaixo, mon3dDeClase } = fn(PEZAS, function(){
+    return { set src(v){}, set onload(v){ v && v(); }, set onerror(v){} };
+  });
+  const clases = Object.keys(PEZAS.ancorasMundo);
+  afirmar(clases.length > 1, 'fan falla polo menos dous chasis para mesturar');
+
+  const montaxes = clases.map(mon3dDeClase);
+  /* e as mesturas que máis moven a altura: as pernas doutra clase */
+  for(const a of clases) for(const b of clases) if(a !== b)
+    montaxes.push(Object.assign(mon3dDeClase(a), { PERNA_DER: b, PERNA_ESQ: b }));
+
+  const alturas = new Set();
+  for(const m of montaxes){
+    const am = PEZAS.ancorasMundo[m.CHASIS];
+    for(let dir = 0; dir < PEZAS.dirs; dir++){
+      const pxUnidade = (PEZAS.asentoPx && PEZAS.asentoPx[dir]) || -PEZAS.escala;
+      const pes = mon3dPousada(m, dir) + mon3dBaixo(m, am) * pxUnidade;
+      afirmar(Math.abs(pes - 8) < 1e-6,
+        `${m.CHASIS} con pernas ${m.PERNA_DER} na dirección ${dir}: ` +
+        `os pés caen en ${pes.toFixed(2)} e deberían caer en 8`);
+    }
+    alturas.add(mon3dPousada(m, 0).toFixed(4));
+  }
+  /* E que non sexa trivialmente certo por dar sempre o mesmo: trocar as
+     pernas TEN que mover a orixe, se non é que non se está asentando. */
+  afirmar(alturas.size > 1,
+    'todas as montaxes dan a mesma pousada; o asento das pernas non se aplica');
+});
+
+proba('as pezas van á mesma escala que o banco de clases', () => {
+  if(!HAI) return;
+  /* No mapa conviven as dúas vías: as unidades normais debúxanse do
+     banco de clases e as que monta o xogador, por pezas. Se as escalas
+     non coinciden, dous robots iguais saen de distinto tamaño e non hai
+     ningún erro que o denuncie.
+
+     Pasou: o atlas por pezas levaba escrito a man "10 píxeles por
+     unidade" e a do banco resultou ser 9.3, así que as montaxes eran un
+     19% máis grandes. Agora o xerador MIDE a do banco e garda as dúas;
+     aquí só se comproba que non divirxiron. */
+  afirmar(Number.isFinite(PEZAS.escalaClase),
+    'o atlas non garda a escala do banco de clases; volve xerar as pezas');
+  const dif = Math.abs(PEZAS.escala - PEZAS.escalaClase);
+  afirmar(dif / PEZAS.escalaClase < 0.05,
+    `as pezas van a ${PEZAS.escala} px por unidade e o banco de clases a ` +
+    `${PEZAS.escalaClase}: as dúas vías non están á mesma escala`);
+});

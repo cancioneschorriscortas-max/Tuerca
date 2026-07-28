@@ -1591,7 +1591,7 @@ function draw(g){
            se as dúas vías dan o mesmo, o camiño está ben. */
         if(typeof MON3D_ACTIVO !== 'undefined' && MON3D_ACTIVO && typeof mon3dDebuxar === 'function'){
           if(!u._mont3d) u._mont3d = mon3dDeClase(u.cls);
-          _pintado = mon3dDebuxar(ctx, u._mont3d, u.team, u.x, u.y + 8, _est, u._dir3d, _f3);
+          _pintado = mon3dDebuxar(ctx, u._mont3d, u.team, u.x, u.y, _est, u._dir3d, _f3);
         }
         if(!_pintado) _pintado = spr3dDebuxar(ctx, u.cls, u.team, u.x, u.y, _est, u._dir3d, _f3);
       }
