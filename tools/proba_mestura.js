@@ -84,3 +84,55 @@ if(mal){
     console.log('    ' + r + '  ' + n + ' veces');
 }
 console.log('');
+
+/* ============================================================
+   E O QUE DE VERDADE IMPORTA.
+
+   As regras son un proxy. O tope de L7 mídese nun render de 176x176 e
+   20 píxeles alí soan a moito, pero o sprite que vai ao xogo ten 22 de
+   alto. A pregunta real é: se compoño esta montaxe por capas, ¿nótase?
+
+   Isto compón cada montaxe coa orde calculada e compáraa co render
+   enteiro, xa reducida ao tamaño do xogo.
+   ============================================================ */
+const { montar } = require('./modelos.js');
+const { render, contornear, aRGBA, recortar, reducir } = require('./vox3d.js');
+const { porGrupos, porCapasOrde, W, H, ESCALA, PITCH } = require('./proba_capas.js');
+
+function _spr(r){
+  let im = recortar(aRGBA(contornear(r, 2)));
+  while(im.alto > 44) im = reducir(im, Math.max(1, im.ancho >> 1), im.alto >> 1);
+  return reducir(im, Math.max(1, Math.round(im.ancho*22/im.alto)), 22);
+}
+function _dif(a, b){
+  let n = 0, t = 0;
+  for(let i = 0; i < Math.min(a.ancho*a.alto, b.ancho*b.alto); i++){
+    const av = a.px[i*4+3] > 110, bv = b.px[i*4+3] > 110;
+    if(av || bv) t++;
+    if(av !== bv){ n++; continue; }
+    if(!av) continue;
+    if(Math.abs(a.px[i*4]-b.px[i*4]) + Math.abs(a.px[i*4+1]-b.px[i*4+1])
+     + Math.abs(a.px[i*4+2]-b.px[i*4+2]) > 24) n++;
+  }
+  return { pc: t ? n*100/t : 0, n };
+}
+
+let suma = 0, casos = 0, peorPc = 0, peorPx = 0, peorNome = '';
+for(const c of combos){
+  instalar(c.sel);
+  for(const est of ['REPOUSO', 'DISPARAR']){
+    const g = porGrupos(CLAVE, est, 0.25, 'peza');
+    for(const d of [0, 2, 5]){
+      const yaw = d*2*Math.PI/8;
+      const r = _dif(_spr(render(montar(CLAVE, est, 0.25), W, H, ESCALA, yaw, PITCH)),
+                     _spr(porCapasOrde(g, yaw)));
+      suma += r.pc; casos++;
+      if(r.pc > peorPc){ peorPc = r.pc; peorPx = r.n; peorNome = c.nome; }
+    }
+  }
+  desinstalar();
+}
+console.log('  compoñer por capas ordenadas, ao tamaño do xogo (22 px):');
+console.log('    erro medio  ' + (suma/casos).toFixed(2) + '%');
+console.log('    peor caso   ' + peorPc.toFixed(1) + '%  (' + peorPx + ' px de ~250)  ' + peorNome);
+console.log('');
