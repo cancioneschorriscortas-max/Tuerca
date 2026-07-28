@@ -189,6 +189,35 @@ const apl = (M, v) => [M[0][0]*v[0]+M[0][1]*v[1]+M[0][2]*v[2],
                        M[1][0]*v[0]+M[1][1]*v[1]+M[1][2]*v[2],
                        M[2][0]*v[0]+M[2][1]*v[1]+M[2][2]*v[2]];
 const escalaMundo = (RES/ORTHO) * escalaSprite;   /* px de sprite por unidade */
+
+/* ---------- proxección, e é a de BLENDER ----------
+   Aquí metín a pata primeiro: usei a proxección do rasterizador propio,
+   que é a que aparece en todo o resto do proxecto. Non vale, porque as
+   dúas cámaras non son a mesma cousa:
+
+     o rasterizador XIRA O MODELO baixo unha cámara fixa
+     Blender MOVE A CÁMARA arredor do modelo, e ademais con yaw = pi-yaw
+
+   O resultado é que están ESPELLADAS en x e a súa secuencia de
+   direccións corre ao revés. Para as siluetas dá igual —por iso as
+   direccións do xogo saen ben— pero para dicir ONDE vai unha peza non:
+   o ombro dereito do HEAVY proxéctase en x=-35 con Blender e en x=+35
+   co rasterizador. Un brazo no lado que non é.
+
+   Isto reproduce a cámara de blender_banco.py: rotation_euler
+   (p, 0, pi-yaw) en orde XYZ, é dicir R = Rz·Ry·Rx, mirando ao longo do
+   seu -Z local. Como o que se quere é un DESPRAZAMENTO, a posición da
+   cámara cancélase e abonda con transpoñer R. */
+function proxectar(v, yawN){
+  const p = Math.PI/2 - PITCH, yawB = Math.PI - yawN;
+  const w = [v[0], v[2], v[1]];                    /* Node -> Blender */
+  const cp = Math.cos(p), sp = Math.sin(p), cy = Math.cos(yawB), sy = Math.sin(yawB);
+  const R = mulM([[cy,-sy,0],[sy,cy,0],[0,0,1]], [[1,0,0],[0,cp,-sp],[0,sp,cp]]);
+  const Rt = [[R[0][0],R[1][0],R[2][0]], [R[0][1],R[1][1],R[2][1]], [R[0][2],R[1][2],R[2][2]]];
+  const c = apl(Rt, w);
+  return [ c[0]*escalaMundo, -c[1]*escalaMundo ];
+}
+
 const ancorasPx = {};
 for(const p of cat.CHASIS){
   if(!p.caixas.length) continue;
@@ -197,13 +226,17 @@ for(const p of cat.CHASIS){
   for(const [slot, nome] of Object.entries(ANCORA_DE)){
     ancorasPx[p.id][slot] = [];
     for(let d = 0; d < DIRS; d++){
-      const M = mulM(rot('x', PITCH), rot('y', d*2*Math.PI/DIRS));
-      const q = apl(M, anc[nome]);
-      ancorasPx[p.id][slot].push([ +(q[0]*escalaMundo).toFixed(2),
-                                   -(q[1]*escalaMundo).toFixed(2) ]);
+      const q = proxectar(anc[nome], d*2*Math.PI/DIRS);
+      ancorasPx[p.id][slot].push([ +q[0].toFixed(2), +q[1].toFixed(2) ]);
     }
   }
 }
+/* O asentamento é un desprazamento vertical do mundo, e proxéctase igual:
+   cun pitch, subir 1 unidade non move 1 píxel senón cos(pitch). Gárdase
+   xa proxectado, un valor por dirección, para que o xogo non teña que
+   saber nada disto. */
+const asentoPx = [];
+for(let d = 0; d < DIRS; d++) asentoPx.push(+proxectar([0,1,0], d*2*Math.PI/DIRS)[1].toFixed(4));
 
 /* ---------- datos para ASENTAR NO CHAN ----------
    A altura total dunha montaxe é variable: pernas longas, pernas curtas,
@@ -239,7 +272,7 @@ fs.writeFileSync(saida, `/* ====================================================
    ============================================================ */
 const PEZAS3D = ${JSON.stringify({
   dirs: DIRS, indice, orixe: [ +orixeX.toFixed(2), +orixeY.toFixed(2) ],
-  escala: +escalaMundo.toFixed(3), ancoras: ancorasPx,
+  escala: +escalaMundo.toFixed(3), ancoras: ancorasPx, asentoPx,
   ancorasMundo, chan: chanDe, baixo: baixoDe, banco: saidaBanco,
 })};
 `, 'utf8');

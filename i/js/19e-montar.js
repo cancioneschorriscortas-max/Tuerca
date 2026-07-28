@@ -75,7 +75,10 @@ function mon3dDebuxar(ctx, m, equipo, x, y, estado, dir, fase){
   const orde = ORDE3D[estado + '/' + dir] || ORDE3D['REPOUSO/' + dir];
   if(!orde) return false;
 
-  const asento = mon3dAsento(m) * P.escala;   /* unidades -> píxeles */
+  /* O asento é un desprazamento no MUNDO, e cun pitch subir unha unidade
+     non move un píxel senón cos(pitch). O factor xa vén proxectado por
+     dirección desde o xerador: aquí só se multiplica. */
+  const asento = mon3dAsento(m) * ((P.asentoPx && P.asentoPx[dir]) || -P.escala);
   const suav = ctx.imageSmoothingEnabled;
   ctx.imageSmoothingEnabled = false;
   let algo = false;
@@ -92,7 +95,7 @@ function mon3dDebuxar(ctx, m, equipo, x, y, estado, dir, fase){
     const dxy = anc ? anc[dir] : [0, 0];
     /* orixe do encadre + ancora + recorte do atlas + asento */
     const px = x + dxy[0] + a.ox - P.orixe[0];
-    const py = y + dxy[1] + a.oy - P.orixe[1] - asento;
+    const py = y + dxy[1] + a.oy - P.orixe[1] + asento;
     ctx.drawImage(a.im, cadro*a.w, 0, a.w, a.h, Math.round(px), Math.round(py), a.w, a.h);
     algo = true;
   }
