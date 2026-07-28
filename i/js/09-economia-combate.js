@@ -938,6 +938,7 @@ function tickUnits(g){
       u.cool = u.fireCool || 46; if(u.act) u.act.shots++; u._revealT = g.t; if(u.team===PT||rnd()<0.5) sfxT('shot_'+u.cls.toLowerCase(), 75);
       const _dmgCob = enCobertura(foe, u, g) ? u.dmg * 0.75 : u.dmg;
       foe.hp -= _dmgCob;
+      foe._golpeT = g.t;   /* (v0.64) marca para a pose de IMPACTO */
       if(foe.act) foe.act.dmgTaken += _dmgCob;
       /* (v0.14) BOMBARDERO: metralla en área — dana (nunca mata) aos inimigos preto do impacto */
       if(u.cls === 'BOMBARDERO'){
@@ -1246,6 +1247,8 @@ function tickUnits(g){
           v.hp = Math.min(v.max, v.hp + u.healRate);
           u.repairs += u.healRate;
           reparoEsteFrame = true;
+          u._curaT = g.t;   /* (v0.64) o ENXEÑEIRO inclínase: pose de CURAR.
+                               _curandoT vai no paciente e é outra cousa. */
           /* (v0.83) marca no PACIENTE + soldadura no punto de contacto */
           v._curandoT = g.t;
           if(typeof efxCura === 'function') efxCura(u.x, u.y, v.x, v.y);

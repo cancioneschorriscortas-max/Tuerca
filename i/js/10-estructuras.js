@@ -1573,10 +1573,19 @@ function draw(g){
       if(typeof spr3dDebuxar === 'function'){
         if(_mv) u._dir3d = spr3dDir(_dx, _dy);
         else if(u._dir3d === undefined) u._dir3d = u.team === 0 ? 2 : 6;   /* quieto: cara ao inimigo (2 = dereita) */
+        /* (v0.64) Os cinco estados que os modelos saben facer. A orde
+           importa: un golpe interrompe o que esteas a facer, e curar
+           manda sobre andar porque o enxeñeiro para para reparar. */
         const _fc3 = (u.fireCool || 46);
-        const _disp = u.cool > _fc3 - 12;
-        const _est = _disp ? 'DISPARAR' : (_mv ? 'ANDAR' : 'REPOUSO');
-        const _f3 = _disp ? (((_fc3 - u.cool) / 3) | 0) : (_mv ? ((g.t >> 3) & 3) : 0);
+        const _golpe = u._golpeT !== undefined && g.t - u._golpeT < 14;
+        const _cura  = u._curaT  !== undefined && g.t - u._curaT  < 10;
+        const _disp  = u.cool > _fc3 - 12;
+        const _est = _golpe ? 'IMPACTO' : _cura ? 'CURAR'
+                   : _disp ? 'DISPARAR' : (_mv ? 'ANDAR' : 'REPOUSO');
+        const _f3 = _golpe ? Math.min(3, (g.t - u._golpeT) >> 2)
+                  : _cura  ? ((g.t >> 3) & 3)
+                  : _disp  ? (((_fc3 - u.cool) / 3) | 0)
+                  : (_mv ? ((g.t >> 3) & 3) : 0);
         /* (v0.64) MONTAXE POR PEZAS, detrás do F10. Mentres o xogador non
            poida montar robots, próbase coa mesma clase en todos os slots:
            se as dúas vías dan o mesmo, o camiño está ben. */

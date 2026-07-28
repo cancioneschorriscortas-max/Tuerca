@@ -39,7 +39,11 @@ const DIRS = 8;
    tamén a cabeza, pero un robot sen bando enteiro de gris lese ben. */
 const EQUIPOS = [['0', 'azul'], ['1', 'vermello'], ['2', 'metal']];
 /* estado -> cantas fases ten. REPOUSO só precisa unha. */
-const ESTADOS_XOGO = [['ANDAR', 4], ['REPOUSO', 1], ['DISPARAR', 4]];
+/* Os cinco. CURAR e IMPACTO levaban modelados e comprobados polas
+   regras desde o principio, e o xogo tiña os sinais para disparalos —
+   só faltaba xeralos. */
+const ESTADOS_XOGO = [['ANDAR', 4], ['REPOUSO', 1], ['DISPARAR', 4],
+                      ['CURAR', 4], ['IMPACTO', 4]];
 
 const cadros = [];
 const indice = {};        /* "ANDAR" -> {base, fases} dentro do atlas */
