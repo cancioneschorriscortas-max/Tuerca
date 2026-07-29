@@ -706,6 +706,8 @@ async function showHangar(){
         ${u.desdeCero ? `<span class="tag" style="color:#7fdc7f; border-color:#7fdc7f;">${TXT('hg.novo')}</span>` : ''}
         ${u.folga && u.folga.ops>0 ? `<span class="tag" style="color:#ff5340; border-color:#ff5340;">${TXT('hg.folga', {ops: u.folga.ops+' op'+(u.folga.ops>1?'s':''), por: u.folga.por})}</span>` : ''}
         ${u.sinergia && SINERXIAS[u.sinergia] ? `<span class="tag" style="color:#ffd700; border-color:#ffd700;">✦ ${SINERXIAS[u.sinergia].label}</span>` : ''}
+        ${Object.keys(u.habilidades||{}).filter(k => u.habilidades[k] && HABILIDADES[k]).map(k =>
+          `<span class="tag" style="color:#b48aff; border-color:#b48aff;" title="${HABILIDADES[k].desc}">◈ ${HABILIDADES[k].label}</span>`).join('')}
         <button class="bio-btn" data-bio="${i}">${TXT('hg.biografia')}</button>
         <button class="rename-btn" data-ren="${i}">${TXT('hg.renombrar')}</button>
         <button class="bio-btn" data-equip="${i}" style="color:#c8a86a;">${TXT('hg.mellorar')}</button>
@@ -1043,6 +1045,24 @@ function showDespiece(){
    ============================================================ */
 const RECON_COST = 90, RECON_RECAMBIO = 20;
 /* (v0.19 R3) SINERXÍAS: o roll oculto da ensamblaxe. Revélase só ao recoller. */
+/* HABILIDADES CRUZADAS: o que che dá montar un robot con pezas doutra
+   clase. Estaban escritas DENTRO da función que redacta o debrief, así
+   que só existían nese intre: aparecía o cartel ao ensamblar e despois
+   non había maneira de saber que unidade as levaba. E non son cosmética
+   —antimuro fai o DOBRE de dano a estruturas— así que non poder
+   distinguila doutra normal é perder información que decide unha
+   batalla.
+
+   Mesma forma que SINERXIAS, e polo mesmo motivo: unha táboa que poidan
+   ler o debrief, o roster e a ficha. */
+const HABILIDADES = {
+  recolector:   {label:'RECOLECTOR',    desc:'Pilla chatarra e restos do campo aínda sen ser enxeñeiro'},
+  antimuro:     {label:'ANTIMURO',      desc:'Dobre dano a estruturas e vehículos'},
+  cazapilotos:  {label:'CAZAPILOTOS',   desc:'Máis probabilidade de ferir tripulantes dentro dun vehículo'},
+  nucleoPiloto: {label:'NÚCLEO DE PILOTO', desc:'Bonificación de pilotaxe herdada do núcleo'},
+  chasisHeavy:  {label:'CHASIS PESADO', desc:'+12% de HP polo chasis de HEAVY'},
+};
+
 const SINERXIAS = {
   CORAZON_DOBLE: {label:'CORAZÓN DOBRE', desc:'Unha vez por operación sobrevive un golpe letal quedando a 1 HP'},
   NUCLEO_QUENTE: {label:'NÚCLEO QUENTE', desc:'Autorreparación integrada de serie (rexenera fóra de combate)'},
@@ -1313,9 +1333,9 @@ function entregarReconstruccion(lines){
     lines.push(`<div style="margin-left:24px; color:#9fd0ff;" class="small">▲ As pezas lembran: ${subidas.join(', ')}</div>`);
   }
   if(rec.habilidades){
-    const et = {recolector:'RECOLECTOR (pilla chatarra/restos)', antimuro:'ANTIMURO (×2 a estructuras)',
-                cazapilotos:'CAZAPILOTOS (+rango, fere tripulantes)', nucleoPiloto:'NÚCLEO DE PILOTO', chasisHeavy:'CHASIS PESADO (+12% HP)'};
-    lines.push(`<div style="margin-left:24px; color:#ff9a3c;" class="small">◈ Habilidades herdadas: ${Object.keys(rec.habilidades).map(k=>et[k]||k).join(' · ')}</div>`);
+    lines.push(`<div style="margin-left:24px; color:#b48aff;" class="small">◈ Habilidades herdadas: ${
+      Object.keys(rec.habilidades).map(k => HABILIDADES[k]
+        ? `<b>${HABILIDADES[k].label}</b> (${HABILIDADES[k].desc})` : k).join(' · ')}</div>`);
   }
   /* (R3) A SINERXÍA revélase agora — ou non houbo sorte */
   if(rec.sinergia){
@@ -1604,6 +1624,8 @@ function showBiography(u){
     ${u.rival ? `<div class="small" style="color:#ff9a3c; margin:6px 0;">${TXT('bio.rival', {n: u.rival.conNome, op: u.rival.op})}</div>` : ''}
     ${u.vinculos && u.vinculos.length ? `<div class="small" style="color:#ffd700; margin:6px 0;">${TXT('bio.vinculos')}${u.vinculos.map(v => TXT(v.tipo==='CAMARADA' ? 'bio.camarada' : 'bio.debeda', {n: v.conNome}) + ` (Op ${v.op})`).join(' · ')}</div>` : ''}
     ${u.piezasDe && u.piezasDe.length ? `<div class="small" style="color:#ff9a3c; margin:6px 0;">${TXT('bio.reensamblado', {op: u.reconstruidoOp||'?', l: u.piezasDe.join(', ')})}${u.sinergia && SINERXIAS[u.sinergia] ? ` · <span style="color:#ffd700;">✦ ${SINERXIAS[u.sinergia].label}</span>` : ''}</div>` : ''}
+    ${Object.keys(u.habilidades||{}).filter(k => u.habilidades[k] && HABILIDADES[k]).map(k =>
+      `<div class="small" style="color:#b48aff; margin:2px 0;">◈ <b>${HABILIDADES[k].label}</b> — ${HABILIDADES[k].desc}</div>`).join('')}
     ${statsHtml}
   `;
   if((u.traits||[]).length){

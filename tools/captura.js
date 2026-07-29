@@ -201,6 +201,13 @@ window.addEventListener('load', function(){
       });
       DATA.chatarra = 124;
       DATA.opCount = 13;
+      /* Dúas unidades comparables para ver as marcas: unha normal e unha
+         reensamblada con pezas alleas, coas súas habilidades cruzadas. */
+      DATA.units[1].habilidades = {antimuro:true, cazapilotos:true};
+      DATA.units[1].piezasDe = ['MARTELO','BIELA'];
+      DATA.units[1].reconstruidoOp = 11;
+      DATA.units[1].renacido = {opsLeft:3};
+      DATA.units[2].desdeCero = true;
       /* --ficha abre a biografía dunha unidade, que é onde vai a lámina
          técnica da clase. Sen isto non hai xeito de capturala: a ficha
          só se abre premendo, e a captura non preme. */
@@ -237,6 +244,11 @@ window.addEventListener('load', function(){
       DATA.reconstruccion = {rec: DATA.units[0], pezas: [], encargadaOp: 13, sinergia: null};
       ${lingua ? "setLang('" + lingua + "', {persist:false});" : ""}
       estadoRender();
+      /* E o ROSTER, que non se repintaba: a semente enche DATA despois
+         de que showHangar() xa pintase a lista, así que quedaba dicindo
+         "roster baleiro" con sete unidades dentro. Hai que gardar antes
+         de repintar porque showHangar empeza cun loadData(). */
+      saveData(DATA).then(function(){ showHangar(); });
     }catch(e){
       document.body.innerHTML = '<pre style="color:#ff6a5a;font:14px monospace;padding:20px">'
         + 'ERRO NA SEMENTE\\n' + (e && e.stack || e) + '</pre>';

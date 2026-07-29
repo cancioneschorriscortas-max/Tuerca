@@ -214,3 +214,38 @@ proba('un robot montado desde cero leva marca propia no roster', async () => {
   afirmar(/class="tag"/.test(arredor),
     'o robot montado sae no roster sen ningunha etiqueta: non hai como distinguilo');
 });
+
+proba('as habilidades cruzadas vense no roster e explícanse na ficha', async () => {
+  /* As habilidades que dá montar con pezas doutra clase anunciábanse
+     UNHA VEZ, no cartel do debrief, e despois desaparecían: non estaban
+     nin no roster nin na ficha. As etiquetas estaban escritas dentro da
+     función que redacta o debrief, así que só existían nese intre.
+
+     E non son cosmética: antimuro fai o DOBRE de dano a estruturas e
+     vehículos. Non poder distinguir esa unidade doutra normal é perder
+     información que decide unha batalla. */
+  const S = cargarXogo();
+  await asentar();
+  const D = S.DATA;
+  D.units = [
+    { id:'R-01', name:'NORMAL', cls:'GRUNT', ops:4, activity:{} },
+    { id:'R-02', name:'CRUZADO', cls:'GRUNT', ops:4, activity:{},
+      habilidades:{ antimuro:true }, piezasDe:['MARTELO'], reconstruidoOp:6 },
+  ];
+  D.reconstruccion = null;
+  await S.aval('saveData')(D);
+  await S.aval('showHangar')();
+
+  const html = S.document.getElementById('rosterList').innerHTML;
+  const arredor = n => { const i = html.indexOf(n); return i < 0 ? '' : html.slice(i, i + 900); };
+  afirmar(/ANTIMURO/.test(arredor('CRUZADO')),
+    'a unidade con habilidade cruzada non a amosa no roster');
+  afirmar(!/ANTIMURO/.test(arredor('NORMAL')),
+    'unha unidade normal amosa unha habilidade que non ten');
+
+  /* e na ficha, co efecto dito: unha etiqueta soa non explica nada */
+  S.aval('showBiography')(D.units[1]);
+  const bio = S.document.getElementById('bioBody').innerHTML;
+  afirmar(/ANTIMURO/.test(bio), 'a ficha non menciona a habilidade');
+  afirmar(/Dobre dano/.test(bio), 'a ficha di o nome pero non o que fai');
+});
