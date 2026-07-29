@@ -155,9 +155,23 @@ mochila vai debaixo e o brazo dereito enriba, de costas ao revés) e as
 ancoras, xa proxectadas a píxeles. Nunha proxección ortográfica trasladar en
 3D é trasladar en 2D, así que abonda con sumar.
 
-**F10** cambia entre o sprite de clase e a montaxe. Mentres o xogador non
-poida montar robots próbase coa mesma clase en todos os slots: se as dúas
-vías dan o mesmo, o camiño está ben.
+**Onde se usa.** Un robot que sae do RECONSTRUCTOR debúxase polas súas
+pezas, sen tocar nada: `entregarReconstruccion` garda en `rec.montaxe` de
+que clase era o doador de cada peza, e o debuxo usa esa montaxe se existe.
+Non fixo falla traducir vocabularios porque os TIPOS de peza que xa usaba a
+economía de despece —CABEZA, CHASIS, BRAZO_DER…— son exactamente os nomes
+dos slots da montaxe. Iso non estaba garantido, así que hai unha proba que
+o vixía: se alguén renomea un dos dous, os robots reconstruídos volverían
+saír coa aparencia da clase sen dar erro.
+
+Cada peza vai no SEU lado: se o doador puxo o brazo dereito, o esquerdo
+segue sendo recambio da clase do chasis e o robot vese asimétrico. É o
+correcto — está feito de anacos, e agora nótase.
+
+**F10** forza a montaxe en todas as unidades, incluídas as que non foron
+reconstruídas, para comparar as dúas vías: se dan o mesmo, o camiño está
+ben. `node tools/captura.js batalla --reensamblado` dá unha captura con
+unidades de pezas mesturadas.
 
 Catro trampas, todas silenciosas, todas medidas antes de arranxalas:
 

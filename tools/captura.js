@@ -109,6 +109,23 @@ window.addEventListener('load', function(){
       })();` : ''}
       ${ten('sprites-vellos') ? 'SPR3D_ACTIVO = false;' : ''}
       ${ten('pezas') ? 'MON3D_ACTIVO = true;' : ''}
+      ${ten('reensamblado') ? `
+      /* Dálle a cada unidade unha montaxe con pezas doutras clases, como
+         se saíse do reconstructor. É o único xeito de ver no xogo o que
+         só se podía ver no banco de probas: un robot que se PARECE ao
+         que está feito, en vez de saír coa aparencia uniforme da clase. */
+      (function reensamblar(){
+        var mesturas = [
+          { BRAZO_DER: 'HEAVY' },
+          { CABEZA: 'BOMBARDERO', BRAZO_ESQ: 'SNIPER' },
+          { PERNA_DER: 'HEAVY', PERNA_ESQ: 'HEAVY' },
+          { CABEZA: 'SNIPER', BRAZO_DER: 'ENGINEER' },
+        ];
+        game.units.filter(function(u){ return u.team === 0; }).forEach(function(u, i){
+          u.montaxe = mesturas[i % mesturas.length];
+          u._mont3d = null;
+        });
+      })();` : ''}
       ${ten('enfocar') ? `
       /* Centra a cámara nas propias tropas e achégaa. Sen isto cada
          captura encadra un anaco distinto do mapa segundo onde acabase

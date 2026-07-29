@@ -121,3 +121,19 @@ function mon3dDeClase(cls){
   return { CABEZA: cls, CHASIS: cls, NUCLEO: cls, BRAZO_DER: cls,
            BRAZO_ESQ: cls, PERNA_DER: cls, PERNA_ESQ: cls };
 }
+
+/* A montaxe dun robot RECONSTRUÍDO. O reconstructor xa garda de que
+   clase era o doador de cada peza (`deCls`), e os tipos de peza que usa
+   —CABEZA, CHASIS, BRAZO_DER…— son exactamente os slots desta montaxe,
+   así que non hai que traducir nada.
+
+   Os ocos son recambio xenérico, e o recambio sae da clase do chasis:
+   é o que xa di o xogo, que o chasis decide a clase. O resultado é que
+   un robot reensamblado con pezas alleas VESE reensamblado —un brazo
+   doutra cor, unha cabeza doutro tamaño— en vez de saír coa aparencia
+   uniforme da clase, que era o que pasaba ata agora. */
+function mon3dDeMontaxe(pezas, clsBase){
+  const m = mon3dDeClase(clsBase);
+  for(const slot of MON3D_SLOTS) if(pezas[slot]) m[slot] = pezas[slot];
+  return m;
+}

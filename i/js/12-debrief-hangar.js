@@ -1218,6 +1218,14 @@ function entregarReconstruccion(lines){
   if(Object.keys(hab).length) rec.habilidades = hab;
   rec.piezasDe = [...doadores];
   rec.piezasClases = [...new Set(Object.values(R.pezas).filter(Boolean).map(p => p.deCls))];
+  /* (v0.84) De que clase é cada peza, para poder DEBUXALO como o que é.
+     O tipo de peza xa é o nome do slot da montaxe, así que só hai que
+     copiar. Cada brazo e cada perna van no seu lado: se o doador puxo o
+     brazo dereito, o esquerdo segue sendo recambio da clase do chasis,
+     e o robot vese asimétrico. Iso é o correcto — está feito de anacos. */
+  rec.montaxe = {};
+  for(const p of Object.values(R.pezas)) if(p && p.deCls) rec.montaxe[p.tipo] = p.deCls;
+  if(!Object.keys(rec.montaxe).length) delete rec.montaxe;
   rec.reconstruidoOp = DATA.opCount;
   if(R.sinergia) rec.sinergia = R.sinergia;
   if(R.desdeCero){

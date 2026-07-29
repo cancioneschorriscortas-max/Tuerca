@@ -148,14 +148,21 @@ const SLOTS = ['CABEZA', 'CHASIS', 'BRAZO_DER', 'BRAZO_ESQ', 'PERNA_DER', 'PERNA
 const filas = [];
 for(const c of CLASES) filas.push({ etiqueta: c, m: mon3dDeClase(c) });
 
-/* Mesturas escollidas para que se note: pernas doutra altura, un brazo
-   de sniper nun corpo pesado, unha cabeza que non é a do chasis. */
+/* Mesturas coma as que dá o RECONSTRUCTOR: unha ou dúas pezas alleas
+   sobre un chasis, que é o que se pode montar de verdade cando morre
+   alguén e recuperas o campo. As de clases enteiras servían para probar
+   o pipeline; estas son o caso real. */
 const MESTURAS = [
-  ['HEAVY corpo · SNIPER brazos',   { CABEZA:'HEAVY', CHASIS:'HEAVY', BRAZO_DER:'SNIPER', BRAZO_ESQ:'SNIPER', PERNA_DER:'HEAVY', PERNA_ESQ:'HEAVY' }],
-  ['GRUNT corpo · HEAVY pernas',    { CABEZA:'GRUNT', CHASIS:'GRUNT', BRAZO_DER:'GRUNT', BRAZO_ESQ:'GRUNT', PERNA_DER:'HEAVY', PERNA_ESQ:'HEAVY' }],
-  ['SNIPER corpo · BOMBA. mochila', { CABEZA:'SNIPER', CHASIS:'BOMBARDERO', BRAZO_DER:'SNIPER', BRAZO_ESQ:'SNIPER', PERNA_DER:'SNIPER', PERNA_ESQ:'SNIPER' }],
-  ['ENGINEER corpo · HEAVY brazo',  { CABEZA:'ENGINEER', CHASIS:'ENGINEER', BRAZO_DER:'HEAVY', BRAZO_ESQ:'ENGINEER', PERNA_DER:'ENGINEER', PERNA_ESQ:'ENGINEER' }],
-  ['HEAVY cabeza · GRUNT resto',    { CABEZA:'HEAVY', CHASIS:'GRUNT', BRAZO_DER:'BOMBARDERO', BRAZO_ESQ:'GRUNT', PERNA_DER:'SNIPER', PERNA_ESQ:'SNIPER' }],
+  ['GRUNT · brazo dereito de HEAVY',
+   { CABEZA:'GRUNT', CHASIS:'GRUNT', BRAZO_DER:'HEAVY', BRAZO_ESQ:'GRUNT', PERNA_DER:'GRUNT', PERNA_ESQ:'GRUNT' }],
+  ['GRUNT · cabeza de BOMBARDERO e brazo de SNIPER',
+   { CABEZA:'BOMBARDERO', CHASIS:'GRUNT', BRAZO_DER:'GRUNT', BRAZO_ESQ:'SNIPER', PERNA_DER:'GRUNT', PERNA_ESQ:'GRUNT' }],
+  ['SNIPER · pernas de HEAVY',
+   { CABEZA:'SNIPER', CHASIS:'SNIPER', BRAZO_DER:'SNIPER', BRAZO_ESQ:'SNIPER', PERNA_DER:'HEAVY', PERNA_ESQ:'HEAVY' }],
+  ['ENGINEER · cabeza de SNIPER e brazo de HEAVY',
+   { CABEZA:'SNIPER', CHASIS:'ENGINEER', BRAZO_DER:'HEAVY', BRAZO_ESQ:'ENGINEER', PERNA_DER:'ENGINEER', PERNA_ESQ:'ENGINEER' }],
+  ['HEAVY · brazo dereito de ENGINEER',
+   { CABEZA:'HEAVY', CHASIS:'HEAVY', BRAZO_DER:'ENGINEER', BRAZO_ESQ:'HEAVY', PERNA_DER:'HEAVY', PERNA_ESQ:'HEAVY' }],
 ];
 
 const DIRS = [0, 1, 2, 3, 4, 5, 6, 7];

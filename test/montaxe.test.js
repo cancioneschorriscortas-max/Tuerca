@@ -169,3 +169,58 @@ proba('as pezas van á mesma escala que o banco de clases', () => {
     `as pezas van a ${PEZAS.escala} px por unidade e o banco de clases a ` +
     `${PEZAS.escalaClase}: as dúas vías non están á mesma escala`);
 });
+
+proba('os tipos de peza do reconstructor son slots da montaxe', () => {
+  /* A ponte entre a economía de despece e o debuxo por pezas non
+     traduce nada: aprovéitase de que os TIPOS de peza que xa usaba o
+     reconstructor —CABEZA, CHASIS, BRAZO_DER…— son exactamente os
+     nomes dos slots da montaxe. Iso non é casualidade pero tampouco
+     está garantido: se alguén renomea un dos dous vocabularios, os
+     robots reconstruídos deixarían de amosar as súas pezas e volverían
+     saír coa aparencia da clase, sen erro ningún.
+
+     NUCLEO é a excepción coñecida: existe na economía (dá a habilidade
+     de piloto) e non ten representación visual. */
+  const js = fs.readFileSync(path.join(JS, '12-debrief-hangar.js'), 'utf8');
+  const m = js.match(/const RECON_SLOTS = \[([\s\S]*?)\];/);
+  afirmar(m, 'non se atopou RECON_SLOTS');
+  /* Sácanse os tipos de cada `acepta` a man en vez de parsear o literal:
+     leva comas finais e non é JSON válido, e o obxectivo é comprobar
+     nomes, non validar sintaxe. */
+  const tipos = [];
+  for(const a of m[1].matchAll(/acepta\s*:\s*\[([^\]]*)\]/g))
+    for(const t of a[1].matchAll(/'([^']+)'/g)) tipos.push(t[1]);
+  afirmar(tipos.length >= 5, `só se atoparon ${tipos.length} tipos de peza`);
+  const montar = fs.readFileSync(path.join(JS, '19e-montar.js'), 'utf8');
+  const sm = montar.match(/const MON3D_SLOTS = \[([^\]]*)\]/);
+  afirmar(sm, 'non se atopou MON3D_SLOTS');
+  const slots = new Set([...sm[1].matchAll(/'([^']+)'/g)].map(x => x[1]));
+
+  const SEN_DEBUXO = new Set(['NUCLEO']);
+  for(const tipo of tipos){
+    if(SEN_DEBUXO.has(tipo)) continue;
+    afirmar(slots.has(tipo),
+      `o reconstructor acepta pezas de tipo ${tipo} e a montaxe non ten ese slot: ` +
+      'un robot con esa peza non a amosaría');
+  }
+});
+
+proba('unha montaxe reconstruída conserva as pezas alleas e completa o resto', () => {
+  if(!HAI) return;
+  const src = fs.readFileSync(path.join(JS, '19e-montar.js'), 'utf8');
+  const { mon3dDeMontaxe, mon3dDeClase } = new Function('PEZAS3D', 'Image',
+    src + '; return { mon3dDeMontaxe, mon3dDeClase };')(PEZAS, function(){
+      return { set src(v){}, set onload(v){ v && v(); }, set onerror(v){} };
+    });
+  /* un brazo dereito doutra clase e nada máis: o resto ten que quedar
+     na clase do chasis, non baleiro */
+  const m = mon3dDeMontaxe({ BRAZO_DER: 'HEAVY' }, 'GRUNT');
+  afirmar(m.BRAZO_DER === 'HEAVY', 'a peza allea perdeuse');
+  afirmar(m.BRAZO_ESQ === 'GRUNT', 'o brazo esquerdo debería ser recambio da clase');
+  afirmar(m.CHASIS === 'GRUNT' && m.CABEZA === 'GRUNT',
+    'os ocos deberían cubrirse coa clase do chasis');
+  /* e sen pezas alleas ten que dar exactamente a montaxe da clase */
+  const puro = mon3dDeMontaxe({}, 'SNIPER');
+  for(const k of Object.keys(mon3dDeClase('SNIPER')))
+    afirmar(puro[k] === 'SNIPER', `${k}: unha montaxe sen pezas alleas non é a clase`);
+});

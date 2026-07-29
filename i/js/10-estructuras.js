@@ -1589,8 +1589,14 @@ function draw(g){
         /* (v0.64) MONTAXE POR PEZAS, detrás do F10. Mentres o xogador non
            poida montar robots, próbase coa mesma clase en todos os slots:
            se as dúas vías dan o mesmo, o camiño está ben. */
-        if(typeof MON3D_ACTIVO !== 'undefined' && MON3D_ACTIVO && typeof mon3dDebuxar === 'function'){
-          if(!u._mont3d) u._mont3d = mon3dDeClase(u.cls);
+        /* (v0.84) A montaxe por pezas usa se a unidade TEN unha —é dicir,
+           se foi reconstruída con pezas doutras clases— ou se se pide co
+           F10 para comparar as dúas vías. Para unha unidade reensamblada
+           non é unha opción de depuración: o sprite da clase estaría
+           mentindo sobre de que está feita. */
+        if(typeof mon3dDebuxar === 'function' &&
+           (u.montaxe || (typeof MON3D_ACTIVO !== 'undefined' && MON3D_ACTIVO))){
+          if(!u._mont3d) u._mont3d = u.montaxe ? mon3dDeMontaxe(u.montaxe, u.cls) : mon3dDeClase(u.cls);
           _pintado = mon3dDebuxar(ctx, u._mont3d, u.team, u.x, u.y, _est, u._dir3d, _f3);
         }
         if(!_pintado) _pintado = spr3dDebuxar(ctx, u.cls, u.team, u.x, u.y, _est, u._dir3d, _f3);
