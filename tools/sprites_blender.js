@@ -16,6 +16,20 @@ const path = require('path');
 const { execFileSync } = require('child_process');
 const { reducir, PAL } = require('./vox3d.js');
 const { montar } = require('./modelos.js');
+
+/* ESCALA DO XOGO: píxeles de sprite por unidade de mundo.
+
+   Un só número e as dúas vías —o banco por clase e o atlas por peza—
+   téñeno que usar igual, porque no mapa conviven. Ata agora o banco
+   pedía "22 píxeles de alto" para CADA clase, o que parecía inocente e
+   non o era: normalizaba, así que un HEAVY de 2.40 metros e un GRUNT de
+   1.85 saían do mesmo tamaño e a diferenza de altura non chegaba nunca
+   á pantalla. Con escala común, un robot máis alto vese máis alto.
+
+   O valor sae de conservar o tamaño do GRUNT, que xa estaba ben: 2.22
+   unidades de caixa dan os 21 píxeles de sempre. */
+const PX_UNIDADE = 9.3;
+const ORTHO = 2.0/0.42;
 const { ler } = require('./png.js');
 
 const CARAS = [[0,1,3,2],[4,6,7,5],[0,4,5,1],[2,3,7,6],[0,2,6,4],[1,5,7,3]];
@@ -163,7 +177,8 @@ function axustarAPaleta(s, paleta){
 
 /* cadros: [{nome, estado, fase, yaw}]  ->  {nome: {ancho,alto,px}} */
 function xerar(clase, cadros, opc = {}){
-  const ALT = opc.alt || 22, RES = opc.res || 256;
+  let ALT = opc.alt || 22;
+  const RES = opc.res || 256;
   const tmp = opc.tmp || path.join(__dirname, '..', 'capturas', '_blender', clase);
   fs.mkdirSync(tmp, { recursive: true });
 
@@ -245,6 +260,13 @@ function xerar(clase, cadros, opc = {}){
   /* Un píxel final COMPLETO. A 0.55 o contorno cubría media cela, e o
      limiar de alfa do endurecido borrábao: quedaban os sprites sen liña
      escura, que é o que os facía perder contra o debuxo procedural. */
+  /* Con escala común, o alto do sprite non se pide: sae do que mide o
+     robot. Mídese sobre a caixa do CONTIDO, antes de engadirlle a marxe
+     do contorno, para que o grosor da liña non infle o tamaño. */
+  if(opc.pxUnidade){
+    const unidades = (caixa.y1 - caixa.y0 + 1) / (RES/ORTHO);
+    ALT = Math.max(8, Math.round(unidades * opc.pxUnidade));
+  }
   const GROSO = opc.groso || Math.max(1, Math.round((caixa.y1 - caixa.y0 + 1)/ALT));
   if(!opc.caixaFixa) caixa = { x0: Math.max(0, caixa.x0-GROSO), y0: Math.max(0, caixa.y0-GROSO),
             x1: Math.min(RES-1, caixa.x1+GROSO), y1: Math.min(RES-1, caixa.y1+GROSO) };
@@ -267,4 +289,4 @@ function xerar(clase, cadros, opc = {}){
   return fóra;
 }
 
-module.exports = { xerar, endurecer, axustarAPaleta, paletaCel, contornear, contornoDe, CARAS };
+module.exports = { xerar, endurecer, axustarAPaleta, paletaCel, contornear, contornoDe, CARAS, PX_UNIDADE, ORTHO};

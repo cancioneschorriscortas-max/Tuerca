@@ -1612,18 +1612,24 @@ function draw(g){
       }
     }
     ctx.fillStyle=c;
+    /* (v0.84) Os adornos de enriba cólganse do ALTO REAL do sprite, non
+       dun 14 fixo: desde que cada clase ten a súa altura, un HEAVY sobe
+       dez píxeles máis ca un GRUNT e o nome caíalle na cabeza. `_cima` é
+       o bordo de arriba do robot; o que ía en y-14 vai agora en _cima e
+       o que ía en y-16 en _cima-2, así que se conserva a separación. */
+    const _cima = u.y + 8 - (typeof spr3dAlto === 'function' ? spr3dAlto(u.cls) : 22);
     /* (v0.24.1) Veterano de VOLT: nome vermello — sabes a quen estás matando */
     if(u._voltVet && !u.dead){
       ctx.fillStyle = '#ff7a5a';
       ctx.font = '8px Courier New';
-      ctx.fillText(u.name, u.x - 12, u.y - 14);
+      ctx.fillText(u.name, u.x - 12, _cima);
       ctx.fillStyle = c;
     }
     /* (v0.23.2) Acentos de identidade: medalla (pixel dourado fixo) + soldadura (reensamblado) */
     if(u.team === PT && u.medalsN > 0){
       ctx.fillStyle = '#ffd700';
-      ctx.fillRect(u.x + 6, u.y - 9, 2, 2);
-      if(u.medalsN >= 3) ctx.fillRect(u.x + 6, u.y - 6, 2, 2);
+      ctx.fillRect(u.x + 6, _cima + 5, 2, 2);
+      if(u.medalsN >= 3) ctx.fillRect(u.x + 6, _cima + 8, 2, 2);
       ctx.fillStyle = c;
     }
     if(u.team === PT && u.reensamblado){
@@ -1636,24 +1642,31 @@ function draw(g){
     /* (v0.21 R2) Vínculo activo: estrela dourada */
     if(u._vinculoActivo && !u.dead && u.team === PT){
       ctx.fillStyle = '#ffd700';
-      ctx.fillRect(u.x - 1, u.y - 15, 3, 3);
-      ctx.fillRect(u.x - 3, u.y - 14, 7, 1);
+      ctx.fillRect(u.x - 1, _cima - 1, 3, 3);
+      ctx.fillRect(u.x - 3, _cima, 7, 1);
       ctx.fillStyle = c;
     }
     if(u._pezaPortada && !u.dead){
       const pp = 0.5 + 0.5*Math.sin(g.t*0.2);
       ctx.fillStyle = `rgba(255,150,60,${pp})`;
-      ctx.fillRect(u.x-3, u.y-16, 6, 4);
+      ctx.fillRect(u.x-3, _cima - 2, 6, 4);
       ctx.fillStyle = c;
     }
 
-    if(u.sel){ ctx.strokeStyle='#fff'; ctx.strokeRect(u.x-10,u.y-12,20,24); }
-    if(u.ops>=3){ ctx.fillStyle='#ffd24a'; ctx.fillRect(u.x-8,u.y-12,3,3); }
+    /* O recadro de selección envolve o sprite REAL. Eran 20×24 fixos,
+       que daban xusto cando todas as clases medían o mesmo; un HEAVY de
+       42 de ancho saíase por ambos lados. */
+    if(u.sel){
+      const _an = typeof spr3dAncho === 'function' ? spr3dAncho(u.cls) : 20;
+      ctx.strokeStyle = '#fff';
+      ctx.strokeRect(u.x - _an/2 - 1, _cima - 1, _an + 2, u.y + 8 - _cima + 2);
+    }
+    if(u.ops>=3){ ctx.fillStyle='#ffd24a'; ctx.fillRect(u.x-8,_cima + 2,3,3); }
     /* Marca de enemigo recurrente: corona pequeña sobre la cabeza */
     if(u.team===ET && u.traits && u.traits.includes('VUELVE_A_POR_TI')){
       ctx.fillStyle='#ff8050';
-      ctx.fillRect(u.x-4, u.y-14, 8, 2);
-      ctx.fillRect(u.x-2, u.y-16, 4, 2);
+      ctx.fillRect(u.x-4, _cima, 8, 2);
+      ctx.fillRect(u.x-2, _cima - 2, 4, 2);
     }
     ctx.fillStyle='#000'; ctx.fillRect(u.x-8,u.y+9,16,3);
     ctx.fillStyle=u.hp>u.max*0.34?'#7fdc7f':'#ff5340';
@@ -1661,7 +1674,7 @@ function draw(g){
     if(u.sel || (u.warned && u.team===PT && !u.dead)){
       ctx.fillStyle='#ffd24a'; ctx.font='10px Courier New';
       const _lbl2 = (g.modo === 'mundial' && u.dorsal) ? u.dorsal + '·' + u.name : u.name;
-      ctx.fillText(_lbl2, u.x - _lbl2.length*3, u.y-16);
+      ctx.fillText(_lbl2, u.x - _lbl2.length*3, _cima - 2);
     }
   }
   /* (v0.49.1) luz ambiental retirada: ensuciaba a paleta fósforo (feedback de Agarfal) */

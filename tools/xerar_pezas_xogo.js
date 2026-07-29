@@ -30,8 +30,8 @@ const fs = require('fs');
 const path = require('path');
 const { ESQUELETO, OBXECTIVO_MAN } = require('./modelos.js');
 const { PAL, rot } = require('./vox3d.js');
-const { escribir, ler: lerPng } = require('./png.js');
-const { xerar } = require('./sprites_blender.js');
+const { escribir } = require('./png.js');
+const { xerar, PX_UNIDADE: PX_UNIDADE_COMUN } = require('./sprites_blender.js');
 const { catalogo, SLOTS, SLOT_CAPAS, ANCORA_DE, ancoras, capaDe } = require('./pezas.js');
 
 const argv = process.argv.slice(2);
@@ -41,40 +41,20 @@ const RES = parseInt(op('res', '256'), 10);
 const TOON = 3, DIRS = 8, PITCH = 0.38;
 const ORTHO = 2.0/0.42;
 
-/* Píxeles de sprite por unidade de mundo. Ten que ser EXACTAMENTE a
-   mesma que a do banco de clases, porque no mapa conviven as dúas vías:
-   as unidades normais debúxanse do banco e as que monta o xogador por
-   pezas. Se difiren, dous robots iguais saen de distinto tamaño.
-
-   O número non se escribe a man. Escribiuse unha vez —un 10, sacado de
-   "un robot de 2.2 unidades ocupa 22 píxeles"— e era falso: o banco de
-   clases encadra o robot polo seu contorno REAL, que coa inclinación da
-   cámara é máis alto que a caixa, e sae 9.3. As montaxes quedaban un
-   19% máis grandes. Así que se mide do propio banco e non pode derivar.
-   Se aínda non hai renders de clase, queda o valor vello. */
-const PX_UNIDADE = (() => {
-  const dir = path.join(__dirname, '..', 'capturas', '_blender');
-  const alt = 22;                       /* o --alt con que se xera o banco */
-  const escalas = [];
-  for(const cls of Object.keys(ESQUELETO)){
-    const d = path.join(dir, cls + '_azul');
-    if(!fs.existsSync(d)) continue;
-    let y0 = Infinity, y1 = -1;
-    for(const f of fs.readdirSync(d)){
-      if(!f.endsWith('.png')) continue;
-      let im; try { im = lerPng(path.join(d, f)); } catch(e){ continue; }
-      for(let y = 0; y < im.alto; y++) for(let x = 0; x < im.ancho; x++)
-        if(im.px[(y*im.ancho + x)*4 + 3] > 110){ if(y < y0) y0 = y; if(y > y1) y1 = y; }
-    }
-    if(y1 < 0) continue;
-    escalas.push(alt / ((y1 - y0 + 1) / (RES/ORTHO)));
-  }
-  if(!escalas.length) return 10;
-  return escalas.reduce((a, b) => a + b, 0) / escalas.length;
-})();
+/* A escala vén de sprites_blender.js, a mesma que usa o banco por clase.
+   Antes medíase do banco, porque o banco normalizaba cada clase a 22
+   píxeles e non declaraba ningunha escala: había que deducila. Agora
+   declárase unha soa vez e as dúas vías léena de alí, que é a única
+   maneira de que non poidan divirxir. */
+const PX_UNIDADE = PX_UNIDADE_COMUN;
 
 const EQUIPOS = [['0','azul'], ['1','vermello'], ['2','metal']];
-const ESTADOS = [['ANDAR', 4], ['REPOUSO', 1], ['DISPARAR', 4]];
+/* Os MESMOS estados que o banco de clases (ESTADOS_XOGO en
+   xerar_sprites_xogo.js). Se aquí falta un, o compositor cae en REPOUSO
+   e un robot montado polo xogador quedaría quieto mentres o da mesma
+   clase cura ou encaixa un golpe — sen erro ningún, só raro. */
+const ESTADOS = [['ANDAR', 4], ['REPOUSO', 1], ['DISPARAR', 4],
+                 ['CURAR', 4], ['IMPACTO', 4]];
 
 /* ---------- que cadros ---------- */
 const cadros = [];
@@ -174,9 +154,13 @@ traballos.forEach((t, i) => {
    COMPOSICIÓN, que é o que se ve. Barrido sobre as cinco clases e as
    oito direccións, diferenza media fronte ao sprite de clase:
 
-       groso 3    cor 13.42   tamaño 0.97 px
-       groso 4    cor  5.34   tamaño 0.93 px   <- o mínimo, nos dous
-       groso 5    cor  9.69   tamaño 1.43 px
+       groso 3    cor 15.83   tamaño 3.30 px
+       groso 4    cor  6.23   tamaño 3.77 px   <- o mínimo en cor
+       groso 5    cor  8.80   tamaño 4.40 px
+
+   Repetiuse ao pasar cada clase á súa altura de deseño, e o 4 aguantou.
+   O erro de tamaño é lixeiramente menor co 3, pero é a cor a que manda:
+   tres píxeles de alto non se ven e quince puntos de cor si.
 
    Repetir o barrido con --groso se cambia a escala ou o cel shading:
    node tools/banco_montaxe.js --erro dá o número. */

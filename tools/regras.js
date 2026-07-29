@@ -97,9 +97,16 @@ const REGRAS_ESQUELETO = [
     por: 'o pivote da perna ten que coincidir co fondo do torso, ou a perna sae flotando ou metida no corpo',
     revisar(cls){
       const t = caixaDe(cls, 'torso');
+      /* A tolerancia vai en proporción ao torso, non en unidades soltas.
+         Estaba escrita como 0.20 fixo, que valía mentres todas as clases
+         medían o mesmo; ao darlle ao HEAVY a altura do seu blueprint —un
+         37% máis— a mesma anatomía pasou a incumprir a regra sen que
+         cambiase nada da anatomía. Unha regra que castiga a un robot por
+         ser grande non está medindo o que di medir. */
+      const marxe = 0.26 * (t.y1 - t.y0);
       for(const lado of ['e', 'd']){
         const p = pezas(cls, 'perna_' + lado)[0];
-        if(Math.abs(p.piv[1] - t.y0) > 0.20){
+        if(Math.abs(p.piv[1] - t.y0) > marxe){
           return `o pivote da perna ${lado} está en y=${p.piv[1].toFixed(2)} e a cadeira en ${t.y0.toFixed(2)}`;
         }
       }
@@ -454,7 +461,15 @@ const REGRAS_RENDER = [
     por: 'se o modelo toca o bordo do lenzo, o contorno queda aberto e vese un corte recto',
     revisar(cls){
       for(let d = 0; d < 8; d++){
-        const SS = 4, alt = 26, W = alt*SS*2;
+        /* O lenzo é un ORZAMENTO: ata onde pode medrar unha clase sen
+           que o encadre a corte. Quen manda non é `alt` —sae na escala e
+           no lenzo, así que se cancela— senón o factor do lenzo. E o que
+           se esgota primeiro é o espazo POR DEBAIXO: vox3d pon a orixe do
+           mundo ao 74% de alto para deixarlle sitio ás pernas, así que só
+           quedaba 1.24 unidades ata o bordo inferior e os pés do HEAVY,
+           coa altura do seu blueprint, chegan a 1.44. De 2 a 3 dá 1.86.
+           Segue sendo un tope: unha clase aínda maior ten que saltar. */
+        const SS = 4, alt = 26, W = alt*SS*3;
         const { masc } = require('./vox3d.js').render(
           montar(cls, 'ANDAR', 0.25), W, W, alt*SS*0.42, d*2*Math.PI/8);
         for(let x = 0; x < W; x++){

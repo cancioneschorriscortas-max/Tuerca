@@ -19,11 +19,17 @@ const fs = require('fs');
 const path = require('path');
 const { CLASES } = require('./modelos.js');
 const { escribir } = require('./png.js');
-const { xerar } = require('./sprites_blender.js');
+const { xerar, PX_UNIDADE } = require('./sprites_blender.js');
 
 const argv = process.argv.slice(2);
 const op = (n, d) => { const i = argv.indexOf('--' + n); return i >= 0 && argv[i+1] ? argv[i+1] : d; };
-const ALT = parseInt(op('alt', '22'), 10);
+/* Xa non se pide un alto: pídese unha ESCALA, e cada clase sae do tamaño
+   que lle toca. Pedir "22 píxeles para todas" normalizaba, e así un
+   HEAVY de 2.40 metros e un GRUNT de 1.85 saían idénticos de alto: a
+   diferenza de altura non chegaba nunca á pantalla. --alt segue por se
+   fai falla forzar unha altura concreta para algunha proba. */
+const ALT = op('alt', null) ? parseInt(op('alt'), 10) : null;
+const PXU = parseFloat(op('escala', String(PX_UNIDADE)));
 const RES = parseInt(op('res', '256'), 10);
 const REUSAR = argv.includes('--reusar');
 /* CHANZOS de luz do sombreado (cel shading). O sprite final ten 22
@@ -88,7 +94,7 @@ for(const cls of CLASES){
   banco[cls] = {};
   for(const [eq, cor] of EQUIPOS){
     process.stdout.write(`  ${cls} equipo ${eq} (${cor})... `);
-    const m = xerar(cls, cadros, { alt: ALT, res: RES, reusar: REUSAR, cor, toon: TOON,
+    const m = xerar(cls, cadros, { ...(ALT ? { alt: ALT } : { pxUnidade: PXU }), res: RES, reusar: REUSAR, cor, toon: TOON,
                                    tmp: path.join(__dirname, '..', 'capturas', '_blender', cls + '_' + cor) });
     const a = atlas(m);
     const f = path.join(tmpDir, `${cls}_${eq}.png`);
@@ -111,7 +117,7 @@ fs.writeFileSync(saida, `/* ====================================================
 
    ${cadros.length} cadros × ${CLASES.length} clases × ${EQUIPOS.length} equipos.
    ============================================================ */
-const BANCO3D = ${JSON.stringify({ dirs: DIRS, alt: ALT, indice, banco })};
+const BANCO3D = ${JSON.stringify({ dirs: DIRS, escala: +PXU.toFixed(3), indice, banco })};
 `, 'utf8');
 
 const kb = (fs.statSync(saida).size/1024).toFixed(0);

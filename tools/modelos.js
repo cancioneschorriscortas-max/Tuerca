@@ -115,7 +115,18 @@ const ESQUELETO = {
     { id:'perna_e', centro:[-0.30,-0.60,0],  tam:[0.28,0.88,0.34], cor:'azul',   piv:[-0.30,-0.16,0], eixe:'x' },
     { id:'perna_d', centro:[ 0.30,-0.60,0],  tam:[0.28,0.88,0.34], cor:'azul',   piv:[ 0.30,-0.16,0], eixe:'x' },
     { id:'torso',   centro:[0, 0.10, 0],     tam:[0.88,0.82,0.74], cor:'azul',   piv:[0,-0.28,0],     eixe:'x' },
-    { id:'torso', slot:'MOCHILA', centro:[0, 0.14,-0.54], tam:[0.62,0.80,0.30], cor:'ambar', piv:[0,-0.28,0], eixe:'x' },
+    /* A mochila rompe a liña do ombro a propósito. Antes remataba en 0.54
+       e o ombro está en 0.55, así que quedaba rasa e non recortaba contra
+       o ceo: por detrás o enxeñeiro e o grunt eran o mesmo bulto. O
+       blueprint EN-15 xa lla debuxa alta, co módulo de construción e a
+       antena de comunicacións por riba das costas.
+
+       PROBOUSE tamén ensanchala a 1.02 para que asomase polos lados de
+       fronte, como no blueprint. Non compensa: gaña tres píxeles de
+       silueta e baixa a cor de bando ao 34%, por debaixo do mínimo do
+       35% que esixe a regra L6. Un enxeñeiro que non se sabe de que
+       bando é sae máis caro que un que se parece ao sniper de fronte. */
+    { id:'torso', slot:'MOCHILA', centro:[0, 0.28,-0.54], tam:[0.62,1.10,0.30], cor:'ambar', piv:[0,-0.28,0], eixe:'x' },
     { id:'brazo_e',    centro:[-0.58,0.23,0.06],tam:[0.24,0.42,0.28], cor:'azul', piv:[-0.58,0.44,0],  eixe:'x' },
     { id:'brazo_d',    centro:[ 0.58,0.23,0.06],tam:[0.24,0.42,0.28], cor:'azul', piv:[ 0.58,0.44,0],  eixe:'x' },
     { id:'antebrazo_e',centro:[-0.58,-0.20,0.06],tam:[0.22,0.44,0.26],cor:'azul', piv:[-0.58,0.02,0], eixe:'x', pai:'brazo_e' },
@@ -186,6 +197,83 @@ const ESQUELETO = {
     { id:'arma',    centro:[0.62,-0.32,0.78],tam:[0.26,0.26,0.16], cor:'laranxa',piv:[0.62,-0.32,0.10], eixe:'y', ang:DIAG, pulso:PULSO_ARMA, pai:'antebrazo_d' },
   ],
 };
+
+/* ============================================================
+   A FIRMA DE CADA CLASE: antenas e altura.
+
+   Medímolo antes de tocalo (tools/proba_siluetas.js): tres das cinco
+   clases —GRUNT, ENGINEER e BOMBARDERO— tiñan practicamente a mesma
+   silueta e distinguíanse SÓ pola cor. Nun RTS iso non abonda: a cor é o
+   primeiro que se perde coa choiva, coa néboa de guerra, cando as dúas
+   unidades son do mesmo bando ou cando quen xoga é daltónico. O que
+   queda entón é o recorte contra o terreo.
+
+   As dúas correccións saen dos blueprints de Unit_references/, que xa
+   lle daban a cada unidade unha altura e unhas antenas propias. O xogo
+   ignorábaas: chegou a ter o HEAVY como a clase MÁIS BAIXA das cinco.
+   ============================================================ */
+
+/* Alto en metros segundo o blueprint de cada unidade. Non se usa o
+   número absoluto senón a proporción entre eles, co GRUNT de vara de
+   medir para que non cambie de tamaño o que xa estaba ben. */
+const ALTURA_DESEÑO = {
+  GRUNT: 1.85, ENGINEER: 1.85, SNIPER: 1.95, BOMBARDERO: 2.35, HEAVY: 2.40,
+};
+
+/* Cantas antenas e canto de longas, tamén do blueprint: unha curta no
+   grunt, unha moi longa no enxeñeiro, unha no sniper e un par nas dúas
+   unidades pesadas. Unha antena é un só píxel de ancho no sprite final e
+   aínda así é o detalle que mellor se le a 22 píxeles, porque sobresae
+   por riba da cabeza e recorta contra o ceo aínda que o corpo quede na
+   sombra.
+
+   Van na CABEZA, non na mochila, e non é un detalle: no slot da mochila
+   a antena e a cabeza crúzanse segundo a dirección e non hai orde de
+   pintado que valla —65 píxeles en conflito, regra L7—, que é xusto o
+   que rompería o xerador por pezas. Na cabeza son a mesma capa e o
+   problema desaparece. Ademais casa co blueprint, que lista a antena
+   dentro da HEAD UNIT do sniper; e ten a consecuencia boa de que
+   cambiarlle a cabeza a un robot cámbialle tamén a firma. */
+const ANTENAS = {
+  GRUNT:      [[ 0.00, 0.30]],
+  ENGINEER:   [[ 0.00, 0.85]],
+  SNIPER:     [[ 0.12, 0.60]],
+  HEAVY:      [[-0.34, 0.50], [0.34, 0.50]],
+  BOMBARDERO: [[-0.30, 0.66], [0.30, 0.66]],
+};
+for(const [cls, lista] of Object.entries(ANTENAS)){
+  const cab = ESQUELETO[cls].find(b => b.id === 'cabeza');
+  const base = cab.centro[1] + cab.tam[1]/2 - 0.10;   /* mordida na cabeza: nada flota (regra A8) */
+  for(const [x, longo] of lista)
+    ESQUELETO[cls].push({ id:'cabeza', centro:[x, base + longo/2, -0.20],
+                          tam:[0.12, longo, 0.12], cor:'metal',
+                          piv: cab.piv.slice(), eixe: cab.eixe });
+}
+
+/* Escala cada clase á súa altura de deseño. Faise AQUÍ e non retocando
+   os números de cada caixa por dúas razóns: as caixas seguen sendo
+   lexibles e editables a man, e a proporción mantense soa se alguén
+   toca unha delas. É unha escala uniforme —centro, tamaño e pivote— así
+   que a anatomía non cambia: só o tamaño. As 22 regras seguen pasando. */
+(function escalarAoDeseño(){
+  const alto = cls => {
+    let lo = Infinity, hi = -Infinity;
+    for(const b of ESQUELETO[cls]){
+      lo = Math.min(lo, b.centro[1] - b.tam[1]/2);
+      hi = Math.max(hi, b.centro[1] + b.tam[1]/2);
+    }
+    return hi - lo;
+  };
+  const vara = alto('GRUNT');
+  for(const [cls, metros] of Object.entries(ALTURA_DESEÑO)){
+    const k = (vara * (metros / ALTURA_DESEÑO.GRUNT)) / alto(cls);
+    if(Math.abs(k - 1) < 1e-9) continue;
+    for(const b of ESQUELETO[cls]){
+      for(let i = 0; i < 3; i++){ b.centro[i] *= k; b.tam[i] *= k; }
+      if(b.piv) for(let i = 0; i < 3; i++) b.piv[i] *= k;
+    }
+  }
+})();
 
 /* ============================================================
    CINEMÁTICA INVERSA de dous ósos.

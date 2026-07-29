@@ -161,12 +161,13 @@ vías dan o mesmo, o camiño está ben.
 
 Catro trampas, todas silenciosas, todas medidas antes de arranxalas:
 
-**A escala non se escribe a man.** Estaba escrito «10 píxeles por unidade»,
-sacado de «un robot de 2.2 unidades ocupa 22 píxeles». Era falso: o banco de
-clases encadra o robot polo seu contorno REAL, que coa inclinación da cámara
-é máis alto que a caixa, e sae 9.3. As montaxes eran un 19% máis grandes que
-os sprites normais e no xogo non había nada que o denunciase. Agora o
-xerador mídea do banco e a proba comproba que non divirxiron.
+**A escala é unha soa e está nun só sitio.** `PX_UNIDADE` en
+`tools/sprites_blender.js`: píxeles de sprite por unidade de mundo, 9.3, e as
+dúas vías léena de alí. Antes cada unha tiña a súa —o atlas levaba escrito a
+man «10 píxeles por unidade» e o banco pedía «22 píxeles de alto»— e as
+montaxes saían un 19% máis grandes que os sprites normais sen que nada o
+denunciase. A proba `as pezas van á mesma escala que o banco de clases`
+comproba que non volvan divirxir.
 
 **Ancórase polos PÉS.** O sprite de clase apoia os pés en `y+8`; a montaxe
 poñía alí a orixe do modelo, que está á altura da cadeira. Tapábase cun `+8`
@@ -199,6 +200,50 @@ repetir o barrido con `--groso`.
 mesmo que renderizar a clase enteira: os bordos internos están nunha vía e non
 na outra. `proba_montaxe.js --bordo` reparte o erro en silueta, contorno e cor
 para poder mirar só o que importa.
+
+## Siluetas: que unha clase se recoñeza sen a cor (v0.84)
+
+```
+node tools/proba_siluetas.js           sobre o banco: o que ve o xogador
+node tools/proba_siluetas.js --modelo  sobre as caixas, para probar cambios
+node tools/proba_siluetas.js --imaxe   escríbeas en negro para mirar
+```
+
+A regra L4 xa esixía que dúas clases non se vesen igual, pero conta tamén a
+COR, e a cor é o primeiro que se perde: coa choiva, na néboa de guerra, cando
+as dúas unidades son do mesmo bando, ou se quen xoga é daltónico. Isto mide a
+silueta soa, por par de clases e por dirección.
+
+A primeira medida deu o diagnóstico: **GRUNT, ENGINEER e BOMBARDERO tiñan
+practicamente a mesma silueta** e distinguíanse só polo amarelo e o laranxa.
+A causa estaba en que o xogo ignoraba as alturas dos blueprints de
+`Unit_references/` — chegara a ter o HEAVY como a clase MÁIS BAIXA das cinco,
+cando o deseño lle dá 2.40 m fronte aos 1.85 do GRUNT.
+
+Tres correccións, todas en `tools/modelos.js` e todas do blueprint:
+`ALTURA_DESEÑO` (a altura de cada unidade, aplicada como escala uniforme
+sobre as caixas, que así seguen sendo editables a man), unha firma de
+`ANTENAS` por clase, e a mochila do enxeñeiro rompendo a liña do ombro.
+Peor par: 25 → 29 px sobre os sprites reais, media 101 → 223.
+
+Dúas leccións que custaron:
+
+**As antenas van na CABEZA, non na mochila.** No slot da mochila crúzanse coa
+cabeza segundo a dirección e non hai orde de pintado que valla —65 px en
+conflito, regra L7— que é xusto o que rompe o xerador por pezas. Na cabeza
+son a mesma capa. Casa co blueprint do sniper, que lista a antena dentro da
+HEAD UNIT, e ten a consecuencia boa de que trocar a cabeza troca a firma.
+
+**Dúas regras castigaban a un robot por ser grande.** A3 esixía o pivote da
+perna a menos de `0.20` da cadeira, un número absoluto: ao escalar o HEAVY un
+37% a mesma anatomía pasou a incumprir. Vai en proporción ao torso. E L2
+medía contra un lenzo que non daba: o que se esgotaba non era o alto senón o
+espazo POR DEBAIXO da orixe, que vox3d pon ao 74%.
+
+E unha que se probou e non compensa: ensanchar a mochila do enxeñeiro para
+que asome de fronte gaña tres píxeles de silueta e baixa a cor de bando ao
+34%, por debaixo do mínimo da regra L6. Un enxeñeiro que non se sabe de que
+bando é sae máis caro.
 
 ## Probas
 

@@ -62,7 +62,16 @@ for(const [clave, a] of Object.entries(PEZAS3D.banco)){
 fs.rmdirSync(tmp);
 
 /* ---------- pintar ---------- */
-const CANVAS = 40;                       /* lenzo por robot, en píxeles de sprite */
+/* O lenzo ten que caber a clase máis alta con marxe. Estaba en 40 e
+   centraba por CANVAS/2, o que valía mentres todas as clases medían o
+   mesmo; desde que o HEAVY mide 30 píxeles, a montaxe saía cortada pola
+   cabeza e a medida dicía que era 9 píxeles máis baixa do que é. Non era
+   o atlas: era esta regra. */
+const CANVAS = 64;
+/* As dúas vías debúxanse coa MESMA referencia: os pés nesta fila. É como
+   as pon o xogo (o sprite de clase apoia en y+8) e é a única maneira de
+   que comparar alturas signifique algo. */
+const CHAN = CANVAS - 8;
 function lenzo(){ return { ancho: CANVAS, alto: CANVAS, px: Buffer.alloc(CANVAS*CANVAS*4) }; }
 
 /* A mesma montaxe que fai o xogo en 19e-montar.js, aquí sobre un buffer.
@@ -73,7 +82,7 @@ function montar(m, equipo, estado, dir, fase){
   const ix = PEZAS3D.indice[estado] || PEZAS3D.indice.REPOUSO;
   const cadro = ix.base + dir*ix.fases + (fase % ix.fases);
   const orde = ORDE3D[estado + '/' + dir] || ORDE3D['REPOUSO/' + dir];
-  const pousada = mon3dPousada(m, dir) - 8;   /* o +8 é do terreo do xogo, aquí non hai */
+  const pousada = mon3dPousada(m, dir);
   for(const capa of orde){
     const slot = SLOT_DE[capa], peza = m[slot];
     if(!peza) continue;
@@ -82,7 +91,7 @@ function montar(m, equipo, estado, dir, fase){
     const anc = (PEZAS3D.ancoras[m.CHASIS] || {})[slot];
     const dxy = anc ? anc[dir] : [0, 0];
     const ox = Math.round(CANVAS/2 + dxy[0] + a.ox - PEZAS3D.orixe[0]);
-    const oy = Math.round(CANVAS/2 + dxy[1] + a.oy - PEZAS3D.orixe[1] + pousada);
+    const oy = Math.round(CHAN - 8 + dxy[1] + a.oy - PEZAS3D.orixe[1] + pousada);
     for(let y = 0; y < a.h; y++) for(let x = 0; x < a.w; x++){
       const s = (y*a.ancho + cadro*a.w + x)*4;
       if(a.px[s+3] < 110) continue;
@@ -121,7 +130,7 @@ function spriteClase(cls, estado, dir, fase){
   if(!a) return im;
   const ix = BANCO3D.indice[estado] || BANCO3D.indice.REPOUSO;
   const cadro = ix.base + dir*ix.fases + (fase % ix.fases);
-  const ox = Math.round((CANVAS - a.cw)/2), oy = Math.round((CANVAS - a.ch)/2);
+  const ox = Math.round((CANVAS - a.cw)/2), oy = CHAN - a.ch;
   for(let y = 0; y < a.ch; y++) for(let x = 0; x < a.cw; x++){
     const s = (y*a.ancho + cadro*a.cw + x)*4;
     if(a.px[s+3] < 110) continue;

@@ -34,7 +34,13 @@ const { catalogo, esqueletoDe, SLOTS } = require('./pezas.js');
 const { porGrupos, ordeCapas } = require('./proba_capas.js');
 
 const CAPAS = ['MOCHILA', 'TORSO', 'PEITO', 'CABEZA', 'PERNA_E', 'PERNA_D', 'BRAZO_E', 'BRAZO_D'];
-const ESTADOS = [['REPOUSO', 0], ['ANDAR', 0.5], ['DISPARAR', 0.25]];
+/* Os MESMOS estados que xeran os sprites. Se aquí falta un, o
+   compositor non se queixa: cae na orde de REPOUSO, e unha pose de
+   impacto ou de curar ten os brazos noutro sitio, así que a orde de
+   repouso pode poñer un brazo detrás cando ten que ir diante. Un fallo
+   que só se ve mirando moito, e nunha soa pose. */
+const ESTADOS = [['REPOUSO', 0], ['ANDAR', 0.5], ['DISPARAR', 0.25],
+                 ['CURAR', 0.5], ['IMPACTO', 0.5]];
 const DIRS = 8;
 const CLAVE = '_TAB';
 const MOSTRAS = parseInt(process.argv.includes('--mostras')

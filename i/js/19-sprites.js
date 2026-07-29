@@ -56,6 +56,30 @@ function spr3dDir(dx, dy){
 
 /* Debuxa e devolve true. Se non pode (banco non listo, clase sen
    modelo), devolve false e quen chama píntao á vella. */
+/* Canto sobe o sprite dunha clase por riba do punto onde pisa.
+
+   Fai falla desde que cada clase ten a súa altura: os adornos que van
+   ENRIBA da unidade —o nome, as medallas, a soldadura— levaban un
+   desprazamento fixo de 14 píxeles, que era xusto o alto do robot cando
+   todos medían o mesmo. Cun HEAVY de 32 píxeles o nome caíalle dentro
+   da cabeza. A barra de vida non sofre: vai por debaixo dos pés.
+
+   Se non hai banco cargado devolve o de antes, que segue valendo para o
+   debuxo procedural. */
+function spr3dAlto(cls){
+  if(typeof BANCO3D === 'undefined' || !BANCO3D.banco) return 22;
+  const a = BANCO3D.banco[cls];
+  const v = a && (a['0'] || a[Object.keys(a)[0]]);
+  return v ? v.ch : 22;
+}
+
+function spr3dAncho(cls){
+  if(typeof BANCO3D === 'undefined' || !BANCO3D.banco) return 20;
+  const a = BANCO3D.banco[cls];
+  const v = a && (a['0'] || a[Object.keys(a)[0]]);
+  return v ? v.cw : 20;
+}
+
 function spr3dDebuxar(ctx, cls, equipo, x, y, estado, dir, fase){
   if(!SPR3D_ACTIVO || !SPR3D.listo) return false;
   const a = SPR3D.imx[cls + '|' + equipo];

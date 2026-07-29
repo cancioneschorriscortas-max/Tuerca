@@ -38,7 +38,10 @@ proba('a táboa de orde nomea as oito capas en todas as direccións', () => {
       `${k}: a orde ten ${orde.length} capas e deberían ser ${CAPAS.length}`);
     for(const c of CAPAS) afirmar(orde.includes(c), `${k}: falta a capa ${c}`);
   }
-  for(const est of ['REPOUSO', 'ANDAR', 'DISPARAR'])
+  /* Os cinco estados, non tres: o compositor cae calado na orde de
+     REPOUSO cando falta unha entrada, e unha pose de impacto ten os
+     brazos noutro sitio. */
+  for(const est of ['REPOUSO', 'ANDAR', 'DISPARAR', 'CURAR', 'IMPACTO'])
     for(let d = 0; d < 8; d++)
       afirmar(ORDE[est + '/' + d], `falta a entrada ${est}/${d}`);
 });
