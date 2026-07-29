@@ -220,11 +220,22 @@ A causa estaba en que o xogo ignoraba as alturas dos blueprints de
 `Unit_references/` — chegara a ter o HEAVY como a clase MÁIS BAIXA das cinco,
 cando o deseño lle dá 2.40 m fronte aos 1.85 do GRUNT.
 
-Tres correccións, todas en `tools/modelos.js` e todas do blueprint:
+Catro correccións, todas en `tools/modelos.js` e todas do blueprint:
 `ALTURA_DESEÑO` (a altura de cada unidade, aplicada como escala uniforme
 sobre as caixas, que así seguen sendo editables a man), unha firma de
-`ANTENAS` por clase, e a mochila do enxeñeiro rompendo a liña do ombro.
-Peor par: 25 → 29 px sobre os sprites reais, media 101 → 223.
+`ANTENAS` por clase, a mochila do enxeñeiro rompendo a liña do ombro, e o
+enxeñeiro un 15% máis ancho ca o grunt, que é o que di o seu blueprint e o
+que máis rendeu: os dous miden 1.85, así que por detrás —onde ningún dos
+dous ensina a arma— eran o mesmo bulto. Pasou de 27 a 68 píxeles.
+
+Peor par: **25 → 50 px** sobre os sprites reais, media 101 → 286.
+
+**As antenas teñen que sobrevivir ao reducido.** Naceron de 0.12 de ancho,
+que é UN píxel de sprite, e o limiar de alfa comíaas: a antena longa do
+enxeñeiro chegaba á pantalla como un tocón de 4 píxeles e a do sniper como
+3. Un píxel de diferenza non é ningunha firma. A 0.20 sobreviven, e os
+longos escóllense buscando o reparto que maximiza o PEOR par — son un
+código, non cinco decisións independentes.
 
 Dúas leccións que custaron:
 

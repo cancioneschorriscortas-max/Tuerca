@@ -486,6 +486,23 @@ const REGRAS_RENDER = [
     por: 'Para que o xogador poida montar robots hai que compoñelos con pezas renderizadas por separado, e a forma barata de facelo é apilar capas nunha orde por dirección — que é o que fai Diablo II cos seus ficheiros COF. Iso só funciona se para cada par de pezas existe ALGUNHA orde correcta. Non a hai cando ás veces está diante unha e ás veces a outra: entón as pezas interpenétranse e non se poden separar. TOPE é un trinquete: baixa segundo se arranxa o reparto en pezas, e o obxectivo é 0. Nunca debe subir. Foi de 140 a 20 ao sacar do torso o que non era torso: as mochilas, a placa peitoral e as hombreiras.',
     revisar(cls){
       const TOPE = 20, TOL = 0.02;
+      /* A conta é de PÍXELES, así que depende do tamaño ao que se
+         renderice: coa mesma interpenetración, un robot máis grande dá
+         máis píxeles. Ao darlle a cada clase a altura do seu blueprint,
+         o bombardeiro pasou a 24 sen que cambiase a súa xeometría — o
+         mesmo que xa pasara coa regra A3. E o TOPE non se pode subir: é
+         un trinquete. Así que se renderiza cada clase á MESMA altura,
+         que é a condición na que o 20 se mediu e a única na que
+         comparar clases entre si significa algo. */
+      const alturaDe = c => {
+        let lo = Infinity, hi = -Infinity;
+        for(const b of ESQUELETO[c]){
+          lo = Math.min(lo, b.centro[1] - b.tam[1]/2);
+          hi = Math.max(hi, b.centro[1] + b.tam[1]/2);
+        }
+        return hi - lo;
+      };
+      const ESC = RESCALA * (alturaDe('GRUNT') / alturaDe(cls));
       let peor = 0, quen = '';
       for(const est of ['REPOUSO', 'ANDAR', 'DISPARAR']){
         for(const fase of [0, 0.5]){
@@ -494,7 +511,7 @@ const REGRAS_RENDER = [
           for(let d = 0; d < 8; d++){
             const yaw = d*2*Math.PI/8;
             const r = {};
-            for(const g of nomes) r[g] = render({ pezas: grupos[g] }, RW, RH, RESCALA, yaw, RPITCH);
+            for(const g of nomes) r[g] = render({ pezas: grupos[g] }, RW, RH, ESC, yaw, RPITCH);
             for(let i = 0; i < nomes.length; i++) for(let j = i+1; j < nomes.length; j++){
               const A = r[nomes[i]], B = r[nomes[j]];
               let a = 0, b = 0;

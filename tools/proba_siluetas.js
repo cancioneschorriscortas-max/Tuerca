@@ -210,3 +210,40 @@ if(process.argv.includes('--imaxe')){
 }
 
 fs.rmSync(tmp, { recursive: true, force: true });
+
+/* --par A,B debuxa un par concreto grande e coa diferenza marcada: as
+   dúas siluetas en negro e, ao lado, o que sobra nunha e falta na outra.
+   Serve para saber ONDE intervir en vez de supoñelo — a matriz di que
+   dous se parecen, isto di por que. */
+const _par = process.argv.indexOf('--par');
+if(_par > 0 && process.argv[_par+1]){
+  const [A, B] = process.argv[_par+1].split(',').map(s => s.trim().toUpperCase());
+  if(!atlas[A] || !atlas[B]) throw new Error('clase descoñecida: ' + A + ' ou ' + B);
+  const Z = 10, dirs = [0, 1, 4, 5];
+  const W = dirs.length*LENZO*Z, H = 3*LENZO*Z;
+  const px = Buffer.alloc(W*H*4);
+  for(let i = 0; i < W*H; i++){ px[i*4]=214; px[i*4+1]=216; px[i*4+2]=208; px[i*4+3]=255; }
+  const pinta = (m, ox, oy, cor) => {
+    for(let y = 0; y < LENZO*Z; y++) for(let x = 0; x < LENZO*Z; x++){
+      if(!m[((y/Z)|0)*LENZO + ((x/Z)|0)]) continue;
+      const d = ((oy+y)*W + ox+x)*4;
+      px[d] = cor[0]; px[d+1] = cor[1]; px[d+2] = cor[2];
+    }
+  };
+  dirs.forEach((d, i) => {
+    const a = cadro(A, ESTADO, d, 0), b = cadro(B, ESTADO, d, 0);
+    pinta(a.masc, i*LENZO*Z, 0, [24,26,22]);
+    pinta(b.masc, i*LENZO*Z, LENZO*Z, [24,26,22]);
+    /* fila 3: só o que NON comparten. Se sae case baleira, para o
+       xogador son a mesma unidade. */
+    const so = new Uint8Array(LENZO*LENZO), sb = new Uint8Array(LENZO*LENZO);
+    for(let k = 0; k < LENZO*LENZO; k++){
+      if(a.masc[k] && !b.masc[k]) so[k] = 1;
+      if(b.masc[k] && !a.masc[k]) sb[k] = 1;
+    }
+    pinta(so, i*LENZO*Z, 2*LENZO*Z, [190,60,50]);
+    pinta(sb, i*LENZO*Z, 2*LENZO*Z, [50,90,190]);
+  });
+  escribir(path.join(RAIZ, 'capturas', '_par.png'), { ancho: W, alto: H, px });
+  console.log(`  capturas/_par.png  (${A} arriba, ${B} no medio, o que non comparten abaixo; dirs ${dirs.join(' ')})\n`);
+}
