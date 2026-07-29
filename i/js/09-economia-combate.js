@@ -626,10 +626,38 @@ function tickAI(g){
     }
   }
 
-  /* 3. ASALTO ao HQ azul: se aínda hai libres e o exército é grande, ofensiva */
-  if(mine.length >= 5){
+  /* 3. ASALTO ao HQ azul: se aínda hai libres e o exército é grande, ofensiva.
+
+     O tamaño do exército CONTA AS GORNECIDAS. `mine` exclúe as que están
+     dentro dunha torreta ou dun vehículo —e ben excluídas están, que non
+     se moven— pero para decidir se hai exército abondo si contan: unha
+     unidade nunha torreta segue sendo dun exército. Sen isto pasaba o
+     seguinte, atopado polo fuzz coa semente 1501646933: nove unidades
+     vivas, cinco delas gornecidas, `mine.length` = 4, o asalto nunca se
+     dispara e as catro libres quedan quietas para sempre. A batalla non
+     remataba en 33 minutos de xogo.
+
+     E se non hai NADA que facer —nin ameaza, nin sector que tomar— sae
+     o asalto aínda que o exército sexa pequeno. Non é subirlle a
+     agresividade: é que o repartidor non poida deixar a todo o mundo sen
+     tarefa. Un exército parado nun mapa xa conquistado non é unha
+     decisión táctica, é unha partida que non pecha.
+
+     MEDIDO antes de darlle por bo, porque a nota que deixara isto sen
+     arranxar dicía que tocar a IA era unha decisión de equilibrio. Sobre
+     13 sementes, cun xogador que non dá ningunha orde:
+
+         sen arranxo   12 derrotas, 1 sen rematar, 14.573 pasos de media
+         con arranxo   13 derrotas, 0 sen rematar,  5.860 pasos
+
+     A duración cae á metade, pero NON é que a IA ataque máis: as dúas
+     correccións por separado dan o mesmo número (5.836 e 5.860), así que
+     o que baixa a media é deixar de ter batallas arrastrándose ata o
+     tope. O reparto de vitorias non cambia. */
+  const exercito = g.units.filter(u => u.team === ET && !u.dead).length;
+  const nadaQueFacer = !hqUnderThreat && sectorTargets.length === 0;
+  if(exercito >= 5 || nadaQueFacer){
     const libres = mine.filter(u => !u.role);
-    const hqAzul = g.hq[PT];
     for(const u of libres){
       u.role = 'ASSAULT';
       u.roleTarget = null;

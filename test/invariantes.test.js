@@ -153,28 +153,28 @@ proba('os veteranos despregados conservan a súa ficha persistente', () => {
 
 /* ---------- Bugs coñecidos, aínda sen arranxar ---------- */
 
-probaPendente(
-  'ningunha batalla se queda sen rematar',
-  'a IA queda sen ninguén asignado ao asalto e a partida non pecha',
-  () => {
-    /* ATOPADO polo fuzz e reproducible grazas ao azar sementado (v0.78).
-       Nesta semente, ao cabo de 33 minutos de xogo: cero baixas, os dous
-       HQ intactos e as unidades inimigas paradas co destino igual á súa
-       propia posición.
+proba('ningunha batalla se queda sen rematar', () => {
+  /* ATOPADO polo fuzz e reproducible grazas ao azar sementado (v0.78).
+     Nesta semente, ao cabo de 33 minutos de xogo: cero baixas, os dous
+     HQ intactos e as unidades inimigas paradas.
 
-       A causa: o asalto ao HQ só se reparte entre unidades LIBRES
-       (09-economia-combate.js, "3. ASALTO ao HQ azul"). Tomados todos os
-       sectores e sen ameaza, as que arrastran un rol que xa non se pode
-       completar nunca volven a libres, así que ninguén ataca nunca.
+     Estivo marcado como pendente cunha causa que resultou ser FALSA:
+     dicía que as unidades arrastraban roles que xa non se podían
+     completar e non volvían a libres. Ao mirar o estado real, os oito
+     sectores eran do inimigo e a limpeza de roles funcionaba ben.
 
-       Non se arranxa aquí porque tocar a agresividade da IA é unha
-       decisión de equilibrio, non un remate técnico. */
-    const S = cargarXogo();
-    const g = novaBatalla(S, { op: 2, semente: 1501646933 });
-    avanzar(S, g, 120000);
-    afirmar(g.over, 'a batalla non rematou en 120000 pasos (33 min de xogo)');
-  },
-);
+     A causa era outra: `mine` exclúe as unidades gornecidas (dentro
+     dunha torreta ou dun vehículo) e o asalto esixía `mine.length >= 5`.
+     Con nove vivas e cinco gornecidas, a IA cóntase catro e nunca
+     ataca. O exército estaba enteiro; o que fallaba era o reconto.
+
+     Arranxado contando as gornecidas para decidir se hai exército, e
+     lanzando o asalto igual cando non queda NADA que facer. */
+  const S = cargarXogo();
+  const g = novaBatalla(S, { op: 2, semente: 1501646933 });
+  avanzar(S, g, 120000);
+  afirmar(g.over, 'a batalla non rematou en 120000 pasos (33 min de xogo)');
+});
 
 proba('os ids son únicos tamén na PRIMEIRA batalla da sesión', () => {
   /* Era o bug de mkUnit: numeraba os inimigos con `game ? ++game.enemyN : 1`
