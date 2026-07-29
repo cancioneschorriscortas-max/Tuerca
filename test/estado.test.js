@@ -92,3 +92,89 @@ proba('saveData segue funcionando aínda que o panel peta', async () => {
   const ok = await S.aval('saveData')(D);
   afirmar(ok === true, 'un fallo ao repintar impediu gardar a partida');
 });
+
+proba('un robot montado chega ao roster tras a operación que ocupa o taller', () => {
+  /* Denuncia do dono: "montei un robot e non está na lista para
+     escoller". A pregunta era se lle cargaramos a entrega ao tocar o
+     reconstructor para que amosase as pezas.
+
+     Isto percorre o camiño enteiro —encargar, xogar unha operación,
+     entregar— e comproba que a unidade acabe en DATA.units viva e sen
+     nada que a agoche. É unha cadea longa (o taller ocupa unha op, a
+     entrega vai no debrief) e calquera excepción polo medio faría que a
+     unidade se perdese SEN erro visible: entregarReconstruccion
+     constrúe o `rec` enteiro antes de metelo no roster, así que se algo
+     peta antes do push, o robot esfúmase e o taller queda ocupado. */
+  const s = cargarXogo();
+  const D = s.DATA;
+  D.units = []; D.piezas = []; D.chatarra = 500; D.opCount = 5; D.nextId = 20;
+
+  [['CABEZA','SNIPER','CROMO'], ['CHASIS','GRUNT','FORXA'], ['BRAZO_DER','HEAVY','REMACHE']]
+    .forEach((t, i) => D.piezas.push({ id:'p'+i, tipo:t[0], deCls:t[1], deNome:t[2], act:120 }));
+
+  const rec = {
+    id:'R-20', name:'PROBA', cls:'GRUNT', ops:0, kills:0, traits:[], events:[], medals:[],
+    crossings:0, recoveries:0, criticalSurvivals:0, captures:0, confianza:40,
+    activity:{dist:0,shots:0,kills:0,dmgTaken:0,caps:0,veh:0},
+  };
+  D.reconstruccion = {
+    rec, encargadaOp: D.opCount, sinergia: null, desdeCero: true,
+    pezas: { CABEZA: D.piezas[0], CHASIS: D.piezas[1], BRAZO: D.piezas[2] },
+  };
+
+  /* mentres non se xogue a operación, o taller segue ocupado a propósito */
+  s.entregarReconstruccion([]);
+  afirmar(D.units.length === 0,
+    'entregouse antes de tempo: o taller ten que ocupar unha operación');
+  afirmar(D.reconstruccion, 'o taller quedou libre sen entregar nada');
+
+  /* remata a operación seguinte */
+  D.opCount++;
+  s.entregarReconstruccion([]);
+  afirmar(D.units.length === 1,
+    'a unidade non chegou ao roster tras a operación: perdeuse no taller');
+  afirmar(!D.reconstruccion, 'o taller quedou ocupado despois de entregar');
+
+  const u = D.units[0];
+  afirmar(!u.dead, 'a unidade chegou morta');
+  afirmar(!u.folga, 'a unidade chegou en folga e non se podería escoller');
+  afirmar(u.id && u.name && u.cls, `a unidade chegou incompleta: ${JSON.stringify(u)}`);
+  /* e coas pezas alleas anotadas, que é o que a fai verse reconstruída */
+  afirmar(u.montaxe && u.montaxe.CABEZA === 'SNIPER' && u.montaxe.BRAZO_DER === 'HEAVY',
+    `perdéronse as pezas alleas: ${JSON.stringify(u.montaxe)}`);
+});
+
+proba('unha reensamblaxe que quedou sen entregar recupérase ao entrar no hangar', async () => {
+  /* A fenda: a entrega só se chama no debrief. Se a operación remata e
+     esa chamada non se executa —unha excepción antes de chegar a ela,
+     pechar a páxina no debrief— o robot queda nun limbo do que non hai
+     saída visible: o panel do taller deixa de amosalo, porque a súa
+     condición é a mesma que a da entrega e xa se cumpriu, e o roster
+     tampouco o ten porque nunca se entregou. Nin nun sitio nin no outro.
+
+     Non era teórico: o dono montou un robot e preguntou onde estaba. */
+  const S = cargarXogo();
+  await asentar();
+  const D = S.DATA;
+  D.units = [];
+  D.reconstruccion = {
+    rec: { id:'R-30', name:'ORFO', cls:'GRUNT', ops:0, kills:0, traits:[], events:[],
+           medals:[], crossings:0, recoveries:0, criticalSurvivals:0, captures:0,
+           confianza:40, activity:{dist:0,shots:0,kills:0,dmgTaken:0,caps:0,veh:0} },
+    pezas: {}, encargadaOp: 5, sinergia: null, desdeCero: true,
+  };
+  D.opCount = 7;              /* pasaron operacións e a entrega nunca correu */
+
+  /* Gárdase antes de chamar: showHangar empeza cun loadData(), así que
+     traballa co que hai no almacenamento e non co que haxa en memoria.
+     No xogo isto xa se cumpre —o estado gárdase ao encargar—, pero na
+     proba hai que reproducilo ou se estaría probando outra cousa. */
+  await S.aval('saveData')(D);
+
+  await S.aval('showHangar')();
+
+  afirmar(S.DATA.units.length === 1,
+    'o robot orfo non se recuperou ao entrar no hangar: segue sen existir en ningures');
+  afirmar(!S.DATA.reconstruccion, 'o taller quedou ocupado despois de recuperar');
+  afirmar(S.DATA.units[0].name === 'ORFO', 'recuperouse outra cousa');
+});

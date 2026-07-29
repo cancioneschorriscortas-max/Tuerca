@@ -601,6 +601,24 @@ async function endBattle(g){
    ============================================================ */
 async function showHangar(){
   DATA = await loadData();
+  /* (v0.84) REDE DE SEGURIDADE do taller. A entrega dunha reensamblaxe
+     só se chama nun sitio, o debrief, e iso deixa unha fenda: se a
+     operación remata pero a entrega non chega a executarse —unha
+     excepción antes de chegar a ela, pechar a páxina no debrief— o robot
+     queda nun limbo do que non hai saída visible. O panel do hangar
+     deixa de amosalo, porque a súa condición é a mesma que a da entrega
+     e xa se cumpriu, e o roster tampouco o ten porque nunca se entregou.
+     Nin no taller nin na lista: o dono monta un robot e desaparece.
+
+     Aquí só se comproba se quedou algo pendente. As liñas do debrief
+     pérdense —a fanfarria xa non ten onde ir— pero o robot chega, que é
+     o que importa. */
+  if(DATA.reconstruccion && DATA.opCount > DATA.reconstruccion.encargadaOp){
+    try{
+      entregarReconstruccion([]);
+      await saveData(DATA);
+    }catch(e){ console.error('[taller: entrega pendente]', e); }
+  }
   $('debrief').style.display='none';
   $('battle').style.display='none';
   $('hangar').style.display='block';
