@@ -91,7 +91,7 @@ async function endBattle(g){
           const okA = crearVinculo(a, b, 'CAMARADA');
           const okB = crearVinculo(b, a, 'CAMARADA');
           if(okA && okB){
-            lines.push(`<div style="color:#ffd700; margin:6px 0;">★ NOVO VÍNCULO — <b>${a.name} ↔ ${b.name}</b>: ${VINCULO.OPS_CAMARADA} operacións xuntos. Camaradas.</div>`);
+            lines.push(`<div style="color:#ffd700; margin:6px 0;">★ ${TXT('db.vinculoNovo', {a: a.name, b: b.name, n: VINCULO.OPS_CAMARADA})}</div>`);
           }
         }
       }
@@ -245,7 +245,7 @@ async function endBattle(g){
     {
       const novo = checkAlcume(rec);
       if(novo){
-        lines.push(`<div style="color:#ffd700; margin:6px 0;">★ ${rec.name} gaña un alcume: <b>"${novo.texto}"</b> — ${novo.motivo}.</div>`);
+        lines.push(`<div style="color:#ffd700; margin:6px 0;">★ ${TXT('db.alcume', {n: rec.name, t: novo.texto, m: novo.motivo})}</div>`);
       }
     }
     /* (R3) RENACIDO: conta atrás e estabilización */
@@ -348,7 +348,7 @@ async function endBattle(g){
         rec.debedaCon[salvador.id] = (rec.debedaCon[salvador.id] || 0) + 1;
         if(rec.debedaCon[salvador.id] === VINCULO.RESCATES_DEBEDA){
           if(crearVinculo(rec, salvador, 'DEBEDA')){
-            lines.push(`<div style="color:#ffd700; margin:6px 0;">★ VÍNCULO DE DÉBEDA — <b>${rec.name}</b> confía en <b>${salvador.name}</b>: ${VINCULO.RESCATES_DEBEDA} rescates. Non se esquece.</div>`);
+            lines.push(`<div style="color:#ffd700; margin:6px 0;">★ ${TXT('db.vinculoDebeda', {a: rec.name, b: salvador.name, n: VINCULO.RESCATES_DEBEDA})}</div>`);
           }
         }
       }
@@ -522,10 +522,10 @@ async function endBattle(g){
     if(r.folga && r.folga.ops > 0){
       r.folga.ops--;
       if(r.folga.ops <= 0){
-        lines.push(`<div class="small" style="color:#9ab0c8;">✊→ ${r.name} dá por rematada a folga por ${r.folga.por}. Volve estar dispoñible.</div>`);
+        lines.push(`<div class="small" style="color:#9ab0c8;">✊→ ${TXT('db.folgaFin', {n: r.name, por: r.folga.por})}</div>`);
         delete r.folga;
       } else {
-        lines.push(`<div class="small" style="color:#ff9a3c;">✊ ${r.name} segue en folga por ${r.folga.por} (${r.folga.ops} op máis).</div>`);
+        lines.push(`<div class="small" style="color:#ff9a3c;">✊ ${TXT('db.folgaSegue', {n: r.name, por: r.folga.por, ops: r.folga.ops})}</div>`);
       }
     }
   }
@@ -555,7 +555,7 @@ async function endBattle(g){
     lines.push(`<div style="border:2px solid #ffb000; padding:14px 18px; margin:14px 0; background:#141008;"><div style="color:#ffb000; font-size:16px; margin-bottom:8px;">${titulo}</div><div style="color:#e8c060; line-height:1.5;">${texto}</div><div class="small" style="color:#888; margin-top:8px;">Campaña: ${DATA.campWins||0}V / ${DATA.campLosses||0}D · A guerra segue en xogo libre.</div></div>`);
   }
   if(g._equipLost && g._equipLost.length){
-    lines.push(`<div style="margin-top:10px; color:#a05a50;">✖ EQUIPAMENTO PERDIDO NA RETIRADA: ${g._equipLost.join(', ')}. O taller non fía: recómprase.</div>`);
+    lines.push(`<div style="margin-top:10px; color:#a05a50;">✖ ${TXT('db.equipPerdido', {l: g._equipLost.join(', ')})}</div>`);
   }
   /* (v0.26) Rivalidades: gañador da op */
   {
@@ -567,7 +567,7 @@ async function endBattle(g){
       vistos.add(u.id); vistos.add(outro.id);
       if((u.kills||0) !== (outro.kills||0)){
         const [win, lose] = u.kills > outro.kills ? [u, outro] : [outro, u];
-        lines.push(`<div class="small" style="color:#ff9a3c;">⚡ ${win.name} gaña a rolda: ${win.kills}-${lose.kills} contra ${lose.name}.</div>`);
+        lines.push(`<div class="small" style="color:#ff9a3c;">⚡ ${TXT('db.gañaRolda', {g: win.name, k: win.kills, k2: lose.kills, p: lose.name})}</div>`);
       }
     }
   }
@@ -576,7 +576,7 @@ async function endBattle(g){
     const feitas = g.subquests.filter(q => q.done).length;
     const perdidas = g.subquests.filter(q => q.failed).length;
     if(feitas || perdidas){
-      lines.push(`<div style="color:#b48aff; margin:8px 0;">◈ Misións secundarias: ${feitas} cumpridas${perdidas ? `, ${perdidas} perdidas` : ''}.</div>`);
+      lines.push(`<div style="color:#b48aff; margin:8px 0;">◈ ${TXT('db.subquests', {f: feitas})}${perdidas ? TXT('db.subquestsPerdidas', {p: perdidas}) : ''}.</div>`);
     }
   }
   /* (v0.19 R2) Entregar a reconstrución se o taller acabou */
@@ -1011,7 +1011,7 @@ function showDespiece(){
     if(!recSel) return;
     if(!bDesm.dataset.armed){
       bDesm.dataset.armed = '1';
-      bDesm.textContent = `¿SEGURO? A IA de ${recSel.name} bórrase PARA SEMPRE`;
+      bDesm.textContent = TXT('dp.desmSeguro', {n: recSel.name});
       bDesm.style.background = '#3a1410';
       setTimeout(() => {
         if(bDesm.isConnected && bDesm.dataset.armed){
@@ -1055,19 +1055,26 @@ const RECON_COST = 90, RECON_RECAMBIO = 20;
 
    Mesma forma que SINERXIAS, e polo mesmo motivo: unha táboa que poidan
    ler o debrief, o roster e a ficha. */
-const HABILIDADES = {
-  recolector:   {label:'RECOLECTOR',    desc:'Pilla chatarra e restos do campo aínda sen ser enxeñeiro'},
-  antimuro:     {label:'ANTIMURO',      desc:'Dobre dano a estruturas e vehículos'},
-  cazapilotos:  {label:'CAZAPILOTOS',   desc:'Máis probabilidade de ferir tripulantes dentro dun vehículo'},
-  nucleoPiloto: {label:'NÚCLEO DE PILOTO', desc:'Bonificación de pilotaxe herdada do núcleo'},
-  chasisHeavy:  {label:'CHASIS PESADO', desc:'+12% de HP polo chasis de HEAVY'},
-};
+/* label e desc son GETTERS a propósito: resólvense ao PINTAR, non ao
+   cargar o módulo. Se fosen cadeas fixas quedarían no idioma que houbese
+   ao arrancar e cambiar de lingua non as movería — que é como se
+   descubriu isto, cunha etiqueta CAZAPILOTOS en galego no medio dunha
+   interface en inglés. */
+const HABILIDADES = {};
+for(const _id of ['recolector', 'antimuro', 'cazapilotos', 'nucleoPiloto', 'chasisHeavy'])
+  HABILIDADES[_id] = {
+    get label(){ return TXT('hab.' + _id); },
+    get desc(){ return TXT('hab.' + _id + '.d'); },
+  };
 
-const SINERXIAS = {
-  CORAZON_DOBLE: {label:'CORAZÓN DOBRE', desc:'Unha vez por operación sobrevive un golpe letal quedando a 1 HP'},
-  NUCLEO_QUENTE: {label:'NÚCLEO QUENTE', desc:'Autorreparación integrada de serie (rexenera fóra de combate)'},
-  SOLDADURA:     {label:'SOLDADURA PERFECTA', desc:'+10% a velocidade, dano, rango e HP'},
-};
+/* Mesmo tratamento que HABILIDADES, e polo mesmo motivo: estas
+   etiquetas saen no roster e na ficha, e estaban escritas en galego. */
+const SINERXIAS = {};
+for(const _id of ['CORAZON_DOBLE', 'NUCLEO_QUENTE', 'SOLDADURA'])
+  SINERXIAS[_id] = {
+    get label(){ return TXT('sin.' + _id); },
+    get desc(){ return TXT('sin.' + _id + '.d'); },
+  };
 function rollSinerxia(pezas){
   let vet = 0;
   for(const p of Object.values(pezas)){
@@ -1353,7 +1360,12 @@ function entregarReconstruccion(lines){
   /* Memorial: marcar doadores como DESPEZADOS e ao propio como reensamblado */
   DATA.fallen = (DATA.fallen||[]).map(f => {
     for(const d of doadores){
-      if(f.includes(`'${d}'`) && !f.includes('DESPEZADO')) return f + ` ⚙ DESPEZADO — as súas pezas marchan con ${rec.name}.`;
+      /* A liña do memorial gárdase XA REDACTADA, así que o idioma queda
+         conxelado no que houbese cando morreu. Non ten volta para as que
+         xa están escritas, pero polo menos as novas saen no idioma no
+         que se xoga. */
+      if(f.includes(`'${d}'`) && !f.includes('DESPEZADO') && !f.includes('SALVAGED'))
+        return f + ' ⚙ ' + TXT('mem.despezado', {n: rec.name});
     }
     if(f.includes(`'${rec.name}'`) && !f.includes('REENSAMBLADO')) return f + ` ⟲ REENSAMBLADO na Op ${DATA.opCount}.`;
     return f;

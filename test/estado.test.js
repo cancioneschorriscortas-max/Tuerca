@@ -249,3 +249,69 @@ proba('as habilidades cruzadas vense no roster e explícanse na ficha', async ()
   afirmar(/ANTIMURO/.test(bio), 'a ficha non menciona a habilidade');
   afirmar(/Dobre dano/.test(bio), 'a ficha di o nome pero non o que fai');
 });
+
+proba('as etiquetas de habilidade e sinerxía seguen o idioma', async () => {
+  /* Descubriuse mirando unha captura: unha etiqueta CAZAPILOTOS en
+     galego no medio dunha interface en inglés. As táboas HABILIDADES e
+     SINERXIAS levaban os textos escritos a man.
+
+     Non abonda con metelos no dicionario: teñen que resolverse ao
+     PINTAR e non ao cargar o módulo, ou quedarían no idioma que houbese
+     ao arrancar e cambiar de lingua non os movería. Por iso se comproba
+     nas tres linguas seguidas, sen recargar. */
+  const S = cargarXogo();
+  await asentar();
+  const D = S.DATA;
+  D.units = [{ id:'R-08', name:'TORNO', cls:'ENGINEER', ops:0, activity:{},
+               habilidades:{ cazapilotos:true }, sinergia:'SOLDADURA' }];
+  D.reconstruccion = null;
+  await S.aval('saveData')(D);
+
+  const vistos = { hab: new Set(), sin: new Set() };
+  for(const lg of ['gl', 'es', 'en']){
+    S.aval('setLang')(lg, { persist:false });
+    await S.aval('showHangar')();
+    const h = S.document.getElementById('rosterList').innerHTML;
+    const hab = h.match(/◈ ([^<]+)</);
+    const sin = h.match(/✦ ([^<]+)</);
+    afirmar(hab, `${lg}: non se pintou a etiqueta de habilidade`);
+    afirmar(sin, `${lg}: non se pintou a etiqueta de sinerxía`);
+    afirmar(!/^hab\.|^sin\./.test(hab[1]),
+      `${lg}: a etiqueta amosa a clave sen traducir (${hab[1]})`);
+    vistos.hab.add(hab[1].trim());
+    vistos.sin.add(sin[1].trim());
+  }
+  /* o inglés ten que diferir: se as tres dan o mesmo, non se está
+     traducindo nada aínda que as claves existan */
+  afirmar(vistos.hab.size > 1, `a habilidade di o mesmo nas tres linguas: ${[...vistos.hab]}`);
+  afirmar(vistos.sin.size > 1, `a sinerxía di o mesmo nas tres linguas: ${[...vistos.sin]}`);
+});
+
+proba('toda clave de tradución que o código pide existe nas tres linguas', () => {
+  /* O dicionario estaba completo: o que faltaba era texto que nunca
+     pasaba por TXT(). Aínda así, unha clave que se engade nunha lingua e
+     se esquece nas outras non dá erro —TXT cae ao castelán, logo ao
+     galego e por último á propia clave— así que o fallo aparece como
+     unha frase no idioma equivocado ou como un identificador cru no
+     medio da interface. Isto cázao antes.
+
+     Descóntanse os prefixos: hai claves que se compoñen ao voo
+     (TXT('hab.' + id)) e no código só se ve o anaco fixo. */
+  const fs2 = require('fs'), path2 = require('path');
+  const S = cargarXogo();
+  const L = S.aval('LANGS');
+  const dir = path2.join(__dirname, '..', 'i', 'js');
+  const claves = new Set();
+  for(const f of fs2.readdirSync(dir)){
+    if(!f.endsWith('.js')) continue;
+    const src = fs2.readFileSync(path2.join(dir, f), 'utf8');
+    for(const m of src.matchAll(/TXT\(\s*'([^']+)'/g))
+      if(!m[1].endsWith('.')) claves.add(m[1]);
+  }
+  afirmar(claves.size > 100, `só se atoparon ${claves.size} claves: revisa esta proba`);
+  for(const lg of ['gl', 'es', 'en']){
+    const faltan = [...claves].filter(k => !(k in L[lg]));
+    afirmar(faltan.length === 0,
+      `${lg}: faltan ${faltan.length} claves — ${faltan.slice(0, 6).join(', ')}`);
+  }
+});
