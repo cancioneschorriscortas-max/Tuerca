@@ -137,3 +137,36 @@ function mon3dDeMontaxe(pezas, clsBase){
   for(const slot of MON3D_SLOTS) if(pezas[slot]) m[slot] = pezas[slot];
   return m;
 }
+
+/* ============================================================
+   VISTA PREVIA para os diálogos de montaxe.
+
+   Nos dous diálogos que xa había —o RECONSTRUCTOR e a MONTAXE DESDE
+   CERO— escóllese peza por peza nuns desplegables e non se ve o que sae.
+   Sabíase o custo e a clase, non a pinta. Agora que hai un sprite por
+   peza, amosalo é apilar.
+
+   Debúxase pequeno e amplíase con drawImage sen suavizado: escalar o
+   contexto antes de pintar deixaría os bordos borrosos, que é
+   precisamente o que non se quere nun xogo de píxeles.
+   ============================================================ */
+function mon3dVista(cv, m, equipo, dirs, zoom){
+  if(!cv || !MON3D.listo) return false;
+  const Z = zoom || 4, D = dirs || [0, 5];
+  const cel = 42;
+  cv.width = cel*Z*D.length; cv.height = cel*Z;
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  /* un lenzo temporal ao tamaño real do sprite, e despois amplíase */
+  const t = document.createElement('canvas');
+  t.width = cel; t.height = cel;
+  const tc = t.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  let algo = false;
+  D.forEach((d, i) => {
+    tc.clearRect(0, 0, cel, cel);
+    if(mon3dDebuxar(tc, m, equipo, cel/2, cel - 12, 'REPOUSO', d, 0)) algo = true;
+    ctx.drawImage(t, 0, 0, cel, cel, i*cel*Z, 0, cel*Z, cel*Z);
+  });
+  return algo;
+}

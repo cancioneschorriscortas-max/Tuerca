@@ -179,8 +179,10 @@ window.addEventListener('load', function(){
    e non se ve nada do que se está a facer. --sementar enche DATA cun
    escuadrón, unha baixa e unha reensamblaxe en curso. */
 const FICHA = op('ficha', null);
-const semente = (modo === 'hangar' && (ten('sementar') || FICHA)) ? `
+const MONTAXE = ten('montaxe');
+const semente = (modo === 'hangar' && (ten('sementar') || FICHA || MONTAXE)) ? `
 <script>
+var MONTAXE = ${MONTAXE};
 var FICHA = ${FICHA ? JSON.stringify(FICHA) : 'null'};
 window.addEventListener('load', function(){
   setTimeout(function(){
@@ -202,6 +204,30 @@ window.addEventListener('load', function(){
       /* --ficha abre a biografía dunha unidade, que é onde vai a lámina
          técnica da clase. Sen isto non hai xeito de capturala: a ficha
          só se abre premendo, e a captura non preme. */
+      if(MONTAXE){
+        /* Pezas no inventario e o diálogo de montaxe aberto, con algunhas
+           escollidas: é a única maneira de capturar a vista previa, que
+           só aparece cando hai algo escollido. */
+        var _n = 0;
+        DATA.piezas = [];
+        [['CABEZA','SNIPER','CROMO'], ['CHASIS','GRUNT','FORXA'],
+         ['BRAZO_DER','HEAVY','REMACHE'], ['BRAZO_ESQ','ENGINEER','LIMA'],
+         ['PERNA_DER','HEAVY','EIXE'], ['PERNA_ESQ','GRUNT','BRIDA'],
+         ['NUCLEO','BOMBARDERO','CHISPA']].forEach(function(t){
+          DATA.piezas.push({ id:'p'+(_n++), tipo:t[0], deCls:t[1], deNome:t[2], act:120 });
+        });
+        setTimeout(function(){
+          /* dentro do temporizador: a semente pon unha reensamblaxe en
+             curso DESPOIS deste bloque, e con ela o diálogo non abre */
+          DATA.reconstruccion = null;
+          showMontaxe();
+          setTimeout(function(){
+            var sels = document.querySelectorAll('#bioBody select[data-slot]');
+            sels.forEach(function(sel){ if(sel.options.length > 1) sel.selectedIndex = 1; });
+            sels[0] && sels[0].dispatchEvent(new Event('change'));
+          }, 120);
+        }, 400);
+      }
       if(FICHA){
         var _u = DATA.units.find(function(x){ return x.cls === FICHA; }) || DATA.units[0];
         setTimeout(function(){ showBiography(_u); }, 400);

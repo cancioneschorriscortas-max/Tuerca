@@ -1076,6 +1076,7 @@ function showReconstruir(iaIdx){
       </select>
     </div>`;
   }
+  body += VISTA_HTML;
   body += `<div style="margin-top:12px;"><b id="reconTotal" style="color:#c8a86a;"></b></div>
   <div style="margin-top:8px;">
     <button class="bio-btn" id="reconConfirm" style="color:#9fd0ff; border-color:#9fd0ff;">▸ ENSAMBLAR (ocupa o taller 1 operación)</button>
@@ -1090,6 +1091,8 @@ function showReconstruir(iaIdx){
     $('reconTotal').textContent = `TOTAL: ${total}⚙` + (total > (DATA.chatarra||0) ? '  — CHATARRA INSUFICIENTE' : '');
     $('reconConfirm').disabled = total > (DATA.chatarra||0);
     $('reconConfirm').style.opacity = total > (DATA.chatarra||0) ? 0.4 : 1;
+    /* A clase vén da IA que se reconstrúe; as pezas alleas vense por riba. */
+    pintarVistaMontaxe(rec.cls);
     return total;
   };
   $('bioBody').querySelectorAll('select[data-slot]').forEach(sel => sel.addEventListener('change', calcTotal));
@@ -1133,6 +1136,7 @@ function showMontaxe(){
       </select>
     </div>`;
   }
+  body += VISTA_HTML;
   body += `<div style="margin-top:12px;"><b id="montTotal" style="color:#c8a86a;"></b> <span id="montCls" style="color:#7fdc7f;"></span></div>
   <div style="margin-top:8px;">
     <button class="bio-btn" id="montConfirm" style="color:#7fdc7f; border-color:#7fdc7f;">▸ ENSAMBLAR (ocupa o taller 1 operación)</button>
@@ -1154,6 +1158,8 @@ function showMontaxe(){
     $('montCls').textContent = `→ clase: ${clsPreview}`;
     $('montConfirm').disabled = total > (DATA.chatarra||0);
     $('montConfirm').style.opacity = total > (DATA.chatarra||0) ? 0.4 : 1;
+    /* Aquí a clase decídea o CHASIS, así que a vista cambia ao trocalo. */
+    pintarVistaMontaxe(clsPreview);
     return {total, clsPreview};
   };
   $('bioBody').querySelectorAll('select[data-slot]').forEach(sel => sel.addEventListener('change', calc));
@@ -1187,6 +1193,35 @@ function showMontaxe(){
     showDespiece();
   });
 }
+
+/* De pezas escollidas a montaxe. Úsase en dous sitios —a vista previa
+   dos diálogos e a entrega— e ten que dar o mesmo nos dous, se non a
+   vista previa mentiría sobre o que vas montar. Por iso vai nunha
+   función e non copiado. Aprovéitase de que o TIPO de peza xa é o nome
+   do slot da montaxe. */
+function montaxeCrua(pezas){
+  const m = {};
+  for(const p of pezas) if(p && p.deCls) m[p.tipo] = p.deCls;
+  return m;
+}
+
+/* Redebuxa a vista previa dun diálogo de montaxe a partir do que hai
+   escollido agora mesmo nos desplegables. */
+function pintarVistaMontaxe(clsBase){
+  const cv = $('montVista');
+  if(!cv || typeof mon3dVista !== 'function') return;
+  const escollidas = [];
+  $('bioBody').querySelectorAll('select[data-slot]').forEach(sel => {
+    if(!sel.value) return;
+    const p = (DATA.piezas||[]).find(x => x.id === sel.value);
+    if(p) escollidas.push(p);
+  });
+  const m = mon3dDeMontaxe(montaxeCrua(escollidas), clsBase);
+  cv.style.display = mon3dVista(cv, m, PT, [0, 5], 4) ? 'block' : 'none';
+}
+
+const VISTA_HTML = `<canvas id="montVista" style="display:none; image-rendering:pixelated;
+  margin:6px auto 10px; border:1px solid #333; background:#12140f;"></canvas>`;
 
 /* Entrega da reconstrución (chámase en endBattle tras xogar a op ocupada) */
 function entregarReconstruccion(lines){
@@ -1223,8 +1258,7 @@ function entregarReconstruccion(lines){
      copiar. Cada brazo e cada perna van no seu lado: se o doador puxo o
      brazo dereito, o esquerdo segue sendo recambio da clase do chasis,
      e o robot vese asimétrico. Iso é o correcto — está feito de anacos. */
-  rec.montaxe = {};
-  for(const p of Object.values(R.pezas)) if(p && p.deCls) rec.montaxe[p.tipo] = p.deCls;
+  rec.montaxe = montaxeCrua(Object.values(R.pezas));
   if(!Object.keys(rec.montaxe).length) delete rec.montaxe;
   rec.reconstruidoOp = DATA.opCount;
   if(R.sinergia) rec.sinergia = R.sinergia;
