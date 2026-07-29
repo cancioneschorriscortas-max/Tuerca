@@ -178,3 +178,39 @@ proba('unha reensamblaxe que quedou sen entregar recupérase ao entrar no hangar
   afirmar(!S.DATA.reconstruccion, 'o taller quedou ocupado despois de recuperar');
   afirmar(S.DATA.units[0].name === 'ORFO', 'recuperouse outra cousa');
 });
+
+proba('un robot montado desde cero leva marca propia no roster', async () => {
+  /* Denuncia do dono: "montei un robot e non está na lista". Estaba: o
+     que non tiña era ningunha marca. A etiqueta laranxa RENACIDO só se
+     lle pon a quen volve do arquivo —correcto, un robot novo non renace
+     de ningures— pero non había nada que a substituíse. Chegaba cun
+     nome novo ao azar, sen distintivo, e non había maneira de saber cal
+     era dos sete do roster. Parecía que non chegara.
+
+     Compróbase o que se ve, non só o dato: que a unidade quede marcada E
+     que a marca chegue ao HTML do roster. */
+  const S = cargarXogo();
+  await asentar();
+  const D = S.DATA;
+  D.units = [{ id:'R-01', name:'FERRO', cls:'GRUNT', ops:4, activity:{} }];
+  D.reconstruccion = {
+    rec: { id:'R-20', name:'NOVATO', cls:'GRUNT', ops:0, kills:0, traits:[], events:[],
+           medals:[], crossings:0, recoveries:0, criticalSurvivals:0, captures:0,
+           confianza:40, activity:{dist:0,shots:0,kills:0,dmgTaken:0,caps:0,veh:0} },
+    pezas: {}, encargadaOp: 5, sinergia: null, desdeCero: true,
+  };
+  D.opCount = 7;
+  await S.aval('saveData')(D);
+  await S.aval('showHangar')();
+
+  const u = S.DATA.units.find(x => x.name === 'NOVATO');
+  afirmar(u, 'o robot montado non chegou ao roster');
+  afirmar(u.desdeCero, 'a unidade non lembra que se montou desde cero');
+  afirmar(!u.renacido, 'marcouse como RENACIDO: un robot novo non volve de ningures');
+
+  const html = S.document.getElementById('rosterList').innerHTML;
+  const arredor = html.slice(Math.max(0, html.indexOf('NOVATO') - 200),
+                             html.indexOf('NOVATO') + 800);
+  afirmar(/class="tag"/.test(arredor),
+    'o robot montado sae no roster sen ningunha etiqueta: non hai como distinguilo');
+});

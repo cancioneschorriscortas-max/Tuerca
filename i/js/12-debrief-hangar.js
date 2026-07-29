@@ -703,6 +703,7 @@ async function showHangar(){
         ${(u.equipment||[]).map(e=>`<span class="tag" style="color:#c8a86a; border-color:#c8a86a;">⚙ ${eqLabel(e)}</span>`).join('')}
         ${skillTagsHTML(u)}
         ${u.renacido ? `<span class="tag" style="color:#ff9a3c; border-color:#ff9a3c;">${TXT('hg.renacido')}</span>` : ''}
+        ${u.desdeCero ? `<span class="tag" style="color:#7fdc7f; border-color:#7fdc7f;">${TXT('hg.novo')}</span>` : ''}
         ${u.folga && u.folga.ops>0 ? `<span class="tag" style="color:#ff5340; border-color:#ff5340;">${TXT('hg.folga', {ops: u.folga.ops+' op'+(u.folga.ops>1?'s':''), por: u.folga.por})}</span>` : ''}
         ${u.sinergia && SINERXIAS[u.sinergia] ? `<span class="tag" style="color:#ffd700; border-color:#ffd700;">✦ ${SINERXIAS[u.sinergia].label}</span>` : ''}
         <button class="bio-btn" data-bio="${i}">${TXT('hg.biografia')}</button>
@@ -1282,7 +1283,14 @@ function entregarReconstruccion(lines){
   if(R.sinergia) rec.sinergia = R.sinergia;
   if(R.desdeCero){
     /* (v0.28) IA en branco: non renace de ningures — conserva a confianza fixada na montaxe,
-       non ten estado RENACIDO nin conta como recuperación. */
+       non ten estado RENACIDO nin conta como recuperación.
+
+       (v0.84) Pero SI queda anotado. Non telo anotado deixaba un robot
+       recén montado sen ningunha marca no roster: sen RENACIDO —que é
+       correcto, non volveu de ningures— e sen nada que o substituíse.
+       Pagabas 60⚙ e unhas pezas, chegaba cun nome novo ao azar e non
+       había maneira de distinguilo dos demais. Parecía que non chegara. */
+    rec.desdeCero = true;
   } else {
     rec.confianza = 25 + Math.floor(Math.random()*11);
     rec.renacido = {opsLeft: 3};   /* R3 dálle voz */
