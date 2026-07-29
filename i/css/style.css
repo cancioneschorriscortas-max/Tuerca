@@ -353,6 +353,23 @@
     max-height:calc(100vh - 60px); overflow-y:auto;
   }
   #bioModal h2{font-size:18px; margin-bottom:14px;}
+  /* (v0.84) A lámina técnica da clase na ficha da unidade. Recortada pola
+     cabeceira e a figura —que é o que se le nunha ollada— e despregable
+     ao premer. O recorte faise con max-height e non escalando a imaxe:
+     escalada enteira a 630 píxeles de ancho o texto do plano non se le. */
+  #bioModal .lamina-uni{
+    max-height:210px; overflow:hidden; margin:0 0 14px;
+    border:1px solid var(--phos-dim); cursor:pointer;
+    position:relative; transition:max-height .18s ease;
+  }
+  #bioModal .lamina-uni.aberta{max-height:1400px;}
+  #bioModal .lamina-uni img{display:block; width:100%; image-rendering:auto;}
+  /* degradado ao pé mentres está pechada: di que hai máis debaixo */
+  #bioModal .lamina-uni::after{
+    content:''; position:absolute; left:0; right:0; bottom:0; height:38px;
+    background:linear-gradient(rgba(13,13,10,0), #0d0d0a);
+  }
+  #bioModal .lamina-uni.aberta::after{display:none;}
   #bioModal .ev{padding:4px 0; border-bottom:1px dotted #2a2200; font-size:12px;}
   #bioModal .ev .op{color:var(--phos-dim); margin-right:8px;}
   #bioModal .ev .lugar{color:var(--gold);}

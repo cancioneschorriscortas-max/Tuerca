@@ -1569,7 +1569,21 @@ function showBiography(u){
         byOp[op].map(formatEvent).join(' · ')+`</div>`;
     });
   }
+  /* (v0.84) A LÁMINA da clase, arriba de todo. É o plano técnico de
+     Unit_references/, o mesmo do que saíron as alturas e as antenas dos
+     modelos, e di en ficción o que a táboa de stats di en números.
+
+     Amósase recortada pola cabeceira e a figura, que é o que se le nunha
+     ollada; premendo despregase enteira. Se falta o ficheiro non pasa
+     nada: o bloque quítase só. */
+  const lam = `ui/lamina_${u.cls}.png`;
+  body = `<div class="lamina-uni" title="${TXT('bio.laminaVer')}">
+    <img src="${lam}" alt="" onerror="this.parentNode.remove()">
+  </div>` + body;
+
   $('bioBody').innerHTML = body;
+  const cx = $('bioBody').querySelector('.lamina-uni');
+  if(cx) cx.addEventListener('click', () => cx.classList.toggle('aberta'));
   $('bioModal').style.display='block';
 }
 function formatEvent(e){

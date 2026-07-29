@@ -224,3 +224,26 @@ proba('unha montaxe reconstruída conserva as pezas alleas e completa o resto', 
   for(const k of Object.keys(mon3dDeClase('SNIPER')))
     afirmar(puro[k] === 'SNIPER', `${k}: unha montaxe sen pezas alleas non é a clase`);
 });
+
+proba('cada clase ten a súa lámina técnica', () => {
+  /* A ficha dunha unidade amosa ui/lamina_<CLASE>.png. Se falta unha, o
+     onerror do <img> quita o bloque e a ficha segue funcionando: non hai
+     erro, non hai oco, simplemente esa clase deixa de ter lámina e
+     ninguén se entera ata que alguén a busca. Por iso se comproba aquí,
+     e non só que existan senón que o build as publique. */
+  const UI = path.join(__dirname, '..', 'i', 'ui');
+  if(!fs.existsSync(UI)) return;
+  const clases = PEZAS ? Object.keys(PEZAS.ancorasMundo) : [];
+  if(!clases.length) return;
+  for(const c of clases){
+    const f = path.join(UI, `lamina_${c}.png`);
+    afirmar(fs.existsSync(f),
+      `falta i/ui/lamina_${c}.png — a ficha do ${c} quedaría sen lámina e sen aviso. ` +
+      'Xérase con: node tools/xerar_laminas.js');
+  }
+  /* e que o build non as deixe fóra: ten unha lista branca para o resto
+     de ui/, que é material de traballo */
+  const build = fs.readFileSync(path.join(__dirname, '..', 'i', 'build.py'), 'utf8');
+  afirmar(/_UI_PATRONS\s*=\s*\[[^\]]*'lamina_'/.test(build),
+    'o build non copia as láminas a dist/ui/: quedarían fóra do que se publica');
+});

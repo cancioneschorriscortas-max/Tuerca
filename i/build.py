@@ -48,15 +48,24 @@ if os.path.isdir(_vsrc):
     if os.path.isdir(_vdst): _sh.rmtree(_vdst)
     _sh.copytree(_vsrc, _vdst)
     print(f'voces/ -> dist ({len(os.listdir(_vsrc))} entradas)')
-# Interface: só o que usa o CSS. As láminas de orixe e as pezas recortadas
-# quedan fóra do que se publica — son material de traballo, non do xogo.
+# Interface: só o que usa o xogo. O resto de ui/ —as láminas de orixe, as
+# pezas recortadas— queda fóra: é material de traballo.
+#
+# lamina_<CLASE>.png SI entran: son as láminas técnicas que amosa a ficha
+# dunha unidade, xeradas por tools/xerar_laminas.js desde
+# Unit_references/. Van por patrón e non por nome para que engadir unha
+# clase non pida tocar isto; e non se inlinan, coma o resto de ui/.
 _UI_PUBLICAS = ['marco-panel.png', 'fondo_menu.png']
+_UI_PATRONS = ['lamina_']
 _usrc = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ui')
 _udst = os.path.join(os.path.dirname(os.path.abspath(out)), 'ui')
 if os.path.isdir(_usrc):
     os.makedirs(_udst, exist_ok=True)
     _n = 0
-    for _f in _UI_PUBLICAS:
+    _lista = list(_UI_PUBLICAS) + sorted(
+        f for f in os.listdir(_usrc)
+        if any(f.startswith(pre) for pre in _UI_PATRONS) and f.endswith('.png'))
+    for _f in _lista:
         _o = os.path.join(_usrc, _f)
         if os.path.isfile(_o): _sh.copy2(_o, os.path.join(_udst, _f)); _n += 1
     _kb = sum(os.path.getsize(os.path.join(_udst, f)) for f in os.listdir(_udst)) // 1024

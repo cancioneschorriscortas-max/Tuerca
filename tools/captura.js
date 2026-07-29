@@ -178,8 +178,10 @@ window.addEventListener('load', function(){
 /* Hangar con datos: cun roster baleiro o panel de estado sae todo a cero
    e non se ve nada do que se está a facer. --sementar enche DATA cun
    escuadrón, unha baixa e unha reensamblaxe en curso. */
-const semente = (modo === 'hangar' && ten('sementar')) ? `
+const FICHA = op('ficha', null);
+const semente = (modo === 'hangar' && (ten('sementar') || FICHA)) ? `
 <script>
+var FICHA = ${FICHA ? JSON.stringify(FICHA) : 'null'};
 window.addEventListener('load', function(){
   setTimeout(function(){
     try{
@@ -197,6 +199,13 @@ window.addEventListener('load', function(){
       });
       DATA.chatarra = 124;
       DATA.opCount = 13;
+      /* --ficha abre a biografía dunha unidade, que é onde vai a lámina
+         técnica da clase. Sen isto non hai xeito de capturala: a ficha
+         só se abre premendo, e a captura non preme. */
+      if(FICHA){
+        var _u = DATA.units.find(function(x){ return x.cls === FICHA; }) || DATA.units[0];
+        setTimeout(function(){ showBiography(_u); }, 400);
+      }
       DATA.fallen = [TXT('deb.fallenLine', {id:'R-08', n:'MARTELO', ops:9, k:14,
         l:'a Ponte', op:13, reason: TXT('deb.restosPerdidos')})];
       DATA.reconstruccion = {rec: DATA.units[0], pezas: [], encargadaOp: 13, sinergia: null};
