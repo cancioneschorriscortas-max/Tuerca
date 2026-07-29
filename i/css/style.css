@@ -370,6 +370,18 @@
     background:linear-gradient(rgba(13,13,10,0), #0d0d0a);
   }
   #bioModal .lamina-uni.aberta::after{display:none;}
+  /* Cando a lámina non carga dise, en vez de desaparecer en silencio.
+     Un ficheiro que falta ten que notarse: se non, non hai xeito de
+     distinguir "isto non está implementado" de "isto está roto". */
+  #bioModal .lamina-uni.sen-lamina{
+    max-height:none; cursor:default; border-style:dashed;
+    border-color:#6a5a2a; padding:8px 10px;
+  }
+  #bioModal .lamina-uni.sen-lamina::after{display:none;}
+  #bioModal .lamina-uni.sen-lamina::before{
+    content:'A0 falta ' attr(data-falta);
+    color:#c8a86a; font-size:11px;
+  }
   #bioModal .ev{padding:4px 0; border-bottom:1px dotted #2a2200; font-size:12px;}
   #bioModal .ev .op{color:var(--phos-dim); margin-right:8px;}
   #bioModal .ev .lugar{color:var(--gold);}

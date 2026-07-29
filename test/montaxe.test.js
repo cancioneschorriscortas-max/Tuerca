@@ -247,3 +247,58 @@ proba('cada clase ten a súa lámina técnica', () => {
   afirmar(/_UI_PATRONS\s*=\s*\[[^\]]*'lamina_'/.test(build),
     'o build non copia as láminas a dist/ui/: quedarían fóra do que se publica');
 });
+
+proba('o despregue web non exclúe as láminas das clases', () => {
+  /* Hai DÚAS vías de publicación e cada unha ten a súa lista: build.py
+     copia a dist/ e firebase.json serve i/ tal cal. Arranxar unha non
+     arranxa a outra, e iso foi exactamente o que pasou: as láminas
+     entraban no dist e o despregue web excluíaas cun patrón "lamina*"
+     pensado para o material de traballo (lamina.png, lamina1.png) que
+     collía tamén lamina_GRUNT.png e compañía.
+
+     No xogo publicado non se vía nada: a imaxe daba 404 e o bloque
+     desaparecía. Comprobación barata para un fallo que só se manifesta
+     en produción e que desde local é invisible. */
+  const RAIZ = path.join(__dirname, '..');
+  const fb = path.join(RAIZ, 'firebase.json');
+  if(!fs.existsSync(fb)) return;
+  const ignore = (JSON.parse(fs.readFileSync(fb, 'utf8')).hosting || {}).ignore || [];
+
+  /* Glob mínimo, segmento a segmento: ** engole calquera cousa, * todo
+     agás a barra. Abonda para os patróns que hai e evita ter que
+     escapar unha expresión regular. */
+  const casa = (patron, ruta) => {
+    const p = patron.split('/'), r = ruta.split('/');
+    const seguir = (i, j) => {
+      if(i === p.length) return j === r.length;
+      if(p[i] === '**'){
+        for(let k = j; k <= r.length; k++) if(seguir(i+1, k)) return true;
+        return false;
+      }
+      if(j === r.length) return false;
+      const trozos = p[i].split('*'), seg = r[j];
+      if(!seg.startsWith(trozos[0])) return false;
+      if(trozos.length > 1 && !seg.endsWith(trozos[trozos.length-1])) return false;
+      let pos = trozos[0].length;
+      for(let t = 1; t < trozos.length; t++){
+        const ix = seg.indexOf(trozos[t], pos);
+        if(ix < 0) return false;
+        pos = ix + trozos[t].length;
+      }
+      return seguir(i+1, j+1);
+    };
+    return seguir(0, 0);
+  };
+
+  const UI = path.join(RAIZ, 'i', 'ui');
+  if(!fs.existsSync(UI)) return;
+  const laminas = fs.readdirSync(UI).filter(f => /^lamina_[A-Z]+[.]png$/.test(f));
+  afirmar(laminas.length > 0, 'non hai láminas de clase en i/ui/');
+  for(const f of laminas){
+    const ruta = 'ui/' + f;
+    const culpable = ignore.find(pt => casa(pt, ruta));
+    afirmar(!culpable,
+      `firebase.json exclúe ${ruta} co patrón "${culpable}": ` +
+      'a ficha da unidade sairía sen lámina no xogo publicado');
+  }
+});

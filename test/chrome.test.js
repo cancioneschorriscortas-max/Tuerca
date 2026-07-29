@@ -95,13 +95,20 @@ proba('non quedan estilos de cor en liña nos botóns do hangar', () => {
 /* ---------- Idioma ---------- */
 
 proba('non se publica material de traballo', () => {
-  /* firebase.json publica i/ ENTEIRO. As láminas de interface e as pezas
+  /* firebase.json publica i/ ENTEIRO. As láminas de orixe e as pezas
      recortadas viven alí e pesan varios MB: son material de traballo, non
      do xogo, e ían a cada deploy. As dúas imaxes que usa o CSS si teñen
-     que saír. */
+     que saír.
+
+     O patrón era "ui/lamina*.png" e era GLOTÓN de máis: ao aparecer as
+     láminas técnicas das clases (ui/lamina_GRUNT.png e compañía, que SI
+     son do xogo) collíaas tamén, e a ficha da unidade saía sen lámina no
+     xogo publicado mentres en local se vía perfectamente. Agora vai por
+     nome. Que as das clases NON queden excluídas compróbase en
+     montaxe.test.js, que é onde vive o que as usa. */
   const fb = JSON.parse(fs.readFileSync('C:/tuerca/firebase.json', 'utf8'));
   const ignora = fb.hosting.ignore || [];
-  for (const patron of ['ui/lamina*.png', 'ui/*-pezas/**']) {
+  for (const patron of ['ui/lamina.png', 'ui/lamina1.png', 'ui/*-pezas/**']) {
     afirmar(ignora.includes(patron), `falta "${patron}" no ignore de firebase.json`);
   }
   /* ...e as que fan falla NON poden estar excluídas. */

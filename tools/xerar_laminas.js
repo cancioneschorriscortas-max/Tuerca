@@ -25,6 +25,14 @@
    interface —medrarían un terzo— senón que as copia soltas a dist/ui/.
    Así só se descargan cando alguén abre unha ficha.
 
+   OLLO ás DÚAS vías de publicación, que teñen listas distintas:
+     build.py       copia a dist/ o que casa con lamina_*
+     firebase.json  serve i/ enteiro menos o que exclúe o seu ignore
+   Ao aparecer estas láminas, o ignore levaba un "ui/lamina*.png" posto
+   para o material de traballo que as collía tamén: en local víanse e no
+   xogo publicado non. Hai unha proba en test/montaxe.test.js que vixía
+   que ningún patrón do despregue casse cunha lámina de clase.
+
    Uso: node tools/xerar_laminas.js [--ancho 760] [--chanzos 6]
    ============================================================ */
 const fs = require('fs');

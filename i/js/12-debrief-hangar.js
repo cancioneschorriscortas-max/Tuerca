@@ -1656,11 +1656,18 @@ function showBiography(u){
      modelos, e di en ficción o que a táboa de stats di en números.
 
      Amósase recortada pola cabeceira e a figura, que é o que se le nunha
-     ollada; premendo despregase enteira. Se falta o ficheiro non pasa
-     nada: o bloque quítase só. */
+     ollada; premendo despregase enteira.
+
+     Se o ficheiro non carga, DISE. A primeira versión quitaba o bloque
+     en silencio —"se falta non pasa nada"— e iso convertía un ficheiro
+     ausente nunha funcionalidade invisible: a ficha saía sen lámina, sen
+     erro e sen pista, e non había maneira de saber se é que non estaba
+     posta ou que non cargaba. Custou unha ida e volta averigualo. */
   const lam = `ui/lamina_${u.cls}.png`;
   body = `<div class="lamina-uni" title="${TXT('bio.laminaVer')}">
-    <img src="${lam}" alt="" onerror="this.parentNode.remove()">
+    <img src="${lam}" alt="" onerror="this.style.display='none';
+      this.parentNode.classList.add('sen-lamina');
+      this.parentNode.dataset.falta='${lam}';">
   </div>` + body;
 
   $('bioBody').innerHTML = body;
