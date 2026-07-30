@@ -41,7 +41,7 @@
      portada: en batalla estorbaría. */
   body.no-hangar::before{
     content:''; position:fixed; inset:0; z-index:-2;
-    background:url('../ui/fondo_menu.png') center/cover no-repeat;
+    background:url('../ui/fondo_menu.jpg') center/cover no-repeat;
   }
   body.no-hangar::after{
     content:''; position:fixed; inset:0; z-index:-1;
@@ -353,6 +353,19 @@
     max-height:calc(100vh - 60px); overflow-y:auto;
   }
   #bioModal h2{font-size:18px; margin-bottom:14px;}
+  /* (v0.84) Fondo por pantalla. A ruta vén nunha variable que pon o JS,
+     así que aquí só está o que é común: cubrir a caixa e poñer por riba
+     un degradado escuro para que o texto siga lendo. Sen ese degradado a
+     arte gaña e non se le nada. */
+  #bioModal[data-fondo] .inner{
+    background-image:linear-gradient(rgba(10,10,8,.70), rgba(10,10,8,.84)), var(--fondo);
+    background-size:cover; background-position:center; background-repeat:no-repeat;
+  }
+  #memorial{
+    background-image:linear-gradient(rgba(10,10,8,.74), rgba(10,10,8,.88)),
+                     url('../ui/fondo_memorialdoscaidos.jpg');
+    background-size:cover; background-position:center;
+  }
   /* (v0.84) A lámina técnica da clase na ficha da unidade. Recortada pola
      cabeceira e a figura —que é o que se le nunha ollada— e despregable
      ao premer. O recorte faise con max-height e non escalando a imaxe:

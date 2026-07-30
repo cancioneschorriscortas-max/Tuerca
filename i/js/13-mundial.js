@@ -160,6 +160,7 @@ function mundialEscollaPais(){
     </button>`;
   }
   body += `</div>`;
+  fondoModal('mundial');
   $('bioTitle').innerHTML = TXT('mun.titulo');
   $('bioBody').innerHTML = body;
   $('bioModal').style.display = 'block';
@@ -189,6 +190,7 @@ function mundialConvocatoria(){
       <button id="munPechar">${TXT('mun.pechar')}</button>
     </div>
     <div class="small" style="color:var(--phos-dim); margin-top:6px;">${TXT('mun.convAviso')}</div>`;
+  fondoModal('mundial');
   $('bioTitle').innerHTML = TXT('mun.convTitulo');
   $('bioBody').innerHTML = body;
   $('bioModal').style.display = 'block';
@@ -241,6 +243,7 @@ function mundialNovoTorneo(){
     </button>`;
   }
   body += `</div>`;
+  fondoModal('mundial');
   $('bioTitle').innerHTML = TXT('mun.titulo');
   $('bioBody').innerHTML = body;
   $('bioModal').style.display = 'block';
@@ -308,6 +311,7 @@ function mundialTorneoHub(){
       <button id="munBorrarTodo" style="color:#ff8;">✕ ${TXT('mun.borrarTodo')}</button>
       <button id="munPechar">${TXT('mun.pechar')}</button></div>`;
   }
+  fondoModal('mundial');
   $('bioTitle').innerHTML = TXT('mun.titulo');
   $('bioBody').innerHTML = body;
   $('bioModal').style.display = 'block';
@@ -629,6 +633,7 @@ function mundialFinPartido(g){
   $('hangar').style.display = 'block';
   /* resultado + volver ao hub */
   setTimeout(() => {
+    fondoModal('mundial');
     $('bioTitle').innerHTML = TXT('mun.finTitulo');
     $('bioBody').innerHTML = `<div style="font-size:16px; margin:8px 0;">${TXT('mun.marcador')}: <b>${gf} - ${gc}</b>${g._munKO ? ' (KO)' : ''}</div>
       ${mvp && mvpPts > 0 ? `<div style="color:var(--gold);">⭐ MVP: <b>${mvp.dorsal ? mvp.dorsal + '·' : ''}${mvp.name}</b> (${mvpPts})</div>` : ''}

@@ -889,6 +889,28 @@ function advanceBriefing(){
 /* ============================================================
    DESPIECE (v0.19) — inventario de pezas con nome propio
    ============================================================ */
+/* ============================================================
+   FONDO DA PANTALLA. As imaxes de art/ pasan por
+   tools/xerar_fondos.js e quedan en ui/fondo_<nome>.jpg.
+
+   Non hai unha regra de CSS por pantalla: pásase a ruta nunha variable
+   de CSS e o degradado escuro ponse enriba sempre igual. Así engadir
+   unha pantalla nova é chamar aquí cun nome, sen tocar a folla de
+   estilos. E chamando sen nome límpase, que fai falla porque o modal é
+   o MESMO para todas: se unha pantalla non limpa, herda o fondo da
+   anterior. */
+function fondoModal(nome){
+  const m = $('bioModal');
+  if(!m) return;
+  if(nome){
+    m.dataset.fondo = nome;
+    m.style.setProperty('--fondo', `url('ui/fondo_${nome}.jpg')`);
+  } else {
+    delete m.dataset.fondo;
+    m.style.removeProperty('--fondo');
+  }
+}
+
 function showDespiece(){
   const pzs = DATA.piezas || [];
   const enemigas = DATA.piezasEnemigas || [];
@@ -963,6 +985,7 @@ function showDespiece(){
       <button class="bio-btn" id="desmBtn" style="color:#ff7a5a; border-color:#ff7a5a;">${TXT('dp.desmBtn')}</button>
     </div>`;
   }
+  fondoModal('despiece');
   $('bioTitle').innerHTML = TXT('dp.titulo');
   $('bioBody').innerHTML = body;
   $('bioModal').style.display = 'flex';
@@ -1128,6 +1151,7 @@ function showReconstruir(iaIdx){
     <button class="bio-btn" id="reconConfirm" style="color:#9fd0ff; border-color:#9fd0ff;">▸ ENSAMBLAR (ocupa o taller 1 operación)</button>
     <button class="bio-btn" id="reconBack">◂ volver</button>
   </div>`;
+  fondoModal('taller');
   $('bioTitle').innerHTML = `⚙ RECONSTRUCTOR — ${rec.name}`;
   $('bioBody').innerHTML = body;
   $('bioModal').style.display = 'flex';
@@ -1188,6 +1212,7 @@ function showMontaxe(){
     <button class="bio-btn" id="montConfirm" style="color:#7fdc7f; border-color:#7fdc7f;">▸ ENSAMBLAR (ocupa o taller 1 operación)</button>
     <button class="bio-btn" id="montBack">◂ volver</button>
   </div>`;
+  fondoModal('taller');
   $('bioTitle').innerHTML = `⚒ MONTAXE DESDE CERO`;
   $('bioBody').innerHTML = body;
   $('bioModal').style.display = 'flex';
@@ -1435,7 +1460,8 @@ const CANTINA_CHARLAS_ML = {
 function showCantina(){
   const roster = (DATA.units || []).filter(r => r.personalidad || (r.personalidad = pickPersonalidad(r.cls)));
   if(roster.length < 2){
-    $('bioTitle').innerHTML = TXT('ct.titulo');
+    fondoModal('cantina');
+  $('bioTitle').innerHTML = TXT('ct.titulo');
     $('bioBody').innerHTML = `<div class="small">${TXT('ct.baleira')}</div>`;
     $('bioModal').style.display = 'flex';
     return;
@@ -1539,6 +1565,7 @@ function showEquipShop(idx){
   if(!u) return;
   /* (v0.19 R2) Taller ocupado pola reconstrución: nin compras nin botín */
   if(DATA.reconstruccion){
+    fondoModal('taller');
     $('bioTitle').innerHTML = `⚙ ${TXT('tl.taller')} — ${TXT('tl.ocupado')}`;
     $('bioBody').innerHTML = `<div class="small" style="color:#ff9a3c;">${TXT('tl.ocupadoDesc', {n: DATA.reconstruccion.rec.name})}</div>`;
     $('bioModal').style.display = 'flex';
@@ -1568,6 +1595,7 @@ function showEquipShop(idx){
             : `<button class="bio-btn" data-buy="${id}" ${canBuy?'':'disabled style="opacity:0.4;"'}>${eq.prezo} ⚙</button>`)}
     </div>`;
   }
+  fondoModal('taller');
   $('bioTitle').innerHTML = `⚙ ${TXT('tl.taller')} — ${u.id} '${u.name}' <span class="small">${clsLabel(u.cls)}</span>`;
   $('bioBody').innerHTML = body;
   $('bioModal').style.display = 'flex';
@@ -1675,6 +1703,7 @@ function showBiography(u){
      ausente nunha funcionalidade invisible: a ficha saía sen lámina, sen
      erro e sen pista, e non había maneira de saber se é que non estaba
      posta ou que non cargaba. Custou unha ida e volta averigualo. */
+  fondoModal(null);   /* a ficha xa ten a súa lámina; dous fondos pelexan */
   const lam = `ui/lamina_${u.cls}.png`;
   body = `<div class="lamina-uni" title="${TXT('bio.laminaVer')}">
     <img src="${lam}" alt="" onerror="this.style.display='none';

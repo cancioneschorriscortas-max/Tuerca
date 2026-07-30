@@ -51,20 +51,33 @@ if os.path.isdir(_vsrc):
 # Interface: só o que usa o xogo. O resto de ui/ —as láminas de orixe, as
 # pezas recortadas— queda fóra: é material de traballo.
 #
-# lamina_<CLASE>.png SI entran: son as láminas técnicas que amosa a ficha
-# dunha unidade, xeradas por tools/xerar_laminas.js desde
-# Unit_references/. Van por patrón e non por nome para que engadir unha
-# clase non pida tocar isto; e non se inlinan, coma o resto de ui/.
-_UI_PUBLICAS = ['marco-panel.png', 'fondo_menu.png']
-_UI_PATRONS = ['lamina_']
+# lamina_<CLASE>.png e fondo_<PANTALLA>.jpg SI entran: as láminas que
+# amosa a ficha dunha unidade e os fondos das pantallas, xerados por
+# tools/xerar_laminas.js e tools/xerar_fondos.js. Van por PATRÓN e non
+# por nome para que engadir unha clase ou unha pantalla non pida tocar
+# isto — que xa foi fonte de dous fallos, un aquí e outro no ignore de
+# firebase.json, os dous invisibles desde local.
+# fondo_menu vai en JPEG: son 2093 KB como PNG e 213 como JPEG, e é o
+# activo máis pesado do xogo (cárgase en cada visita á portada). O marco
+# queda en PNG: son 19 KB e é un bordo de interface, onde os artefactos
+# de JPEG si se notarían.
+_UI_PUBLICAS = ['marco-panel.png', 'fondo_menu.jpg']
+_UI_PATRONS = ['lamina_', 'fondo_']
 _usrc = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ui')
 _udst = os.path.join(os.path.dirname(os.path.abspath(out)), 'ui')
 if os.path.isdir(_usrc):
+    # Límpase antes de copiar, coma voces/. Sen isto dist/ui/ acumula
+    # ficheiros mortos: ao pasar fondo_menu de PNG a JPEG quedaban os
+    # dous, e o vello seguía pesando 2 MB no que se publica.
+    if os.path.isdir(_udst): _sh.rmtree(_udst)
     os.makedirs(_udst, exist_ok=True)
     _n = 0
-    _lista = list(_UI_PUBLICAS) + sorted(
+    # dict.fromkeys: fondo_menu.jpg está na lista E casa co patrón, e
+    # sen isto copiaríase dúas veces e o reconto mentiría
+    _lista = list(dict.fromkeys(list(_UI_PUBLICAS) + sorted(
         f for f in os.listdir(_usrc)
-        if any(f.startswith(pre) for pre in _UI_PATRONS) and f.endswith('.png'))
+        if any(f.startswith(pre) for pre in _UI_PATRONS)
+        and (f.endswith('.png') or f.endswith('.jpg')))))
     for _f in _lista:
         _o = os.path.join(_usrc, _f)
         if os.path.isfile(_o): _sh.copy2(_o, os.path.join(_udst, _f)); _n += 1

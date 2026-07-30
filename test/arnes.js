@@ -26,6 +26,18 @@ const FICHEIROS = [
   '13-mundial.js', '14-diario.js', '15-luz.js', '16-estado.js', '17-ambiente.js', '18-efectos.js', '99-boot.js',
 ];
 
+/* Un `style` que acepta as API que usa o xogo. Gárdanse os valores nun
+   obxecto normal para que quen mire elemento.style.display siga vendo o
+   de sempre. */
+function estiloFalso() {
+  const props = {};
+  return {
+    setProperty(k, v) { props[k] = v; },
+    removeProperty(k) { delete props[k]; },
+    getPropertyValue(k) { return props[k] || ''; },
+  };
+}
+
 /* ---------- Canvas 2D de mentira ----------
    Un Proxy que engule calquera método e devolve algo inofensivo.
    Así non hai que ir enumerando a API de canvas a man. */
@@ -56,7 +68,11 @@ function canvasFalso(w = 960, h = 540) {
     toDataURL: () => 'data:,',
     getBoundingClientRect: () => ({ left: 0, top: 0, width: w, height: h, right: w, bottom: h }),
     addEventListener() {}, removeEventListener() {},
-    style: {}, dataset: {}, classList: { add() {}, remove() {}, toggle() {}, contains: () => false },
+    /* style con setProperty/removeProperty: son API real do DOM e o
+       xogo úsaas para as variables de CSS (o fondo das pantallas). Un
+       style que sexa un obxecto pelado fai que o xogo pete só nas
+       probas, que é a peor clase de diverxencia entre arnés e realidade. */
+    style: estiloFalso(), dataset: {}, classList: { add() {}, remove() {}, toggle() {}, contains: () => false },
   };
   c._ctx = ctxFalso();
   c._ctx.canvas = c;
@@ -66,7 +82,7 @@ function canvasFalso(w = 960, h = 540) {
 function elementoFalso(id) {
   const el = {
     id, textContent: '', innerHTML: '', value: '', title: '', disabled: false,
-    style: {}, dataset: {},
+    style: estiloFalso(), dataset: {},
     classList: { add() {}, remove() {}, toggle() {}, contains: () => false },
     addEventListener() {}, removeEventListener() {}, appendChild() {}, removeChild() {},
     remove() {}, focus() {}, blur() {}, click() {},
