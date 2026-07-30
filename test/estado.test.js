@@ -8,7 +8,7 @@
    dentro deixaba o panel rancio ata saír e volver.
    ============================================================ */
 const { proba, afirmar } = require('./probar.js');
-const { cargarXogo, asentar } = require('./arnes.js');
+const { cargarXogo, asentar, novaBatalla, avanzar } = require('./arnes.js');
 
 function montar(S) {
   const D = S.aval('DATA');
@@ -355,4 +355,68 @@ proba('ÓPTIMA explica as pezas mentres fai falla, e cala cando xa non', () => {
   /* co taller ocupado non se insiste: xa está en marcha */
   D.reconstruccion = { rec: { name:'X' }, pezas:{}, encargadaOp: 1 };
   afirmar(optima(c) === sen, 'segue insistindo co taller xa ocupado');
+});
+
+proba('a folga vén de desmantelar un camarada, non da confianza baixa', () => {
+  /* Esta proba existe para protexer un TEXTO. O comunicado de ÓPTIMA di
+     agora por que hai xente en folga, e ao escribilo estiven a piques de
+     poñer "por confianza baixa", que é o que parecía. Non o é: a folga
+     dispáraa desmantelar a alguén con quen tiñan VÍNCULO, e dura 1
+     operación se foi doazón (confianza >= 70) e 2 se foi requisa.
+
+     Se algún día cambia esa regra, o texto pasa a ser mentira e ninguén
+     se entera. Por iso se fixa aquí a mecánica que o texto describe. */
+  const S = cargarXogo();
+  const D = S.aval('DATA');
+  const desmantelar = S.aval('desmantelarVivo');
+  D.opCount = 5; D.fallen = []; D.piezas = []; D.chatarra = 0;
+  D.units = [
+    { id:'R-01', name:'VÍTIMA', cls:'GRUNT', ops:5, confianza:80, activity:{}, vinculos:[] },
+    { id:'R-02', name:'CAMARADA', cls:'GRUNT', ops:5, confianza:50, activity:{},
+      vinculos:[{ con:'R-01', conNome:'VÍTIMA', tipo:'CAMARADA', op:2 }] },
+    { id:'R-03', name:'ESTRAÑO', cls:'HEAVY', ops:5, confianza:20, activity:{}, vinculos:[] },
+  ];
+
+  desmantelar('R-01');
+
+  const camarada = D.units.find(u => u.id === 'R-02');
+  const estraño  = D.units.find(u => u.id === 'R-03');
+  afirmar(camarada && camarada.folga,
+    'quen tiña vínculo co desmantelado non quedou en folga');
+  afirmar(estraño && !estraño.folga,
+    'unha unidade SEN vínculo quedou en folga: entón non é o vínculo o que a causa');
+  afirmar(estraño.confianza === 20,
+    'a confianza baixa por si soa xa provocaría folga, e o texto di outra cousa');
+  /* doazón (confianza >= 70) custa 1 operación; a requisa custaría 2 */
+  afirmar(camarada.folga.ops === 1,
+    `unha doazón debería custar 1 operación de folga e custou ${camarada.folga.ops}`);
+});
+
+proba('un vínculo dá dano extra co compañeiro preto, e non de lonxe', () => {
+  /* O aviso de vínculo novo di agora que "loitando preto un do outro fan
+     máis dano". Compróbase que sexa certo e que dependa da distancia. */
+  const S = cargarXogo();
+  const V = S.aval('VINCULO');
+  afirmar(V && V.BUFF > 1 && V.RADIO > 0, 'as constantes do vínculo non son as esperadas');
+
+  const g = novaBatalla(S, { op: 3, semente: 0x3333 });
+  const PT = S.aval('PT');
+  const meus = g.units.filter(u => u.team === PT && !u.dead).slice(0, 2);
+  afirmar(meus.length === 2, 'fan falla dúas unidades propias');
+  const [a, b] = meus;
+  a.vinculos = [{ con: b.id, conNome: b.name, tipo: 'CAMARADA', op: 1 }];
+  delete a._dmgBase;
+
+  /* lonxe: sen bonificación */
+  b.x = a.x + V.RADIO * 3; b.y = a.y;
+  avanzar(S, g, 40);
+  const lonxe = a.dmg;
+  afirmar(!a._vinculoActivo, 'o vínculo activouse co compañeiro lonxe');
+
+  /* preto: con ela */
+  b.x = a.x + Math.round(V.RADIO / 3); b.y = a.y;
+  avanzar(S, g, 40);
+  afirmar(a._vinculoActivo, 'o vínculo non se activou co compañeiro ao lado');
+  afirmar(a.dmg > lonxe,
+    `co compañeiro preto o dano debería subir: lonxe ${lonxe}, preto ${a.dmg}`);
 });
