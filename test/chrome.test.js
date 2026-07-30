@@ -232,3 +232,35 @@ proba('o botón de voz segue o idioma nos seus tres estados', () => {
     }
   }
 });
+
+proba('todo fondo que se xera úsase nalgunha pantalla', () => {
+  /* tools/xerar_fondos.js converte todo art/fondo*.png e o build
+     publícaos por patrón. Iso ten unha fenda: un fondo que se xera e non
+     se engancha a ningunha pantalla despréganse igual, pesando, e non hai
+     nada que o diga. Pasou con fondo_arquivo.jpg — 138 KB subíndose a
+     produción para nada, e só se descubriu porque alguén preguntou.
+
+     Compróbase contra os dous xeitos de usalo: fondoModal('nome') desde
+     o JS ou unha url() no CSS. */
+  const path2 = require('path');
+  const RAIZ = path2.join(__dirname, '..', 'i');
+  const UI = path2.join(RAIZ, 'ui');
+  if (!fs.existsSync(UI)) return;
+  const fondos = fs.readdirSync(UI)
+    .filter((f) => /^fondo_[a-z0-9]+\.jpg$/.test(f))
+    .map((f) => f.replace(/^fondo_|\.jpg$/g, ''));
+  afirmar(fondos.length > 0, 'non hai fondos en i/ui/: revisa esta proba');
+
+  const js = fs.readdirSync(path2.join(RAIZ, 'js'))
+    .filter((f) => f.endsWith('.js'))
+    .map((f) => fs.readFileSync(path2.join(RAIZ, 'js', f), 'utf8'))
+    .join('\n');
+
+  for (const nome of fondos) {
+    const noJs = js.includes(`fondoModal('${nome}')`);
+    const noCss = CSS.includes(`fondo_${nome}.jpg`);
+    afirmar(noJs || noCss,
+      `fondo_${nome}.jpg xérase e publícase pero non o usa ningunha ` +
+      'pantalla: ou se engancha ou se saca de art/');
+  }
+});

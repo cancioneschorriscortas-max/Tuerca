@@ -1703,7 +1703,14 @@ function showBiography(u){
      ausente nunha funcionalidade invisible: a ficha saía sen lámina, sen
      erro e sen pista, e non había maneira de saber se é que non estaba
      posta ou que non cargaba. Custou unha ida e volta averigualo. */
-  fondoModal(null);   /* a ficha xa ten a súa lámina; dous fondos pelexan */
+  /* O ARQUIVO. A imaxe é literalmente isto: arquivadores, un libro
+     aberto que pon ACCESO RESTRINGIDO e, na parede, "FICHAS RECUPERADAS"
+     con dossieres colgados. A ficha dunha unidade É unha desas.
+
+     Ao principio púxenlle fondo NINGÚN razoando que "dous fondos
+     pelexan" coa lámina. Era razoar de máis: a lámina non é un fondo,
+     é un documento, e sobre a mesa dun arquivo é onde lle toca estar. */
+  fondoModal('arquivo');
   const lam = `ui/lamina_${u.cls}.png`;
   body = `<div class="lamina-uni" title="${TXT('bio.laminaVer')}">
     <img src="${lam}" alt="" onerror="this.style.display='none';
