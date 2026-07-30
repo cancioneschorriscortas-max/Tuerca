@@ -72,3 +72,35 @@ proba('o banco de sprites 3D chega ao dist', () => {
   const grandes = (dist.match(/data:image\/png;base64,[A-Za-z0-9+/=]{3000,}/g) || []).length;
   afirmar(grandes >= 9, `esperábanse polo menos 9 atlas (3 clases × 3 equipos) e hai ${grandes}`);
 });
+
+proba('o arnés de probas carga os mesmos módulos que o index', () => {
+  /* O arnés ten a súa propia lista de ficheiros e o seu comentario pide
+     "manter as dúas listas en sintonía" — pero iso era unha promesa, non
+     unha regra. Un módulo novo no index que non se engada aquí non dá
+     erro: simplemente non se proba, e as probas seguen verdes mentres o
+     xogo real leva código que ninguén exercita.
+
+     As exclusións son deliberadas e van NOMEADAS: os bancos de sprites
+     son megas de base64 e o arnés non ten lenzo onde debuxalos. Se algún
+     día fai falla algún, quítase de aquí e xa está. */
+  const { FICHEIROS } = require('./arnes.js');
+  const idx = [...fs.readFileSync(INDEX, 'utf8')
+    .matchAll(/<script src="js\/([^"]+)"><\/script>/g)].map(m => m[1]);
+  afirmar(idx.length > 10, `só se atoparon ${idx.length} scripts no index`);
+
+  const FORA_DO_ARNES = new Set([
+    '19-sprites.js',    /* debuxo a lenzo: nada que simular sen canvas */
+    '19b-banco.js',     /* banco de sprites por clase, megas de base64 */
+    '19c-orde.js',      /* táboa de orde de capas */
+    '19d-pezas.js',     /* atlas por peza, tamén en base64 */
+    '19e-montar.js',    /* compón sobre lenzo; próbase aparte en montaxe.test.js */
+  ]);
+
+  const esperados = idx.filter(f => !FORA_DO_ARNES.has(f));
+  const faltan = esperados.filter(f => !FICHEIROS.includes(f));
+  const sobran = FICHEIROS.filter(f => !idx.includes(f));
+  afirmar(faltan.length === 0,
+    `o arnés non carga ${faltan.join(', ')}: eses módulos non se están probando`);
+  afirmar(sobran.length === 0,
+    `o arnés carga ${sobran.join(', ')} e o index xa non os ten`);
+});

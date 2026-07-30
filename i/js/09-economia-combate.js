@@ -1477,6 +1477,9 @@ function tickUnits(g){
   }
   /* (v0.21) A voz do HQ */
   if(g.t % 30 === 0) tickHQ(g);
+  /* (v0.84) O titorial vai co mesmo pulso que o resto: comproba
+     condicións, non tempos, así que abonda con mirar de cando en vez. */
+  if(g.t % 20 === 0 && typeof tickTitorial === 'function') tickTitorial(g);
   /* (v0.23) Subquests: condicións + panel */
   if(g.t % 15 === 0 && g.modo !== 'pvp'){ tickSubquests(g); renderSqPanel(g); }
   /* (v0.26.1) Aviso didáctico: o radar é o detector de misións */

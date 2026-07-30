@@ -194,3 +194,68 @@ proba('os ids son únicos tamén na PRIMEIRA batalla da sesión', () => {
     }
   }
 });
+
+proba('o titorial da primeira operación sae por orde e agarda ao xogador', () => {
+  /* O titorial vai pola radio durante a operación 0, e cada paso ten unha
+     CONDICIÓN en vez dun temporizador: o consello de mover non aparece
+     ata que hai algo seleccionado, o dos sectores ata que alguén camiña.
+     Quen xa sabe xogar avanza rápido e case non le nada.
+
+     Compróbanse as dúas metades desa idea: que cun xogador que non fai
+     NADA o titorial se detén (se non, sería unha parede de texto co
+     disfrace de condicións), e que cun xogador activo saen os seis por
+     orde. */
+  const S = cargarXogo();
+  const ditas = [];
+  S.aval('(function(f){ radio = f; })')((t) => ditas.push(String(t)));
+  const doTitorial = () => ditas.filter(t => /ÓPTIMA/.test(t));
+
+  const g = novaBatalla(S, { op: 0, semente: 0x1111 });
+  const PT = S.aval('PT'), ET = S.aval('ET'), orderMove = S.aval('orderMove');
+
+  /* xogador pasivo: non pasa do primeiro consello */
+  avanzar(S, g, 3000);
+  afirmar(doTitorial().length === 1,
+    `sen tocar nada saíron ${doTitorial().length} consellos; deberían ser 1`);
+
+  /* xogador activo: seleccionar, tomar sectores, ir ao cuartel */
+  const meus = g.units.filter(u => u.team === PT && !u.dead);
+  meus.forEach(u => u.sel = true);
+  avanzar(S, g, 100);
+  const secs = g.sectors || [];
+  meus.forEach((u, i) => { const s = secs[i % secs.length]; if(s) orderMove(u, s.x, s.y); });
+  avanzar(S, g, 6000);
+  const hq = g.hq[ET];
+  meus.forEach(u => { if(!u.dead) orderMove(u, hq.x + 40, hq.y + 40); });
+  avanzar(S, g, 60000);
+
+  const saidas = doTitorial();
+  afirmar(saidas.length > 3,
+    `cun xogador activo só saíron ${saidas.length} consellos`);
+
+  /* A aserción forte NON é "saen os seis" —iso depende de que a semente
+     traia combate e unha baixa— senón que os que saen son os PRIMEIROS
+     da lista e na súa orde. Un paso que se adiante ou se salte é un fallo
+     real; que a partida non chegue a ter baixas, non. */
+  const orde = S.aval('TITORIAL').map(p => S.aval('TXT')('tit.' + p.id));
+  saidas.forEach((liña, i) => {
+    afirmar(liña.includes(orde[i]),
+      `o consello ${i+1} non é o que tocaba.
+      saíu:     ${liña.slice(0, 70)}
+      esperado: ${String(orde[i]).slice(0, 70)}`);
+  });
+  for(const s of saidas)
+    afirmar(!/tit\./.test(s), `consello sen traducir: ${s}`);
+});
+
+proba('o titorial non se mete nunha partida que non sexa a primeira', () => {
+  /* Nunha operación normal, no Mundial ou en PvP isto sería ruído. */
+  const S = cargarXogo();
+  const ditas = [];
+  S.aval('(function(f){ radio = f; })')((t) => ditas.push(String(t)));
+  const g = novaBatalla(S, { op: 4, semente: 0x2222 });
+  g.units.filter(u => u.team === S.aval('PT')).forEach(u => u.sel = true);
+  avanzar(S, g, 8000);
+  afirmar(ditas.filter(t => /ÓPTIMA/.test(t)).length === 0,
+    'o titorial saíu nunha operación que non é a primeira');
+});
