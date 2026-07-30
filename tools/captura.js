@@ -180,9 +180,11 @@ window.addEventListener('load', function(){
    escuadrón, unha baixa e unha reensamblaxe en curso. */
 const FICHA = op('ficha', null);
 const MONTAXE = ten('montaxe');
-const semente = (modo === 'hangar' && (ten('sementar') || FICHA || MONTAXE)) ? `
+const CONSELLO = ten('consello');
+const semente = (modo === 'hangar' && (ten('sementar') || FICHA || MONTAXE || CONSELLO)) ? `
 <script>
 var MONTAXE = ${MONTAXE};
+var CONSELLO = ${CONSELLO};
 var FICHA = ${FICHA ? JSON.stringify(FICHA) : 'null'};
 window.addEventListener('load', function(){
   setTimeout(function(){
@@ -248,6 +250,15 @@ window.addEventListener('load', function(){
          de que showHangar() xa pintase a lista, así que quedaba dicindo
          "roster baleiro" con sete unidades dentro. Hai que gardar antes
          de repintar porque showHangar empeza cun loadData(). */
+      /* --consello deixa o estado no que ÓPTIMA explica as pezas: hai
+         pezas no inventario, unha IA no arquivo e o taller libre. */
+      if(CONSELLO){
+        DATA.piezas = [{id:'p1', tipo:'CABEZA', deCls:'HEAVY', deNome:'MARTELO', act:100},
+                       {id:'p2', tipo:'BRAZO_DER', deCls:'SNIPER', deNome:'CROMO', act:80}];
+        DATA.iaArquivo = [{id:'R-09', name:'MARTELO', cls:'GRUNT', ops:9, activity:{}}];
+        DATA.reconstruccion = null;
+        DATA.units.forEach(function(u){ delete u.reconstruidoOp; });
+      }
       saveData(DATA).then(function(){ showHangar(); });
     }catch(e){
       document.body.innerHTML = '<pre style="color:#ff6a5a;font:14px monospace;padding:20px">'

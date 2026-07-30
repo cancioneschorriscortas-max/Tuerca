@@ -72,9 +72,33 @@ function estadoContadores(){
   };
 }
 
-/* A voz de ÓPTIMA, pero dicindo algo certo: sae dos contadores. */
+/* A voz de ÓPTIMA, pero dicindo algo certo: sae dos contadores.
+
+   (v0.84) E de paso é o titorial do hangar. Aquí non fai falla interface
+   nova nin un sistema de "consellos vistos": os avisos van por diante das
+   liñas xenéricas e DEIXAN DE SAÍR sós cando o xogador xa fixo a cousa.
+   Un consello que se apaga porque deixou de ser certo non precisa
+   lembrarse de nada, e non se pode quedar pegado.
+
+   O que se explica é o que ninguén adiviña: que os caídos deixan pezas,
+   que esas pezas reconstrúen unha IA, e que as IAs quedan agardando
+   corpo no arquivo. */
+function estadoTitorial(){
+  if(typeof DATA === 'undefined') return null;
+  const pezas = (DATA.piezas || []).length;
+  const arquivo = (DATA.iaArquivo || []).length;
+  const xaReconstruíu = (DATA.units || []).some(u => u.reconstruidoOp);
+  /* Primeiro o que hai que facer AGORA: hai unha IA agardando corpo. */
+  if(arquivo && pezas && !DATA.reconstruccion) return TXT('est.titArquivo', {n: arquivo});
+  /* E se aínda non se reconstruíu nunca, dise para que serven as pezas. */
+  if(pezas && !xaReconstruíu && !DATA.reconstruccion) return TXT('est.titPezas', {n: pezas});
+  return null;
+}
+
 function estadoOptima(c){
   if(!c.activas) return TXT('est.optSenRoster');
+  const tit = estadoTitorial();
+  if(tit) return tit;
   if(c.folga) return TXT('est.optFolga', {n: c.folga});
   if(c.reconstruidos) return TXT('est.optRecon', {n: c.reconstruidos});
   return TXT('est.optNominal');

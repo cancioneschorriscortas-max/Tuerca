@@ -315,3 +315,44 @@ proba('toda clave de tradución que o código pide existe nas tres linguas', () 
       `${lg}: faltan ${faltan.length} claves — ${faltan.slice(0, 6).join(', ')}`);
   }
 });
+
+proba('ÓPTIMA explica as pezas mentres fai falla, e cala cando xa non', () => {
+  /* O titorial do hangar non ten lista de "consellos vistos" nin botón de
+     pechar: os avisos van por diante das liñas xenéricas do comunicado e
+     deixan de saír SÓS cando o xogador xa fixo a cousa. Un consello que
+     se apaga porque deixou de ser certo non se pode quedar pegado nin
+     precisa lembrar nada entre partidas.
+
+     Compróbanse os tres estados: sen pezas cala, con pezas explica, e
+     unha vez reconstruído deixa de explicar. */
+  const S = cargarXogo();
+  const D = S.aval('DATA');
+  const optima = S.aval('estadoOptima');
+  const c = { activas: 3, folga: 0, reconstruidos: 0 };
+
+  D.units = [{ id:'R-01', name:'FERRO', cls:'GRUNT', ops:2, activity:{} }];
+  D.piezas = []; D.iaArquivo = []; D.reconstruccion = null;
+  const sen = optima(c);
+
+  D.piezas = [{ id:'p1', tipo:'CABEZA', deCls:'HEAVY', deNome:'MARTELO' }];
+  const con = optima(c);
+  afirmar(con !== sen, 'con pezas no inventario di o mesmo que sen elas');
+  afirmar(/DESPECE|DESPIECE|SALVAGE/i.test(con),
+    `o aviso non manda ao sitio onde se usan as pezas: ${con}`);
+
+  /* xa reconstruíu algunha vez: o consello sobra */
+  D.units[0].reconstruidoOp = 3;
+  afirmar(optima(c) === sen,
+    'segue explicando as pezas despois de que o xogador xa reconstruíse');
+
+  /* e cunha IA no arquivo, o aviso é o outro: hai algo que facer AGORA */
+  D.units[0].reconstruidoOp = undefined;
+  D.iaArquivo = [{ id:'R-09', name:'CROMO', cls:'GRUNT' }];
+  const arq = optima(c);
+  afirmar(arq !== con, 'cunha IA no arquivo di o mesmo que sen ela');
+  afirmar(/arquivo|archivo|archive/i.test(arq), `o aviso non menciona o arquivo: ${arq}`);
+
+  /* co taller ocupado non se insiste: xa está en marcha */
+  D.reconstruccion = { rec: { name:'X' }, pezas:{}, encargadaOp: 1 };
+  afirmar(optima(c) === sen, 'segue insistindo co taller xa ocupado');
+});
