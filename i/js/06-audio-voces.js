@@ -42,6 +42,31 @@ function _noiseSrc(durSec){
 
 /* Catálogo de sonidos generados */
 const SFX = {
+  /* ================= TALLER (v0.84) =================
+     Solda: ruído branco filtrado en paso alto e cortado a rachas. É
+     deliberadamente cru — o que se busca é a chispa eléctrica, non un
+     arco realista. Vai coa portada, así que ten que poder soar moitas
+     veces sen cansar: por iso é curto e queda por debaixo da cama de
+     ambiente en volume. */
+  solda(){
+    if(!audioReady) return;
+    const t = audioCtx.currentTime;
+    const dur = 0.10 + Math.random()*0.16;
+    const n = audioCtx.createBufferSource();
+    const buf = audioCtx.createBuffer(1, Math.ceil(audioCtx.sampleRate*dur), audioCtx.sampleRate);
+    const d = buf.getChannelData(0);
+    for(let i = 0; i < d.length; i++) d[i] = (Math.random()*2 - 1);
+    n.buffer = buf;
+    const f = audioCtx.createBiquadFilter();
+    f.type = 'highpass'; f.frequency.value = 1800 + Math.random()*1200;
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.045, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    n.connect(f); f.connect(g); g.connect(masterGain);
+    n.start(t); n.stop(t + dur);
+  },
+
   /* ================= COMBATE (v0.18) ================= */
   shot_grunt(){
     if(!audioReady) return;

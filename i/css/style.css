@@ -40,11 +40,11 @@
      que a interface se lea sen apagar de todo o que pasa detrás. Só na
      portada: en batalla estorbaría. */
   body.no-hangar::before{
-    content:''; position:fixed; inset:0; z-index:-2;
+    content:''; position:fixed; inset:0; z-index:-3;
     background:url('../ui/fondo_menu.jpg') center/cover no-repeat;
   }
   body.no-hangar::after{
-    content:''; position:fixed; inset:0; z-index:-1;
+    content:''; position:fixed; inset:0; z-index:-2;
     background:
       radial-gradient(ellipse at 50% 45%, rgba(10,10,8,.10) 0%, rgba(8,8,6,.66) 78%),
       linear-gradient(180deg, rgba(8,8,6,.22), rgba(8,8,6,.50));
@@ -266,6 +266,14 @@
   /* ====== (v0.71) COLUMNA DE ESTADO ======
      Á esquerda, en columna estreita. Debaixo de 1100px pasa a ir enriba,
      que nunha pantalla estreita o importante segue sendo o botón grande. */
+  /* (v0.84) As chispas van POR RIBA da viñeta: debaixo apagaríanse, que
+     é xusto o contrario do que se quere. E debaixo da interface, para
+     que non distraian do que hai que ler. */
+  #portadaFx{
+    position:fixed; inset:0; width:100%; height:100%;
+    z-index:-1; pointer-events:none; display:none;
+  }
+  body.no-hangar #portadaFx{display:block;}
   #hangarLayout{display:flex; gap:16px; align-items:flex-start;}
   #hangarCentro{flex:1; min-width:0;}
   #estadoPanel{flex:0 0 250px; display:flex; flex-direction:column; gap:10px;}

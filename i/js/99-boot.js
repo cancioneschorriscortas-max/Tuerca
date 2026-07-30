@@ -46,6 +46,13 @@ catch(e){ console.error('[boot estado]', e); }
       try{ ambienteIniciar(naPortada ? 'hangar' : 'batalla'); }
       catch(e){ console.error('[ambiente escena]', e); }
     }
+    /* (v0.84) E as chispas da portada, polo mesmo motivo e no mesmo
+       sitio: acéndense ao entrar e PÁRANSE ao saír. Unha animación
+       debuxando detrás dunha batalla é traballo tirado. */
+    if(typeof efxPortada === 'function'){
+      try{ efxPortada(naPortada); }
+      catch(e){ console.error('[portada fx]', e); }
+    }
   };
   new MutationObserver(sincronizar).observe(hg, {attributes: true, attributeFilter: ['style']});
   sincronizar();
