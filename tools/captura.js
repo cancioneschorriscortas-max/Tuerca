@@ -181,10 +181,12 @@ window.addEventListener('load', function(){
 const FICHA = op('ficha', null);
 const MONTAXE = ten('montaxe');
 const CONSELLO = ten('consello');
-const semente = (modo === 'hangar' && (ten('sementar') || FICHA || MONTAXE || CONSELLO)) ? `
+const PANTALLA = op('pantalla', null);
+const semente = (modo === 'hangar' && (ten('sementar') || FICHA || MONTAXE || CONSELLO || PANTALLA)) ? `
 <script>
 var MONTAXE = ${MONTAXE};
 var CONSELLO = ${CONSELLO};
+var PANTALLA = ${PANTALLA ? JSON.stringify(PANTALLA) : 'null'};
 var FICHA = ${FICHA ? JSON.stringify(FICHA) : 'null'};
 window.addEventListener('load', function(){
   setTimeout(function(){
@@ -236,6 +238,26 @@ window.addEventListener('load', function(){
             sels[0] && sels[0].dispatchEvent(new Event('change'));
           }, 120);
         }, 400);
+      }
+      if(PANTALLA){
+        /* Abre unha pantalla calquera polo seu nome, para comprobar que
+           o seu fondo chega. Sen isto hai que inventar unha bandeira por
+           pantalla e non se comproban nunca todas. */
+        DATA.reconstruccion = null;
+        DATA.piezas = [{id:'p1', tipo:'CABEZA', deCls:'HEAVY', deNome:'MARTELO', act:100}];
+        DATA.iaArquivo = [{id:'R-09', name:'MARTELO', cls:'GRUNT', ops:9, activity:{}}];
+        setTimeout(function(){
+          var f = window[PANTALLA];
+          if(typeof f === 'function'){ try{ f(0); }catch(e){ try{ f(); }catch(e2){} } }
+          else {
+            /* Se non hai función con ese nome, próbase como ID de botón:
+               non todo o que abre algo é unha función chamable —o memorial
+               é un div que preme un botón— e sen isto non se pode capturar
+               precisamente o que o xogador ve ao premer. */
+            var b = document.getElementById(PANTALLA);
+            if(b) b.click(); else document.title = 'SEN ' + PANTALLA;
+          }
+        }, 500);
       }
       if(FICHA){
         var _u = DATA.units.find(function(x){ return x.cls === FICHA; }) || DATA.units[0];

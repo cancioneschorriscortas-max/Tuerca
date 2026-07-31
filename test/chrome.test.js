@@ -121,6 +121,51 @@ proba('non se publica material de traballo', () => {
   }
 });
 
+proba('o JS non se pode cachear máis ca o index.html', () => {
+  /* O peor fallo desta tanda non estaba no xogo: estaba no despregue.
+
+     index.html carga vinte e pico <script src="js/..."> sen versión no
+     URL. Firebase, sen cabeceiras declaradas, serve o index.html sen
+     caché pero os .js cunha hora. Resultado: durante unha hora despois
+     de cada deploy, quen xa entrara antes recibe o HTML NOVO co
+     JavaScript VELLO.
+
+     Iso non é unha molestia: é un xogo roto. Ao quitar do index.html o
+     <div id="memorial"> —que o JS novo xa non usa— o JS vello seguía
+     buscándoo, atopaba null e showHangar caía enteiro na primeira
+     pintada. Pantalla morta, e só nos que xa xogaran antes: en local e
+     nunha pestana nova víase perfectamente.
+
+     Non chega con lembrar refrescar. Calquera cambio que toque á vez o
+     HTML e o JS ten a mesma trampa, e ao subir non se sabe quen ten que
+     na caché. A regra: os tres que se editan xuntos —html, js, css—
+     revalidan sempre. "no-cache" non quere dicir non gardar; quere dicir
+     preguntar antes de usar, e a resposta case sempre é un 304 baleiro.
+
+     As imaxes e as voces quedan coa caché por defecto: pesan moito, non
+     cambian case nunca e non teñen esta dependencia cruzada. */
+  const fb = JSON.parse(fs.readFileSync('C:/tuerca/firebase.json', 'utf8'));
+  const cabeceiras = fb.hosting.headers || [];
+
+  const regra = cabeceiras.find((h) => /\bjs\b/.test(h.source) && /\bcss\b/.test(h.source) &&
+                                       /\bhtml\b/.test(h.source));
+  afirmar(regra,
+    'firebase.json non declara Cache-Control para js/css/html: o JS cachearase ' +
+    'unha hora contra un index.html sen caché e romperá o xogo despois de cada deploy');
+
+  const cc = (regra.headers || []).find((h) => h.key === 'Cache-Control');
+  afirmar(cc && /no-cache|no-store|max-age=0/.test(cc.value),
+    `Cache-Control de js/css/html é "${cc ? cc.value : 'nada'}": ten que revalidar`);
+
+  /* E que non haxa scripts con versión no URL que fixesen isto redundante
+     sen que ninguén o soubese: se algún día se engade, esta proba ten que
+     revisarse en vez de quedar aí dando unha falsa seguridade. */
+  const conVersion = [...HTML.matchAll(/<script src="([^"]+\?[^"]*)"/g)];
+  afirmar(conVersion.length === 0,
+    'hai <script> con versión no URL: se se pasa a cache-busting por nome, ' +
+    'esta proba sobra e hai que quitala, non deixala aquí de adorno');
+});
+
 proba('o idioma do documento non está fixado no markup', () => {
   const m = HTML.match(/<html[^>]*lang="([^"]+)"/);
   afirmar(m, 'o <html> non declara lang');

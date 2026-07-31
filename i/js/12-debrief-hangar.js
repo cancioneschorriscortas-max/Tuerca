@@ -771,10 +771,31 @@ async function showHangar(){
       });
     });
   }
-  const mem=$('memorial');
-  mem.innerHTML = DATA.fallen.length
-    ? '<b>MEMORIAL:</b><br>'+DATA.fallen.map(f=>`<div class="dead">✝ ${f}</div>`).join('')
-    : `<b>MEMORIAL:</b> ${TXT('hg.senCaidos')}`;
+}
+
+/* ============================================================
+   MEMORIAL DOS CAÍDOS.
+
+   Era un <div> agochado no medio do hangar que o botón amosaba e
+   agochaba. Funcionar funcionaba, pero caía por debaixo de todo: premías
+   e na parte visible da pantalla non se movía nada. Non había forma de
+   saber se o botón estaba roto ou se simplemente non había mortos.
+
+   Agora é unha pantalla coma as outras, e de paso o fondo que se xerou
+   para ela —que estaba posto naquel div— vese por fin.
+
+   As liñas veñen xa redactadas de 04-progresion.js, no idioma que había
+   cando morreu cada un. Iso é a mantenta: un epitafio non se retraduce.
+   ============================================================ */
+function showMemorial(){
+  fondoModal('memorialdoscaidos');
+  const caidos = DATA.fallen || [];
+  $('bioTitle').innerHTML = '✝ ' + TXT('btn.memorial').toUpperCase();
+  $('bioBody').innerHTML = caidos.length
+    ? `<div class="small" style="color:#c8a86a; margin-bottom:10px;">${TXT('mem.cantos', {n: caidos.length})}</div>` +
+      caidos.map(f => `<div class="dead">✝ ${f}</div>`).join('')
+    : `<div class="small">${TXT('hg.senCaidos')}</div>`;
+  $('bioModal').style.display = 'flex';
 }
 
 /* ============================================================
@@ -1782,9 +1803,7 @@ $('importFile').addEventListener('change', async (e)=>{
     alert(TXT('imp.erro', {e: r.erro}));
   }
 });
-$('btnMemorial').onclick=()=>{
-  const m=$('memorial'); m.style.display = m.style.display==='none'?'block':'none';
-};
+$('btnMemorial').onclick = showMemorial;
 $('btnWipe').onclick=async ()=>{
   if(confirm('Borrar todo el roster, eventos, medallas y memorial?')){
     await wipeData(); DATA=freshData(); showHangar();

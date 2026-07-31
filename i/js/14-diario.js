@@ -555,7 +555,17 @@ function diarioAbrir(){
      é que son o mesmo sitio. */
   fondoModal('arquivo');
   const D = diarioEnsure();
-  if(!D.capitulos.length){ $('bioModal').style.display = 'none'; return; }
+  /* Baleiro: DÍSELLE. Antes pechaba o modal e volvía sen máis, así que
+     premer o botón non facía nada visible e non había forma de distinguir
+     "aínda non hai nada escrito" de "isto está roto". O botón agóchase só
+     mentres non hai capítulos, así que isto case non se ve — pero "case"
+     é o que sostén os fallos que despois custa unha tarde atopar. */
+  if(!D.capitulos.length){
+    $('bioTitle').innerHTML = '📖 ' + TXT('dia.arquivoTuerca');
+    $('bioBody').innerHTML = `<div class="small">${TXT('dia.baleiro')}</div>`;
+    $('bioModal').style.display = 'block';
+    return;
+  }
   let body = `<div class="small" style="margin-bottom:8px; color:var(--phos-dim);">${TXT('dia.subtitulo')}</div>`;
   D.capitulos.forEach((c, i) => {
     body += `<div class="dia-cap" data-i="${i}" style="cursor:pointer; padding:6px 4px; border-bottom:1px dotted #2a2200;">

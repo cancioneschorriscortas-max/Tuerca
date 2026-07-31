@@ -342,6 +342,7 @@ const LANGS = {
     'dia.arquivadoDespois': 'ARQUIVADO ANOS DESPOIS',
     'dia.arquivo': 'ARQUIVO',
     'dia.arquivoTuerca': 'ARQUIVO TUERCA',
+    'dia.baleiro': 'Aínda non hai nada escrito. O arquiveiro empeza a redactar coa primeira baixa.',
     'dia.operacionN': 'Operación {n}',
     'dia.estado': 'Estado',
     'dia.estadoRecuperado': 'RECUPERADO',
@@ -530,6 +531,7 @@ const LANGS = {
     'hg.folgaTitle': 'En folga: n\u00e9gase a despregar',
     'hg.fixoTitle': 'Vai fixo: acaba de ser equipado',
     'hg.senCaidos': 'sen ca\u00eddos rexistrados.',
+    'mem.cantos': '{n} unidade(s) que non volveron. Est\u00e1n aqu\u00ed porque estiveron.',
     'hg.faccionAzul': 'FACCI\u00d3N: AZUL', 'hg.faccionVermella': 'FACCI\u00d3N: VERMELLA',
     'hg.help': 'Selecciona ata 3 veteranos para despregar.<br>CONTROIS: arrastra para seleccionar \u00b7 clic para mover/atacar \u00b7 dobre clic nunha unidade para seleccionar todas as do mesmo tipo pr\u00f3ximas \u00b7 teclas 1/2/3 ou bot\u00f3ns para producir.<br>OBXECTIVO: destr\u00fae o HQ vermello. Captura sectores (\u25cb) para producir m\u00e1is r\u00e1pido.<br>NOVO en v0.3: inimigos que sobrevivan a unha operaci\u00f3n poden VOLVER nas seguintes (marca laranxa). Captura o RADAR CENTRAL para que se anuncien ao detectalos. Se o inimigo controla o radar, a s\u00faa IA co\u00f1ece os teus veteranos e reacciona: pesados prior\u00edzanos, lixeiros ev\u00edtanos, engineers inimigos foxen para reagruparse.',
     /* (v0.42) Taller */
@@ -965,6 +967,7 @@ const LANGS = {
     'dia.arquivadoDespois': 'ARCHIVADO AÑOS DESPUÉS',
     'dia.arquivo': 'ARCHIVO',
     'dia.arquivoTuerca': 'ARCHIVO TUERCA',
+    'dia.baleiro': 'Todavía no hay nada escrito. El archivero empieza a redactar con la primera baja.',
     'dia.operacionN': 'Operación {n}',
     'dia.estado': 'Estado',
     'dia.estadoRecuperado': 'RECUPERADO',
@@ -1153,6 +1156,7 @@ const LANGS = {
     'hg.folgaTitle': 'En huelga: se niega a desplegar',
     'hg.fixoTitle': 'Va fijo: acaba de ser equipado',
     'hg.senCaidos': 'sin ca\u00eddos registrados.',
+    'mem.cantos': '{n} unidad(es) que no volvieron. Est\u00e1n aqu\u00ed porque estuvieron.',
     'hg.faccionAzul': 'FACCI\u00d3N: AZUL', 'hg.faccionVermella': 'FACCI\u00d3N: ROJA',
     'hg.help': 'Selecciona hasta 3 veteranos para desplegar.<br>CONTROLES: arrastra para seleccionar \u00b7 clic para mover/atacar \u00b7 doble clic en una unidad para seleccionar todas las del mismo tipo cercanas \u00b7 teclas 1/2/3 o botones para producir.<br>OBJETIVO: destruye el HQ rojo. Captura sectores (\u25cb) para producir m\u00e1s r\u00e1pido.<br>NUEVO en v0.3: enemigos que sobrevivan a una operaci\u00f3n pueden VOLVER en las siguientes (marca naranja). Captura el RADAR CENTRAL para que se anuncien al detectarlos. Si el enemigo controla el radar, su IA conoce a tus veteranos y reacciona: pesados los priorizan, ligeros los evitan, engineers enemigos huyen para reagruparse.',
     /* (v0.42) Taller */
@@ -1588,6 +1592,7 @@ const LANGS = {
     'dia.arquivadoDespois': 'ARCHIVED YEARS LATER',
     'dia.arquivo': 'ARCHIVE',
     'dia.arquivoTuerca': 'TUERCA ARCHIVE',
+    'dia.baleiro': 'Nothing written yet. The archivist starts writing with the first casualty.',
     'dia.operacionN': 'Operation {n}',
     'dia.estado': 'Status',
     'dia.estadoRecuperado': 'RECOVERED',
@@ -1776,6 +1781,7 @@ const LANGS = {
     'hg.folgaTitle': 'On strike: refuses to deploy',
     'hg.fixoTitle': 'Locked in: just equipped',
     'hg.senCaidos': 'no fallen on record.',
+    'mem.cantos': '{n} unit(s) that did not come back. They are here because they were.',
     'hg.faccionAzul': 'FACTION: BLUE', 'hg.faccionVermella': 'FACTION: RED',
     'hg.help': 'Select up to 3 veterans to deploy.<br>CONTROLS: drag to select \u00b7 click to move/attack \u00b7 double-click a unit to select all nearby units of the same type \u00b7 keys 1/2/3 or buttons to produce.<br>OBJECTIVE: destroy the red HQ. Capture sectors (\u25cb) to produce faster.<br>NEW in v0.3: enemies that survive an operation may RETURN in later ones (orange mark). Capture the CENTRAL RADAR so they are announced on detection. If the enemy holds the radar, its AI knows your veterans and reacts: heavies prioritize them, light units avoid them, enemy engineers flee to regroup.',
     /* (v0.42) Workshop */

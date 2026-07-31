@@ -369,11 +369,6 @@
     background-image:linear-gradient(rgba(10,10,8,.70), rgba(10,10,8,.84)), var(--fondo);
     background-size:cover; background-position:center; background-repeat:no-repeat;
   }
-  #memorial{
-    background-image:linear-gradient(rgba(10,10,8,.74), rgba(10,10,8,.88)),
-                     url('../ui/fondo_memorialdoscaidos.jpg');
-    background-size:cover; background-position:center;
-  }
   /* (v0.84) A lámina técnica da clase na ficha da unidade. Recortada pola
      cabeceira e a figura —que é o que se le nunha ollada— e despregable
      ao premer. O recorte faise con max-height e non escalando a imaxe:

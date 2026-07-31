@@ -93,3 +93,11 @@ capturas/vista_ab.png
 capturas/_capas.png
 capturas/_capasbl/
 capturas/_sombras.png
+
+# Material de deseño: queda FÓRA do repo por decisión túa. Aquí non por
+# ser lixo senón todo o contrario — son as fontes grandes (2.5 MB por
+# imaxe) das que saen i/ui/fondo_*.jpg e i/ui/lamina_*.png con
+# tools/xerar_fondos.js e tools/xerar_laminas.js. O que se publica é o
+# derivado; isto son os orixinais e vívese con eles no disco.
+art/
+Unit_references/
