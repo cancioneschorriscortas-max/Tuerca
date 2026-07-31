@@ -243,10 +243,15 @@ window.addEventListener('load', function(){
         /* Abre unha pantalla calquera polo seu nome, para comprobar que
            o seu fondo chega. Sen isto hai que inventar unha bandeira por
            pantalla e non se comproban nunca todas. */
-        DATA.reconstruccion = null;
-        DATA.piezas = [{id:'p1', tipo:'CABEZA', deCls:'HEAVY', deNome:'MARTELO', act:100}];
-        DATA.iaArquivo = [{id:'R-09', name:'MARTELO', cls:'GRUNT', ops:9, activity:{}}];
         setTimeout(function(){
+          /* DESPOIS de que a semente remate, non antes: se se limpa aquí
+             arriba, o propio sementado volve a poñer o taller ocupado e
+             pantallas como showMontaxe saen en silencio sen abrir nada. */
+          DATA.reconstruccion = null;
+          DATA.chatarra = Math.max(DATA.chatarra || 0, 400);
+          DATA.piezas = [{id:'p1', tipo:'CABEZA', deCls:'HEAVY', deNome:'MARTELO', act:100},
+                         {id:'p2', tipo:'BRAZO_DER', deCls:'SNIPER', deNome:'AGULLA', act:100}];
+          DATA.iaArquivo = [{id:'R-09', name:'MARTELO', cls:'GRUNT', ops:9, activity:{}}];
           var f = window[PANTALLA];
           if(typeof f === 'function'){ try{ f(0); }catch(e){ try{ f(); }catch(e2){} } }
           else {

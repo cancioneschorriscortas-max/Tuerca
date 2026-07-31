@@ -361,13 +361,84 @@
     max-height:calc(100vh - 60px); overflow-y:auto;
   }
   #bioModal h2{font-size:18px; margin-bottom:14px;}
-  /* (v0.84) Fondo por pantalla. A ruta vén nunha variable que pon o JS,
-     así que aquí só está o que é común: cubrir a caixa e poñer por riba
-     un degradado escuro para que o texto siga lendo. Sen ese degradado a
-     arte gaña e non se le nada. */
+  /* ============================================================
+     (v0.86) A IMAXE É A PANTALLA.
+
+     En v0.84 isto era un fondo: a imaxe metida nunha caixa de 680 px cun
+     degradado do 70-84% de negro por riba para que o texto lese. Estaba
+     mal entendido. Estas imaxes non son textura: cada unha ten o seu
+     estandarte co nome da pantalla e o seu lema, un muro de nichos con
+     retratos, caixóns que poñen TORSOS A-01 · BRAZOS B-07 · PIERNAS
+     C-03 —que son os slots do inventario— e unha mesa baixo unha lámpada
+     acesa onde cabe o contido. Xa son pantallas deseñadas.
+
+     Tres cambios, e os tres van xuntos:
+
+       O ANCHO. 980 px e proporción 3:2, que é a da imaxe. A 680 px
+       cadrados a composición recórtase e o estandarte queda fóra.
+
+       O VEO VAISE. A imaxe pásase enteira. A lexibilidade non se
+       resolve apagando a arte senón poñendo o texto no seu propio
+       panel: así o que se escurece son os 40 cm² do texto e non a
+       pantalla enteira.
+
+       O VIÑETEADO. Un óvalo escuro nos bordos. Fai dúas cousas: dálle
+       peso ao marco e deixa o centro limpo, que é onde estas imaxes
+       teñen a luz.
+
+     O TÍTULO SEGUE DEBUXÁNDOSE aínda que a imaxe leve o seu. As imaxes
+     están en castelán e o xogo vai en tres idiomas: fiarse do estandarte
+     sería deixar sen título a quen xogue en galego ou inglés. Vai sobre
+     a imaxe cunha sombra, sen caixa, para que se lea coma se estivese
+     pintado alí. */
   #bioModal[data-fondo] .inner{
-    background-image:linear-gradient(rgba(10,10,8,.70), rgba(10,10,8,.84)), var(--fondo);
+    max-width:980px; padding:0; position:relative;
+    background-color:#07070a;
+    background-image:var(--fondo);
     background-size:cover; background-position:center; background-repeat:no-repeat;
+    min-height:min(620px, 74vh);
+  }
+  #bioModal[data-fondo] .inner::before{
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(ellipse at 50% 42%,
+                 rgba(0,0,0,0) 30%, rgba(0,0,0,.30) 62%, rgba(0,0,0,.78) 100%);
+  }
+  /* A COLUMNA DA ESQUERDA NON SE TOCA. As cinco imaxes están compostas
+     igual: un estandarte arriba á esquerda co nome do sitio e o seu lema
+     —"NO SON CHATARRA. SON RECUERDOS.", "DESMONTAR HOY PARA CONSTRUIR
+     MAÑANA", "LA VERDAD GARANTIZA LA UNIDAD", "BUILT TO WIN. PROGRAMMED
+     TO ENDURE."— e o resto do cuarto abríndose á dereita. O primeiro
+     intento puxo o panel arriba de todo e tapaba xusto ese estandarte:
+     quedaba a arte de fondo pero perdíase o que a fai unha pantalla e
+     non unha foto. Así que o contido vive no 62% dereito e a esquerda é
+     da imaxe. */
+  #bioModal[data-fondo] h2{
+    position:relative; margin:0 0 0 36%; padding:22px 28px 0;
+    text-shadow:0 2px 6px #000, 0 0 18px rgba(0,0,0,.9);
+  }
+  /* O panel do contido. Semitransparente a mantenta: o 72% deixa ver a
+     imaxe por debaixo —séguese sabendo que estás nun sitio— e o desenfoque
+     evita que un detalle con moito contraste pase a través e faga ilexible
+     unha liña. */
+  #bioModal[data-fondo] #bioBody{
+    position:relative; margin:14px 28px 0 36%; padding:18px 20px;
+    background:rgba(6,6,4,.72);
+    border:1px solid rgba(232,200,96,.20);
+    backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
+  }
+  #bioModal[data-fondo] > .inner > .row{
+    position:relative; margin:14px 28px 26px 36%;
+  }
+  /* MÓBIL: por debaixo de 780 px o 36% da esquerda deixaría o texto nunha
+     columna de dous dedos. Alí a imaxe pasa a ser fondo outra vez —é a
+     única maneira de que se lea— pero cun veo máis suave có de v0.84,
+     porque agora o texto ten o seu propio panel. */
+  @media (max-width:780px){
+    #bioModal[data-fondo] .inner{ min-height:0; }
+    #bioModal[data-fondo] h2,
+    #bioModal[data-fondo] #bioBody,
+    #bioModal[data-fondo] > .inner > .row{ margin-left:16px; margin-right:16px; }
+    #bioModal[data-fondo] .inner::before{ background:rgba(0,0,0,.45); }
   }
   /* (v0.84) A lámina técnica da clase na ficha da unidade. Recortada pola
      cabeceira e a figura —que é o que se le nunha ollada— e despregable
