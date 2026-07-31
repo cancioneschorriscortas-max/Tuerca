@@ -550,6 +550,10 @@ function diaEscollerNota(cap){
 /* ---------- LECTOR ---------- */
 let _diaPax = 0, _diaCapAberto = null;
 function diarioAbrir(){
+  /* O mesmo cuarto que a ficha: esta pantalla chámase ARQUIVO TUERCA e a
+     imaxe pon iso mesmo no libro aberto. Non é reaproveitar unha textura,
+     é que son o mesmo sitio. */
+  fondoModal('arquivo');
   const D = diarioEnsure();
   if(!D.capitulos.length){ $('bioModal').style.display = 'none'; return; }
   let body = `<div class="small" style="margin-bottom:8px; color:var(--phos-dim);">${TXT('dia.subtitulo')}</div>`;

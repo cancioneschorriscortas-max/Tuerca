@@ -264,3 +264,57 @@ proba('todo fondo que se xera úsase nalgunha pantalla', () => {
       'pantalla: ou se engancha ou se saca de art/');
   }
 });
+
+proba('toda pantalla que abre o modal decide o seu fondo, e non nunha rama', () => {
+  /* A proba de arriba mira os fondos e pregunta se alguén os usa. Esta
+     mira ao revés: as PANTALLAS, e pregunta se cada unha decide.
+
+     Fan falla as dúas, porque o fallo real non o collía ningunha das
+     anteriores. fondoModal('cantina') estaba escrito —así que a cantina
+     "usábase"— pero dentro do `if(roster.length < 2)`: só había fondo coa
+     cantina BALEIRA, que é o único caso que case non se ve. E showLobby
+     nin poñía nin limpaba, así que o vestíbulo de duelo herdaba a nave do
+     taller se viñas de alí.
+
+     A regra: para CADA apertura do modal ten que haber antes unha chamada
+     a fondoModal con sangría MENOR OU IGUAL. Iso é o mesmo bloque ou un
+     que o contén, é dicir, un camiño que a apertura atravesa seguro; unha
+     chamada máis sangrada está nunha rama e pode non executarse.
+
+     Compróbanse todas as aperturas e non só a primeira, porque o fallo da
+     cantina estaba precisamente na segunda: a primeira saída —a baleira—
+     si tiña fondo ao lado.
+
+     Compárase a sangría e non a estrutura real do bloque: é unha
+     aproximación, e dous bloques irmáns coa mesma sangría pasarían. Colle
+     a familia enteira de fallos que xa apareceron e non precisa un
+     analizador sintáctico. */
+  const path2 = require('path');
+  const DIR = path2.join(__dirname, '..', 'i', 'js');
+  const ABRE = /\$\('bioModal'\)\.style\.display\s*=\s*'(flex|block)'/;
+  const DECIDE = /^(\s*)fondoModal\(/;
+  const sangria = (l) => l.length - l.trimStart().length;
+
+  for (const f of fs.readdirSync(DIR).filter((n) => n.endsWith('.js'))) {
+    const liñas = fs.readFileSync(path2.join(DIR, f), 'utf8').split('\n');
+    let fn = null, corpo = [];
+    const revisar = () => {
+      if (!fn) return;
+      corpo.forEach((l, i) => {
+        if (!ABRE.test(l)) return;
+        const cuberta = corpo.slice(0, i).some(
+          (p) => DECIDE.test(p) && sangria(p) <= sangria(l));
+        afirmar(cuberta,
+          `${f}:${fn}() abre o modal sen que fondoModal() estea garantido ` +
+          'nese camiño. Ou chama a fondoModal(<nome>), ou a fondoModal(null) ' +
+          'para limpar o da pantalla anterior, pero fóra da rama.');
+      });
+    };
+    for (const l of liñas) {
+      const m = /^function\s+([A-Za-z0-9_]+)/.exec(l);
+      if (m) { revisar(); fn = m[1]; corpo = []; continue; }
+      if (fn) corpo.push(l);
+    }
+    revisar();
+  }
+});

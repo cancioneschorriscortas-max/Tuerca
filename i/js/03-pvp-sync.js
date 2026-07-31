@@ -724,6 +724,12 @@ function pvpRecibirFin(fin){
 
 /* ---------- UI do lobby (reutiliza o bioModal) ---------- */
 function showLobby(){
+  /* LIMPAR, que non é o mesmo que non poñer. O modal é o mesmo obxecto
+     para todas as pantallas, así que unha que non decide herda o fondo da
+     anterior: viñas do taller e o vestíbulo de duelo saía cunha nave de
+     reparación detrás. Non hai imaxe para esta pantalla e está ben, pero
+     hai que dicilo. */
+  fondoModal(null);
   const nomePrev = window._nomeOnline || '';
   $('bioTitle').innerHTML = `🌐 DUELO ONLINE <span class="small" style="color:#7fdc7f;">${TUERCA_V}</span>`;
   $('bioBody').innerHTML = `

@@ -1458,10 +1458,13 @@ const CANTINA_CHARLAS_ML = {
 };
 
 function showCantina(){
+  /* Á CABEZA da función, non dentro dunha rama. Estivo posto dentro do
+     `if(roster.length < 2)` e o resultado foi que a cantina só tiña
+     fondo cando estaba BALEIRA — o único caso que case non se ve. */
+  fondoModal('cantina');
   const roster = (DATA.units || []).filter(r => r.personalidad || (r.personalidad = pickPersonalidad(r.cls)));
   if(roster.length < 2){
-    fondoModal('cantina');
-  $('bioTitle').innerHTML = TXT('ct.titulo');
+    $('bioTitle').innerHTML = TXT('ct.titulo');
     $('bioBody').innerHTML = `<div class="small">${TXT('ct.baleira')}</div>`;
     $('bioModal').style.display = 'flex';
     return;
@@ -1563,9 +1566,9 @@ function showCantina(){
 function showEquipShop(idx){
   const u = DATA.units[idx];
   if(!u) return;
+  fondoModal('taller');
   /* (v0.19 R2) Taller ocupado pola reconstrución: nin compras nin botín */
   if(DATA.reconstruccion){
-    fondoModal('taller');
     $('bioTitle').innerHTML = `⚙ ${TXT('tl.taller')} — ${TXT('tl.ocupado')}`;
     $('bioBody').innerHTML = `<div class="small" style="color:#ff9a3c;">${TXT('tl.ocupadoDesc', {n: DATA.reconstruccion.rec.name})}</div>`;
     $('bioModal').style.display = 'flex';
@@ -1595,7 +1598,6 @@ function showEquipShop(idx){
             : `<button class="bio-btn" data-buy="${id}" ${canBuy?'':'disabled style="opacity:0.4;"'}>${eq.prezo} ⚙</button>`)}
     </div>`;
   }
-  fondoModal('taller');
   $('bioTitle').innerHTML = `⚙ ${TXT('tl.taller')} — ${u.id} '${u.name}' <span class="small">${clsLabel(u.cls)}</span>`;
   $('bioBody').innerHTML = body;
   $('bioModal').style.display = 'flex';
