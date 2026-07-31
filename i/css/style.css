@@ -392,7 +392,16 @@
      a imaxe cunha sombra, sen caixa, para que se lea coma se estivese
      pintado alí. */
   #bioModal[data-fondo] .inner{
-    max-width:980px; padding:0; position:relative;
+    /* WIDTH E NON SÓ MAX-WIDTH. O modal ábrese como flex e un elemento
+       flex sen ancho definido encolle ata o seu contido. Con listas
+       longas dá igual —o contido xa chega aos 980— pero cun memorial
+       baleiro, "sen caídos rexistrados" son catro palabras e a caixa
+       colapsaba a 265 px: quedaba unha faixa vertical da imaxe, que nesa
+       zona é o corredor escuro, e parecía que non había fondo ningún.
+       As marxes en porcentaxe do contido tampouco axudan: ao calcular o
+       ancho natural cóntanse como cero, así que a caixa nin sabía que
+       tiña que ser ancha. */
+    width:100%; max-width:980px; padding:0; position:relative;
     background-color:#07070a;
     background-image:var(--fondo);
     background-size:cover; background-position:center; background-repeat:no-repeat;

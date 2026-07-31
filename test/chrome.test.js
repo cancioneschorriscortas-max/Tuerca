@@ -166,6 +166,35 @@ proba('o JS non se pode cachear máis ca o index.html', () => {
     'esta proba sobra e hai que quitala, non deixala aquí de adorno');
 });
 
+proba('a pantalla con imaxe non colapsa co contido curto', () => {
+  /* O modal ábrese como flex, e un elemento flex sen ancho DEFINIDO
+     encolle ata o seu contido. Con listas longas non se nota —o contido
+     xa chega aos 980 px— pero cun memorial baleiro, "sen caídos
+     rexistrados" son catro palabras e a caixa colapsaba a 265 px:
+     quedaba unha faixa vertical da imaxe, que nesa zona é o corredor
+     escuro, e parecía que non se cargara ningún fondo.
+
+     As marxes en porcentaxe do contido tampouco salvan: ao calcular o
+     ancho natural cóntanse como cero, así que a caixa nin sabía que tiña
+     que ser ancha.
+
+     Non o colleu ningunha das capturas de revisión porque TODAS tiñan
+     contido longo. De aí a proba: o caso curto non se mira nunca a ollo,
+     e é onde vive.
+
+     Compróbase o que se pode comprobar sen motor de deseño: que a regra
+     declare un ancho e non só un máximo. */
+  const bloque = CSS.match(/#bioModal\[data-fondo\]\s*\.inner\s*\{([^}]*)\}/);
+  afirmar(bloque, 'non se atopa a regra de #bioModal[data-fondo] .inner');
+  const corpo = bloque[1];
+  afirmar(/(^|[;\s])width\s*:/.test(corpo),
+    'a caixa da pantalla con imaxe só declara max-width. Como é un elemento ' +
+    'flex, sen "width" encolle ata o contido e coas pantallas baleiras ' +
+    'colapsa a unha faixa na que non se recoñece a imaxe');
+  afirmar(/max-width\s*:/.test(corpo),
+    'falta o max-width: sen tope, a imaxe estirábase a toda a fiestra');
+});
+
 proba('o idioma do documento non está fixado no markup', () => {
   const m = HTML.match(/<html[^>]*lang="([^"]+)"/);
   afirmar(m, 'o <html> non declara lang');

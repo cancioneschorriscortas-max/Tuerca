@@ -182,11 +182,13 @@ const FICHA = op('ficha', null);
 const MONTAXE = ten('montaxe');
 const CONSELLO = ten('consello');
 const PANTALLA = op('pantalla', null);
+const DATOS = op('datos', null);
 const semente = (modo === 'hangar' && (ten('sementar') || FICHA || MONTAXE || CONSELLO || PANTALLA)) ? `
 <script>
 var MONTAXE = ${MONTAXE};
 var CONSELLO = ${CONSELLO};
 var PANTALLA = ${PANTALLA ? JSON.stringify(PANTALLA) : 'null'};
+var DATOS = ${DATOS ? JSON.stringify(DATOS) : 'null'};
 var FICHA = ${FICHA ? JSON.stringify(FICHA) : 'null'};
 window.addEventListener('load', function(){
   setTimeout(function(){
@@ -252,6 +254,11 @@ window.addEventListener('load', function(){
           DATA.piezas = [{id:'p1', tipo:'CABEZA', deCls:'HEAVY', deNome:'MARTELO', act:100},
                          {id:'p2', tipo:'BRAZO_DER', deCls:'SNIPER', deNome:'AGULLA', act:100}];
           DATA.iaArquivo = [{id:'R-09', name:'MARTELO', cls:'GRUNT', ops:9, activity:{}}];
+          /* Retoque libre do estado antes de abrir. A semente sempre deixa
+             a partida "chea", e moitos fallos só se ven co caso baleiro:
+             un memorial sen mortos, un roster dunha soa unidade. Sen isto
+             habería que inventar unha bandeira por caso. */
+          if(DATOS){ try{ (new Function('DATA', DATOS))(DATA); }catch(e){ console.error('[--datos]', e); } }
           var f = window[PANTALLA];
           if(typeof f === 'function'){ try{ f(0); }catch(e){ try{ f(); }catch(e2){} } }
           else {
