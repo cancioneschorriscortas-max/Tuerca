@@ -139,6 +139,12 @@ function crearContorno({ silencioso = true } = {}) {
 
   const document = {
     title: '',
+    /* O navegador sempre ten unha base contra a que resolver rutas. O
+       código úsaa para construír URLs absolutas —fai falla porque un
+       url() relativo nunha variable de CSS resólvese contra a folla de
+       estilos e non contra o documento— e sen isto o módulo peta aquí e
+       en ningures máis. Ponse no arnés, non se fai o xogo defensivo. */
+    baseURI: 'https://exemplo.invalid/',
     documentElement: elementoFalso('html'),
     body: Object.assign(elementoFalso('body'), { appendChild() {}, removeChild() {} }),
     getElementById: obterEl,
@@ -176,6 +182,8 @@ function crearContorno({ silencioso = true } = {}) {
       return { observe() {}, unobserve() {}, disconnect() {} };
     },
     /* Firebase non existe: o código xa se protexe con typeof/guardas. */
+    URL,
+    URLSearchParams,
   };
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;

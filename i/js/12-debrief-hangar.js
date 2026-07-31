@@ -925,7 +925,21 @@ function fondoModal(nome){
   if(!m) return;
   if(nome){
     m.dataset.fondo = nome;
-    m.style.setProperty('--fondo', `url('ui/fondo_${nome}.jpg')`);
+    /* RUTA ABSOLUTA, e non é remilgo. Un url() dentro dunha variable de
+       CSS resólvese contra a folla de estilos que a USA, non contra onde
+       se declara. Aquí decláirase nun atributo style —base: o documento—
+       pero cónsomea css/style.css, así que o navegador pedía
+       css/ui/fondo_X.jpg e non atopaba nada. A caixa quedaba negra.
+
+       Non se viu en NINGUNHA revisión porque as capturas facíanse sobre
+       dist/tuerca.html, que leva o CSS incrustado: alí as dúas bases son
+       a mesma e funciona. O fallo só existía na versión de ficheiros
+       separados, que é xustamente a que se xoga na web.
+
+       Resolvéndoa contra document.baseURI queda unha ruta absoluta e xa
+       non depende de quen a interprete. */
+    const rota = new URL(`ui/fondo_${nome}.jpg`, document.baseURI).href;
+    m.style.setProperty('--fondo', `url("${rota}")`);
   } else {
     delete m.dataset.fondo;
     m.style.removeProperty('--fondo');

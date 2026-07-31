@@ -195,6 +195,45 @@ proba('a pantalla con imaxe non colapsa co contido curto', () => {
     'falta o max-width: sen tope, a imaxe estirábase a toda a fiestra');
 });
 
+proba('ningún url() inxectado desde o JS leva ruta relativa', () => {
+  /* A trampa máis fina de toda esta tanda.
+
+     Un url() dentro dunha VARIABLE de CSS resólvese contra a folla de
+     estilos que a USA, non contra onde se declara. fondoModal poñía
+     --fondo: url('ui/fondo_X.jpg') nun atributo style —base: o
+     documento— pero quen a consome é css/style.css, así que o navegador
+     pedía css/ui/fondo_X.jpg. Non existe. Caixa negra, sen erro ningún.
+
+     E o que fixo que durase: as capturas de revisión facíanse sobre
+     dist/tuerca.html, que leva o CSS INCRUSTADO. Alí as dúas bases son a
+     mesma e funciona perfectamente. O fallo só existía na versión de
+     ficheiros separados, que é xustamente a que se despregou e se xoga.
+     Dez capturas seguidas dando o visto e prace a algo que na web estaba
+     roto.
+
+     A regra, entón: calquera url() que naza no JS ten que ser absoluto.
+     new URL(ruta, document.baseURI).href resólveo e xa non depende de
+     quen o interprete nin de como se empaquete o xogo. */
+  const path2 = require('path');
+  const DIR = path2.join(__dirname, '..', 'i', 'js');
+
+  for (const f of fs.readdirSync(DIR).filter((n) => n.endsWith('.js'))) {
+    const t = fs.readFileSync(path2.join(DIR, f), 'utf8');
+    /* url(...) dentro dun literal de JS que non empeza por http, / , data:
+       ou unha interpolación xa resolta. Só nas liñas que van a un estilo. */
+    const re = /(setProperty|style\.[A-Za-z]+\s*=|cssText\s*=)[^\n]*url\(\s*["'`]?([^"'`)\$]+)/g;
+    let m;
+    while ((m = re.exec(t)) !== null) {
+      const ruta = m[2].trim();
+      afirmar(/^(https?:|\/|data:|blob:)/.test(ruta),
+        `${f}: inxéctase desde o JS url(${ruta}), que é relativo. ` +
+        'Se o consome unha folla de estilos aparte, o navegador resólveo ' +
+        'contra ELA e non contra o documento. Usa ' +
+        'new URL(ruta, document.baseURI).href');
+    }
+  }
+});
+
 proba('o idioma do documento non está fixado no markup', () => {
   const m = HTML.match(/<html[^>]*lang="([^"]+)"/);
   afirmar(m, 'o <html> non declara lang');
