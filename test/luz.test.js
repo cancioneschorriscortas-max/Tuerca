@@ -30,7 +30,7 @@ proba('forza 0 deixa a escena intacta (branco de multiplicación)', () => {
   const luzAmbiente = S.aval('luzAmbiente');
   const antes = LUZ.forza;
   LUZ.forza = 0;
-  for (const h of [9, 13, 19]) {
+  for (const h of [4, 9, 13, 18]) {
     const c = luzAmbiente(h);
     afirmar(c.every((v) => v === 255), `hora ${h}: con forza 0 esperábase 255,255,255 e saíu ${c.join(',')}`);
   }
@@ -41,9 +41,17 @@ proba('a hora segue o reloxo do mundo, e forzala mándaa', () => {
   const S = cargarXogo();
   const luzHora = S.aval('luzHora');
   const LUZ = S.aval('LUZ');
+  /* Sen horaInicio, o defecto son as 9. Con 900 ticks por hora, unha
+     batalla media —4.343 ticks— percorre 4,8 horas: iso é o arco. Coa
+     fórmula vella, 9.000 ticks por hora, todas remataban antes das 9,5
+     e a rampa enteira era contido morto. */
   afirmar(luzHora({ t: 0 }) === 9, `ao arrancar debía ser as 9, foi ${luzHora({ t: 0 })}`);
-  afirmar(luzHora({ t: 9000 }) === 10, `tras 9000 pasos debía ser as 10, foi ${luzHora({ t: 9000 })}`);
-  afirmar(luzHora({ t: 99999999 }) === 19, 'a hora ten que topar ás 19');
+  afirmar(luzHora({ t: 900 }) === 10, `tras 900 pasos debía ser as 10, foi ${luzHora({ t: 900 })}`);
+  afirmar(luzHora({ t: 0, horaInicio: 4 }) === 4, 'unha batalla de noite arranca ás 4');
+  afirmar(luzHora({ t: 4500, horaInicio: 4 }) === 9, 'de noite ás 4, cinco horas despois é de día');
+  /* O tope non é un número redondo calquera: ás 19 o mapa tiña o 45,8%
+     dos píxeles por debaixo de luma 32, sete veces máis ca ás 18. */
+  afirmar(luzHora({ t: 99999999 }) === 18, 'a hora ten que topar ás 18');
   LUZ.horaForzada = 18;
   afirmar(luzHora({ t: 0 }) === 18, 'a hora forzada ten prioridade');
   LUZ.horaForzada = null;

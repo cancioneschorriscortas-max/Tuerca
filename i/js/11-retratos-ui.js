@@ -830,7 +830,7 @@ function loop(now){
   }
   /* (v0.55) reloxo do mundo: a partida vive de 09:00 a ~19:00 */
   {
-    const _wh = Math.min(19, 9 + g.t / 9000);
+    const _wh = mundoHora(g);
     const _hh = _wh | 0, _mm = ((_wh % 1) * 60) | 0;
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.fillRect(6, 6, 58, 16);

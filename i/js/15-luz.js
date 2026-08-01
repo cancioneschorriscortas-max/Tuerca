@@ -33,20 +33,35 @@ const LUZ = {
    (o mesmo reloxo que pinta o HUD), así que a batalla empeza fresca,
    pasa por un mediodía case neutro e acaba en solpor ámbar. */
 const LUZ_RAMPA = [
+  /* A NOITE. Non baixa do 51% de brillo, e o número non é gusto meu:
+     medindo hora a hora, o mapa mantense en menos do 7% de píxeles
+     esmagados ata as 18 (49%) e ás 19 (33%) dispárase ao 45,8%. Ese é o
+     precipicio. Unha noite máis escura sería máis bonita nunha captura
+     e inxogable nunha partida.
+
+     Tampouco é o azul saturado do lusco-fusco: alí a canle verde baixa
+     a 0x50, e como o verde pesa o 71% da luma, o terreo —que é verde—
+     desaparece. Aquí a noite é fría pero DESATURADA, que apaga sen
+     apagar unha canle soa. */
+  { h: 3,  c: [0x7a, 0x82, 0x98] },   /* noite pecha: frío e desaturado */
+  { h: 5,  c: [0x8a, 0x90, 0xa8] },   /* antes do abrente */
+  { h: 7,  c: [0x98, 0xa0, 0xb8] },   /* abrente */
   { h: 9,  c: [0xa6, 0xae, 0xc2] },   /* mañá: azul frío, sol baixo */
   { h: 11, c: [0xcc, 0xcc, 0xc6] },
   { h: 13, c: [0xe0, 0xdc, 0xd0] },   /* mediodía: case neutro */
   { h: 16, c: [0xd2, 0xba, 0x9c] },   /* tarde: quéntase */
-  { h: 18, c: [0x9c, 0x76, 0x5e] },   /* solpor: ámbar forte */
-  { h: 19, c: [0x56, 0x50, 0x78] },   /* lusco-fusco: azul profundo */
+  { h: 18, c: [0x9c, 0x76, 0x5e] },   /* solpor: ámbar forte, e final */
+  /* Aquí houbo un lusco-fusco #565078. Retirouse ao medilo: deixaba o
+     45,8% do mapa por debaixo de luma 32. A culpa non era o brillo
+     senón a saturación — a canle verde baixaba a 0x50 e o verde pesa o
+     71% da luma, así que o terreo desaparecía. Ese papel fano agora as
+     paradas de noite de arriba, que son frías pero desaturadas. */
 ];
 
-function luzHora(g){
-  if(LUZ.horaForzada != null) return LUZ.horaForzada;
-  /* MESMA fórmula que o reloxo do HUD en 11-retratos-ui.js. Se unha
-     cambia, a outra tamén: o ceo e o reloxo teñen que contar o mesmo. */
-  return Math.min(19, 9 + (g.t || 0) / 9000);
-}
+/* A hora vive en 07-terreo-batalla.js, que é onde nace a batalla. Estaba
+   copiada aquí, no reloxo do HUD e na tintura de 10-estructuras.js, e
+   tres copias da mesma fórmula é unha que acaba discrepando. */
+function luzHora(g){ return mundoHora(g); }
 
 function luzAmbiente(h){
   const R = LUZ_RAMPA;

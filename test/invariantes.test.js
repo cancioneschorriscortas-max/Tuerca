@@ -218,20 +218,42 @@ proba('o titorial da primeira operación sae por orde e agarda ao xogador', () =
   afirmar(doTitorial().length === 1,
     `sen tocar nada saíron ${doTitorial().length} consellos; deberían ser 1`);
 
-  /* xogador activo: seleccionar, tomar sectores, ir ao cuartel */
+  /* Xogador activo. Cúmprese CADA condición a man en vez de xogar unha
+     partida e agardar a que pase: así saen os seis sempre, e non
+     segundo a semente traia unha captura ou unha baixa.
+
+     A proba pedía antes "máis de tres" despois de xogar 60.000 pasos, e
+     iso dependía do azar. Ao mover unha soa tirada —a hora á que
+     amence— quedaron tres e a proba caeu, sen que o titorial tivese
+     nada malo. Unha proba que falla por unha semente distinta non está
+     medindo o que di medir. */
   const meus = g.units.filter(u => u.team === PT && !u.dead);
-  meus.forEach(u => u.sel = true);
-  avanzar(S, g, 100);
+
+  meus.forEach(u => u.sel = true);              /* 2 · mover */
+  avanzar(S, g, 200);
+
   const secs = g.sectors || [];
   meus.forEach((u, i) => { const s = secs[i % secs.length]; if(s) orderMove(u, s.x, s.y); });
-  avanzar(S, g, 6000);
-  const hq = g.hq[ET];
-  meus.forEach(u => { if(!u.dead) orderMove(u, hq.x + 40, hq.y + 40); });
-  avanzar(S, g, 60000);
+  avanzar(S, g, 200);                            /* 3 · sectores */
+
+  if(secs[0]) secs[0].owner = PT;                /* 4 · capturado */
+  avanzar(S, g, 200);
+
+  /* 5 · disparan: un inimigo ao alcance dun dos meus */
+  const inimigo = g.units.find(u => u.team === ET && !u.dead);
+  const meu = g.units.find(u => u.team === PT && !u.dead);
+  if(inimigo && meu){ inimigo.inside = null; inimigo.x = meu.x + 20; inimigo.y = meu.y; }
+  avanzar(S, g, 200);
+
+  /* 6 · pezas: alguén cae */
+  const vivos = g.units.filter(u => u.team === PT && !u.dead);
+  if(vivos.length > 1) vivos[vivos.length - 1].dead = true;
+  avanzar(S, g, 200);
 
   const saidas = doTitorial();
-  afirmar(saidas.length > 3,
-    `cun xogador activo só saíron ${saidas.length} consellos`);
+  const total = S.aval('TITORIAL').length;
+  afirmar(saidas.length === total,
+    `cumpríronse as ${total} condicións e só saíron ${saidas.length} consellos`);
 
   /* A aserción forte NON é "saen os seis" —iso depende de que a semente
      traia combate e unha baixa— senón que os que saen son os PRIMEIROS

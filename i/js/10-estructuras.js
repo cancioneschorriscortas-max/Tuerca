@@ -1689,7 +1689,7 @@ function draw(g){
      — a tintura forte por mapa retirouse na v0.49.1 por "quedar rara"; isto é
      progresivo e case subliminal, como pediu Agarfal. */
   {
-    const _wh = Math.min(19, 9 + g.t / 9000);
+    const _wh = mundoHora(g);
     if(_wh < 11){
       ctx.fillStyle = `rgba(120,160,255,${(0.03 * (11 - _wh) / 2).toFixed(3)})`;
       ctx.fillRect(0, 0, W, H);

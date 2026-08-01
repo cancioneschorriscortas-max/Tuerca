@@ -529,6 +529,67 @@ function nudgeSpawn(g, team, x, y){
   }
   return {x: Math.round(x), y: Math.round(y)};
 }
+/* ============================================================
+   A HORA DO MUNDO.
+
+   Estaba escrita TRES veces coa mesma fórmula copiada —15-luz.js,
+   11-retratos-ui.js e 10-estructuras.js— e o comentario que avisaba da
+   duplicación só mencionaba dúas. Agora vive aquí, ao carón do sitio
+   onde nace a batalla, e as tres pídena.
+
+   POR QUE CAMBIA O RITMO. A fórmula vella era `9 + t/9000`: dez horas
+   de mundo en 90.000 ticks. Medíronse cinco batallas e duran entre
+   3.798 e 5.176 ticks, media 4.343. Traducido: TODAS acababan entre as
+   9,0 e as 9,5, sempre no primeiro 6% da rampa de luz, que resulta ser
+   o tramo máis escuro e frío de todos. A tarde, o solpor e o
+   lusco-fusco eran contido morto: ninguén os viu nunca.
+
+   Con 900 ticks por hora, unha batalla media percorre 4,8 horas. Xa é
+   un arco e non un punto.
+
+   POR QUE NON EMPEZA SEMPRE IGUAL. Media das batallas na mañá e o resto
+   na noite indo cara ao abrente. O segundo caso é o interesante: a
+   escuridade cae AO PRINCIPIO, cando aínda hai poucas unidades na
+   pantalla, e a partida vaise aclarando segundo se complica. Ao revés
+   sería castigar o final.
+
+   O TOPE BAIXA ÁS 18, e isto si é un cambio. Medindo hora a hora, entre
+   as 18 e as 19 o mapa pasa de ter un 6,7% dos píxeles esmagados a ter
+   un 45,8%: sete veces máis nunha soa hora. Ese é o precipicio.
+
+   Coa rampa vella as 19 quedaban a 90.000 ticks e non as vía ninguén,
+   así que non se perde nada que alguén tivese visto. Coa nova, unha
+   batalla longa chegaría alí de verdade, e alí non se xoga: acabaría
+   case a metade do mapa por debaixo do limiar no que un panel deixa de
+   separar tons. O escuro segue existindo —está no arranque de noite,
+   que é frío pero desaturado e mide ben— pero non ao final, cando a
+   pantalla está chea de cousas que hai que distinguir.
+   ============================================================ */
+const TICKS_POR_HORA = 900;
+const HORA_TOPE = 18;
+
+/* De onde arranca a batalla. O peso é a proporción: de cada cinco, tres
+   empezan pola mañá e dúas de noite. */
+const HORA_ARRANQUE = [
+  { hora: 9, peso: 3 },   /* mañá cara ao mediodía */
+  { hora: 4, peso: 2 },   /* noite cara ao abrente */
+];
+
+function escollerHoraArranque(){
+  const total = HORA_ARRANQUE.reduce((a, h) => a + h.peso, 0);
+  let r = rnd() * total;
+  for(const h of HORA_ARRANQUE){ r -= h.peso; if(r <= 0) return h.hora; }
+  return HORA_ARRANQUE[0].hora;
+}
+
+/* A hora que é agora mesmo neste mundo. Respecta a hora forzada da capa
+   de luz, que é como se proban as horas sen xogar dez minutos. */
+function mundoHora(g){
+  if(typeof LUZ !== 'undefined' && LUZ && LUZ.horaForzada != null) return LUZ.horaForzada;
+  const ini = (g && typeof g.horaInicio === 'number') ? g.horaInicio : HORA_ARRANQUE[0].hora;
+  return Math.min(HORA_TOPE, ini + ((g && g.t) || 0) / TICKS_POR_HORA);
+}
+
 function newBattle(deployed){
   /* (v0.78) SEMENTE DA BATALLA — o primeiro de todo.
      O mapa constrúese antes de que exista o obxecto da batalla, así que
@@ -596,6 +657,10 @@ function newBattle(deployed){
      equivocada. */
   /* (v0.78) O estado do azar pasa do portador provisional ao obxecto de
      verdade, e viaxa xa con el: gárdase, snapshotéase e reprodúcese. */
+  /* (v0.94) A hora á que arranca esta batalla. Sae do fluxo sementado,
+     non de Math.random(): dúas partidas coa mesma semente teñen que
+     amencer á mesma hora. */
+  g.horaInicio = escollerHoraArranque();
   g.semente = _semente;
   g.rngEstado = game.rngEstado;
   game = g;
