@@ -183,12 +183,14 @@ const MONTAXE = ten('montaxe');
 const CONSELLO = ten('consello');
 const PANTALLA = op('pantalla', null);
 const DATOS = op('datos', null);
-const semente = (modo === 'hangar' && (ten('sementar') || FICHA || MONTAXE || CONSELLO || PANTALLA)) ? `
+const INTERLUDIO = op('interludio', null);
+const semente = (modo === 'hangar' && (ten('sementar') || FICHA || MONTAXE || CONSELLO || PANTALLA || INTERLUDIO)) ? `
 <script>
 var MONTAXE = ${MONTAXE};
 var CONSELLO = ${CONSELLO};
 var PANTALLA = ${PANTALLA ? JSON.stringify(PANTALLA) : 'null'};
 var DATOS = ${DATOS ? JSON.stringify(DATOS) : 'null'};
+var INTERLUDIO = ${INTERLUDIO ? JSON.stringify(INTERLUDIO) : 'null'};
 var FICHA = ${FICHA ? JSON.stringify(FICHA) : 'null'};
 window.addEventListener('load', function(){
   setTimeout(function(){
@@ -259,6 +261,12 @@ window.addEventListener('load', function(){
              un memorial sen mortos, un roster dunha soa unidade. Sen isto
              habería que inventar unha bandeira por caso. */
           if(DATOS){ try{ (new Function('DATA', DATOS))(DATA); }catch(e){ console.error('[--datos]', e); } }
+          if(INTERLUDIO && typeof INTERLUDIOS !== 'undefined'){
+            var _it = INTERLUDIOS.filter(function(x){ return x.id === INTERLUDIO; })[0];
+            if(_it) interludioAmosar(_it, function(){});
+            else document.title = 'SEN INTERLUDIO ' + INTERLUDIO;
+            return;
+          }
           var f = window[PANTALLA];
           if(typeof f === 'function'){ try{ f(0); }catch(e){ try{ f(); }catch(e2){} } }
           else {

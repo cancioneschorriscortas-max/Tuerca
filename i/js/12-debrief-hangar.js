@@ -593,6 +593,9 @@ async function endBattle(g){
     `<p>${TXT('deb.stats', {op: DATA.opCount, be: g.kills[PT], bp: lostRemains.length, r: recovered.length})}<span style="color:#c8a86a;">${TXT('deb.chatarra', {g: g.chatarraGanada||0, t: DATA.chatarra||0})}</span>${g._pvpBotinInfo || ''}${(g.lootGanado&&g.lootGanado.length)?` · <span style="color:#ffd700;">${TXT('deb.botin', {l: g.lootGanado.map(l=>eqLabel(l)).join(', ')})}</span>`:''}</p><br>`+
     (lines.length?lines.join(''):`<div>${TXT('deb.senSuperviventes')}</div>`);
   $('battle').style.display='none';
+  /* O interludio decide en parte polo que acaba de pasar, e endBattle
+     xa puxo game a null. Gárdase o mínimo. */
+  window._ultimaOp = { result: g.result, modo: g.modo };
   $('debrief').style.display='block';
 }
 
@@ -1879,7 +1882,17 @@ document.addEventListener('keydown', e => {
     }
   }
 });
-$('btnBack').onclick=showHangar;
+/* Do informe ao hangar, e polo medio o interludio se lle toca a algún.
+   Este é o ÚNICO sitio onde encaixa: acabas de saír da batalla e aínda
+   non entraches na xestión. Se non hai interludio pendente,
+   interludioQuizais chama a showHangar sen máis, así que este botón
+   segue facendo o de sempre. */
+$('btnBack').onclick = () => {
+  if(typeof interludioQuizais === 'function'){
+    $('debrief').style.display = 'none';
+    interludioQuizais(showHangar);
+  } else showHangar();
+};
 $('btnBioClose').onclick=()=>{ $('bioModal').style.display='none'; };
 $('bioModal').addEventListener('click', e=>{ if(e.target.id==='bioModal') $('bioModal').style.display='none'; });
 

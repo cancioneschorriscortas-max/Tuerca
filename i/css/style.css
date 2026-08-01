@@ -453,6 +453,70 @@
      cabeceira e a figura —que é o que se le nunha ollada— e despregable
      ao premer. O recorte faise con max-height e non escalando a imaxe:
      escalada enteira a 630 píxeles de ancho o texto do plano non se le. */
+  /* ============================================================
+     (v0.89) INTERLUDIO — a pantalla de entre operacións.
+
+     Non é un modal: ocupa a fiestra enteira, sen marco e sen nada
+     detrás. É o único sitio do xogo onde a imaxe manda de todo, e a
+     mantenta: vense despois dunha batalla, valen para respirar.
+
+     Segue a mesma lei que as pantallas con fondo —o texto no 62%
+     dereito, porque estas imaxes tamén levan o estandarte á esquerda—
+     pero centrado en vertical en vez de arriba: aquí non hai listas
+     que medren, sempre son tres ou catro liñas.
+
+     A cor do bordo di QUEN FALA sen escribilo: ámbar cando fala
+     ÓPTIMA, que é a cor corporativa de toda a súa cartelaría, e verde
+     fósforo cando escribe o arquiveiro, que é a do terminal do
+     xogador. Ao terceiro interludio recoñécese a voz antes de ler. */
+  #interludio{
+    display:none; position:fixed; inset:0; z-index:120;
+    background:#05050a center/cover no-repeat;
+    background-image:var(--fondo);
+    align-items:center; justify-content:flex-end;
+    padding:0 4vw;
+  }
+  #interludio::before{
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(ellipse at 40% 45%,
+                 rgba(0,0,0,0) 25%, rgba(0,0,0,.34) 60%, rgba(0,0,0,.82) 100%);
+  }
+  .int-panel{
+    position:relative; width:min(560px, 58vw);
+    background:rgba(6,6,4,.74); backdrop-filter:blur(3px);
+    -webkit-backdrop-filter:blur(3px);
+    border:1px solid rgba(232,200,96,.22);
+    border-left:3px solid var(--gold);
+    padding:22px 26px;
+  }
+  #interludio[data-voz="TUERCA"] .int-panel{
+    border-left-color:var(--phos);
+    border-color:rgba(120,220,140,.20);
+  }
+  .int-panel h2{
+    font-size:15px; letter-spacing:.14em; margin:0 0 14px;
+    color:var(--gold); text-shadow:0 2px 6px #000;
+  }
+  #interludio[data-voz="TUERCA"] .int-panel h2{ color:var(--phos); }
+  .int-panel p{
+    margin:0 0 10px; font-size:13px; line-height:1.65; color:#d8d0b8;
+  }
+  /* A voz de ÓPTIMA vai en versaliñas e espaciada: le como cartel.
+     A do arquiveiro, en cursiva: le como caderno. */
+  #interludio[data-voz="OPTIMA"] .int-panel p:first-child{
+    color:var(--gold); letter-spacing:.06em; text-transform:uppercase;
+    font-size:12px;
+  }
+  #interludio[data-voz="TUERCA"] .int-panel p{ font-style:italic; }
+  .int-panel .row{ margin-top:18px; }
+
+  /* MÓBIL: o 58% da dereita non chega. O panel ocupa todo o ancho e
+     báixase, que é onde estas imaxes teñen menos cousas que mirar. */
+  @media (max-width:780px){
+    #interludio{ align-items:flex-end; justify-content:center; padding:0 0 6vh; }
+    .int-panel{ width:calc(100% - 32px); }
+    #interludio::before{ background:rgba(0,0,0,.5); }
+  }
   #bioModal .lamina-uni{
     max-height:210px; overflow:hidden; margin:0 0 14px;
     border:1px solid var(--phos-dim); cursor:pointer;

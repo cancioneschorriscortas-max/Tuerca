@@ -372,7 +372,11 @@ proba('todo fondo que se xera úsase nalgunha pantalla', () => {
   for (const nome of fondos) {
     const noJs = js.includes(`fondoModal('${nome}')`);
     const noCss = CSS.includes(`fondo_${nome}.jpg`);
-    afirmar(noJs || noCss,
+    /* Terceira vía, desde v0.89: os interludios non abren un modal, teñen
+       a súa propia pantalla e nomean a imaxe nun campo. Sen isto a proba
+       daría por non usada unha imaxe que se ve enteira. */
+    const noInterludio = js.includes(`imaxe: '${nome}'`);
+    afirmar(noJs || noCss || noInterludio,
       `fondo_${nome}.jpg xérase e publícase pero non o usa ningunha ` +
       'pantalla: ou se engancha ou se saca de art/');
   }
