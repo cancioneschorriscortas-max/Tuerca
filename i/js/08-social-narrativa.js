@@ -1064,6 +1064,236 @@ const FRASES = {
                         selection:["..."] },
     },
   },
+  /* SNIPER — mide, agarda e fala pouco. Cando fala, é para dar un
+     dato: distancia, vento, obxectivo. A súa maneira de dicir que
+     está mal é deixar de dar datos. */
+  SNIPER: {
+    LEAL: {
+        LEAL: {
+            briefing: ["Posición asignada. Estaré arriba antes que vosotros.", "Dadme altura y no necesito nada más."],
+            selection: ["Aquí arriba.", "Te escucho."],
+            critical: ["Sigo teniendo el pulso firme. Es lo único que hace falta."]
+        },
+        SARCASTICO: {
+            briefing: ["Otra colina. Qué novedad.", "Tranquilo, ya me busco yo el sitio."],
+            selection: ["Rápido, que tengo el ojo puesto."],
+            critical: ["Me han encontrado. Era cuestión de tiempo."]
+        },
+        DESCONFIADO: {
+            briefing: ["¿Esta vez tampoco vais a decirme quién es el objetivo?"],
+            selection: ["Qué."],
+            critical: ["Estoy solo aquí arriba. Como siempre."]
+        },
+        AUTOPRESERVACION: {
+            briefing: ["Hoy no subo."],
+            refusing_briefing: ["Desde arriba se ve todo, comandante. También lo que les hace a los suyos.", "He hecho la cuenta de los que subieron conmigo. No sale."],
+            selection: ["..."]
+        }
+    },
+    NERVIOSO: {
+        LEAL: {
+            briefing: ["Ya he medido el viento tres veces. Cuatro. Vale. Listo.", "Me pongo arriba y no me muevo. No me muevo, ¿verdad?"],
+            selection: ["Sí. Sí, dime.", "Estoy. Estoy aquí."],
+            critical: ["Me han dado y no vi de dónde. No vi de dónde."]
+        },
+        SARCASTICO: {
+            briefing: ["Distancia, viento, objetivo desconocido. Perfecto.", "Genial. Otra vez a ciegas."],
+            selection: ["¿Ahora qué pasa?"],
+            critical: ["Sabía que esto iba a acabar así."]
+        },
+        DESCONFIADO: {
+            briefing: ["¿Cuántos de los que subieron conmigo bajaron?"],
+            selection: ["No me hagas contar."],
+            critical: ["Que alguien mire hacia aquí. Que alguien mire."]
+        },
+        AUTOPRESERVACION: {
+            briefing: ["Hoy no distingo el viento del pulso."],
+            refusing_briefing: ["No subo. No subo. No me lo pidas otra vez.", "Cuento a los que faltan y me quedo sin dedos."],
+            selection: ["..."]
+        }
+    },
+    IRONICO: {
+        LEAL: {
+            briefing: ["Mil doscientos metros. Un paseo.", "Dadme una piedra alta y os hago el trabajo de tres."],
+            selection: ["Desde aquí también se ve tu error, por cierto.", "Al aparato."],
+            critical: ["He estado peor. No mucho, pero he estado."]
+        },
+        SARCASTICO: {
+            briefing: ["Objetivo desconocido. Estupendo. Disparo a lo que se mueva y ya lo identificáis vosotros.", "Otra vez el mismo cerro. Le voy a poner nombre."],
+            selection: ["Sorpréndeme."],
+            critical: ["Bueno. Al menos han acertado a la primera."]
+        },
+        DESCONFIADO: {
+            briefing: ["¿Sabes lo que se ve estupendamente desde arriba? Todo."],
+            selection: ["Habla, que estoy ocupado mirando."],
+            critical: ["Y no viene nadie. Qué raro."]
+        },
+        AUTOPRESERVACION: {
+            briefing: ["Me quedo aquí. La vista es buena."],
+            refusing_briefing: ["He hecho los cálculos. No salen.", "Sube tú, que tienes tan buena puntería para mandar."],
+            selection: ["..."]
+        }
+    },
+    ESTOICO: {
+        LEAL: {
+            briefing: ["Arriba. Sin ruido.", "Cuando estéis en posición, yo ya estaré."],
+            selection: ["Listo."],
+            critical: ["Funciono."]
+        },
+        SARCASTICO: {
+            briefing: ["Otra."],
+            selection: ["Aquí."],
+            critical: ["Aguanto."]
+        },
+        DESCONFIADO: {
+            briefing: ["Objetivo desconocido. Otra vez."],
+            selection: ["Habla."],
+            critical: ["Ya."]
+        },
+        AUTOPRESERVACION: {
+            briefing: ["Hoy no."],
+            refusing_briefing: ["He subido demasiadas veces."],
+            selection: ["..."]
+        }
+    },
+    CINICO: {
+        LEAL: {
+            briefing: ["Me tenéis para contar metros y apretar. Los cuento y aprieto."],
+            selection: ["Distancia y objetivo. Lo demás me sobra."],
+            critical: ["Se acabó el cálculo."]
+        },
+        SARCASTICO: {
+            briefing: ["Objetivo desconocido. Me encanta esa parte del informe.", "Otra colina, otro número, otro nombre que no va a leer nadie."],
+            selection: ["¿Y hoy a quién no vamos a identificar?"],
+            critical: ["Al menos yo sí sé quién me ha dado."]
+        },
+        DESCONFIADO: {
+            briefing: ["Desde arriba he visto quién recoge a los caídos. No erais vosotros."],
+            selection: ["Dilo y ya."],
+            critical: ["Apuntadlo en el registro y a otra cosa."]
+        },
+        AUTOPRESERVACION: {
+            briefing: ["Ya he contado bastante."],
+            refusing_briefing: ["Mil doscientos setenta y seis metros. Esa es la distancia a la que me da igual.", "Que suba otro. Números hay muchos."],
+            selection: ["..."]
+        }
+    }
+  },
+  /* BOMBARDERO — ruidoso, cariñoso coas súas bombas e cómodo
+     diante. A súa maneira de dicir que está mal é deixar de
+     querer cargar. */
+  BOMBARDERO: {
+    LEAL: {
+        LEAL: {
+            briefing: ["¡Cargado y contento! ¿Dónde lo pongo?", "Traigo de las grandes. De las que se oyen desde la base."],
+            selection: ["¡Aquí!", "Dime dónde."],
+            critical: ["Me queda pólvora. Eso es lo importante."]
+        },
+        SARCASTICO: {
+            briefing: ["Más pólvora, menos problemas. Eso decía el cartel, ¿no?", "Otra vez a abrir puertas a lo bruto."],
+            selection: ["¿Qué reviento?"],
+            critical: ["Me han dado a mí antes que a la carga. Mala suerte."]
+        },
+        DESCONFIADO: {
+            briefing: ["¿Y si esta vez me avisáis antes de que estalle algo cerca?"],
+            selection: ["Habla."],
+            critical: ["No viene nadie, ¿verdad?"]
+        },
+        AUTOPRESERVACION: {
+            briefing: ["Hoy no cargo nada."],
+            refusing_briefing: ["Fabricar, cargar, explotar, repetir. Me he saltado el repetir.", "Que las lleve otro."],
+            selection: ["..."]
+        }
+    },
+    NERVIOSO: {
+        LEAL: {
+            briefing: ["Las he revisado dos veces. Tres. Están bien. Están bien.", "No me hagáis correr con esto encima."],
+            selection: ["¡Sí! Dime.", "Voy, voy."],
+            critical: ["¡Cuidado con lo que llevo encima! ¡Cuidado!"]
+        },
+        SARCASTICO: {
+            briefing: ["Genial, otra vez el primero en la puerta.", "Claro. Que vaya el que lleva los explosivos."],
+            selection: ["¿Ahora?"],
+            critical: ["Ya te dije que esto iba a pasar."]
+        },
+        DESCONFIADO: {
+            briefing: ["¿Cuántos de los míos han vuelto enteros? Dímelo tú."],
+            selection: ["No me grites."],
+            critical: ["Se está calentando. Se está calentando mucho."]
+        },
+        AUTOPRESERVACION: {
+            briefing: ["No con esto encima."],
+            refusing_briefing: ["Llevo cuarenta kilos de razones para quedarme.", "No. Hoy no. Hoy no."],
+            selection: ["..."]
+        }
+    },
+    IRONICO: {
+        LEAL: {
+            briefing: ["Traigo alegría explosiva. Literalmente, lo pone en la caja.", "Decidme dónde y os hago una puerta nueva."],
+            selection: ["A tus órdenes, con estruendo.", "Dime."],
+            critical: ["Estoy hecho un cuadro. Uno abstracto."]
+        },
+        SARCASTICO: {
+            briefing: ["El plan del día: fabricar, cargar, explotar, repetir. Qué vida tan variada.", "Otra puerta. Voy a echar de menos las llaves."],
+            selection: ["¿A quién le abro?"],
+            critical: ["Bueno. Al menos he hecho ruido."]
+        },
+        DESCONFIADO: {
+            briefing: ["Curioso que siempre vaya delante el que lleva la pólvora."],
+            selection: ["Tú dirás."],
+            critical: ["Nadie corre hacia aquí. Qué sorpresa."]
+        },
+        AUTOPRESERVACION: {
+            briefing: ["Hoy me quedo apagado."],
+            refusing_briefing: ["Más pólvora, menos problemas. Cero pólvora, cero problemas.", "Explotar es fácil. Repetir es lo difícil."],
+            selection: ["..."]
+        }
+    },
+    ESTOICO: {
+        LEAL: {
+            briefing: ["Cargado.", "Donde digas."],
+            selection: ["Aquí."],
+            critical: ["Aguanto."]
+        },
+        SARCASTICO: {
+            briefing: ["Otra puerta."],
+            selection: ["Dime."],
+            critical: ["Ya."]
+        },
+        DESCONFIADO: {
+            briefing: ["Delante otra vez."],
+            selection: ["Habla."],
+            critical: ["No viene nadie."]
+        },
+        AUTOPRESERVACION: {
+            briefing: ["Hoy no."],
+            refusing_briefing: ["He cargado bastante."],
+            selection: ["..."]
+        }
+    },
+    CINICO: {
+        LEAL: {
+            briefing: ["Me hicieron para abrir agujeros. Los abro."],
+            selection: ["Señala y me voy."],
+            critical: ["Se acabó la mecha."]
+        },
+        SARCASTICO: {
+            briefing: ["Fabricar, cargar, explotar, repetir. Lo de repetir lo pusieron por optimismo.", "Otra vez de llave maestra."],
+            selection: ["¿Qué estorba hoy?"],
+            critical: ["Al menos me llevo el sitio por delante."]
+        },
+        DESCONFIADO: {
+            briefing: ["Nunca preguntáis qué hay al otro lado de lo que abro."],
+            selection: ["Dilo."],
+            critical: ["Apuntadlo y seguid."]
+        },
+        AUTOPRESERVACION: {
+            briefing: ["Ya he abierto bastantes."],
+            refusing_briefing: ["La caja pone ALEGRÍA EXPLOSIVA. Alguien tiene mucho sentido del humor.", "Que la lleve el que lo escribió."],
+            selection: ["..."]
+        }
+    }
+  },
 };
 
 /* (v0.40 F3b) FRASES en inglés — a voz interactiva do escuadrón, REESCRITA.
@@ -1285,6 +1515,236 @@ const FRASES_EN = {
                         refusing_briefing:["My calculations say no. I remain at base."],
                         selection:["..."] },
     },
+  },
+  /* SNIPER — mide, agarda e fala pouco. Cando fala, é para dar un
+     dato: distancia, vento, obxectivo. A súa maneira de dicir que
+     está mal é deixar de dar datos. */
+  SNIPER: {
+    LEAL: {
+        LEAL: {
+            briefing: ["Position assigned. I will be up there before you are.", "Give me height and I need nothing else."],
+            selection: ["Up here.", "I am listening."],
+            critical: ["My hand is still steady. That is the only part that matters."]
+        },
+        SARCASTICO: {
+            briefing: ["Another hill. How new.", "Relax. I will find my own spot."],
+            selection: ["Quickly. I have an eye on something."],
+            critical: ["They found me. It was only a matter of time."]
+        },
+        DESCONFIADO: {
+            briefing: ["Are you not going to tell me who the target is this time either?"],
+            selection: ["What."],
+            critical: ["I am alone up here. As always."]
+        },
+        AUTOPRESERVACION: {
+            briefing: ["I am not going up today."],
+            refusing_briefing: ["You can see everything from up there, commander. Including what you do to your own.", "I counted the ones who went up with me. The number does not work."],
+            selection: ["..."]
+        }
+    },
+    NERVIOSO: {
+        LEAL: {
+            briefing: ["I have measured the wind three times. Four. Fine. Ready.", "I go up and I do not move. I do not move, right?"],
+            selection: ["Yes. Yes, tell me.", "Here. I am here."],
+            critical: ["They hit me and I did not see where from. I did not see where from."]
+        },
+        SARCASTICO: {
+            briefing: ["Distance, wind, target unknown. Perfect.", "Wonderful. Blind again."],
+            selection: ["What now?"],
+            critical: ["I knew this would end like this."]
+        },
+        DESCONFIADO: {
+            briefing: ["How many of the ones who went up with me came back down?"],
+            selection: ["Do not make me count."],
+            critical: ["Somebody look this way. Somebody look."]
+        },
+        AUTOPRESERVACION: {
+            briefing: ["Today I cannot tell the wind from my own hands."],
+            refusing_briefing: ["I am not going up. I am not going up. Do not ask me again.", "I count the missing and I run out of fingers."],
+            selection: ["..."]
+        }
+    },
+    IRONICO: {
+        LEAL: {
+            briefing: ["Twelve hundred metres. A stroll.", "Give me a tall rock and I will do the work of three."],
+            selection: ["I can see your mistake from here too, by the way.", "Speaking."],
+            critical: ["I have been worse. Not much worse, but worse."]
+        },
+        SARCASTICO: {
+            briefing: ["Target unknown. Splendid. I shoot whatever moves and you identify it afterwards.", "The same hill again. I am going to name it."],
+            selection: ["Surprise me."],
+            critical: ["Well. At least they got me first try."]
+        },
+        DESCONFIADO: {
+            briefing: ["Do you know what you can see beautifully from up there? Everything."],
+            selection: ["Talk. I am busy watching."],
+            critical: ["And nobody comes. How odd."]
+        },
+        AUTOPRESERVACION: {
+            briefing: ["I am staying here. The view is good."],
+            refusing_briefing: ["I ran the numbers. They do not work.", "You go up. You have such fine aim when it comes to orders."],
+            selection: ["..."]
+        }
+    },
+    ESTOICO: {
+        LEAL: {
+            briefing: ["Up. Quietly.", "By the time you are in position, I will already be there."],
+            selection: ["Ready."],
+            critical: ["Functioning."]
+        },
+        SARCASTICO: {
+            briefing: ["Another."],
+            selection: ["Here."],
+            critical: ["Holding."]
+        },
+        DESCONFIADO: {
+            briefing: ["Target unknown. Again."],
+            selection: ["Speak."],
+            critical: ["Noted."]
+        },
+        AUTOPRESERVACION: {
+            briefing: ["Not today."],
+            refusing_briefing: ["I have gone up too many times."],
+            selection: ["..."]
+        }
+    },
+    CINICO: {
+        LEAL: {
+            briefing: ["You keep me to count metres and squeeze. I count and I squeeze."],
+            selection: ["Distance and target. The rest is padding."],
+            critical: ["No more arithmetic."]
+        },
+        SARCASTICO: {
+            briefing: ["Target unknown. That is my favourite part of the report.", "Another hill, another number, another name nobody will read."],
+            selection: ["And who are we not identifying today?"],
+            critical: ["At least I know who got me."]
+        },
+        DESCONFIADO: {
+            briefing: ["From up there I saw who collects the fallen. It was not you."],
+            selection: ["Say it and be done."],
+            critical: ["Put it in the register and move on."]
+        },
+        AUTOPRESERVACION: {
+            briefing: ["I have counted enough."],
+            refusing_briefing: ["Twelve hundred and seventy-six metres. That is the range at which I stop caring.", "Send someone else up. There are plenty of numbers."],
+            selection: ["..."]
+        }
+    }
+  },
+  /* BOMBARDERO — ruidoso, cariñoso coas súas bombas e cómodo
+     diante. A súa maneira de dicir que está mal é deixar de
+     querer cargar. */
+  BOMBARDERO: {
+    LEAL: {
+        LEAL: {
+            briefing: ["Loaded and happy! Where do you want it?", "I brought the big ones. The ones they hear back at base."],
+            selection: ["Here!", "Tell me where."],
+            critical: ["I still have powder. That is what counts."]
+        },
+        SARCASTICO: {
+            briefing: ["More powder, fewer problems. That is what the sign said, right?", "Opening doors the loud way again."],
+            selection: ["What am I blowing up?"],
+            critical: ["They hit me before the charge. Bad luck."]
+        },
+        DESCONFIADO: {
+            briefing: ["How about you warn me before something goes off near me this time?"],
+            selection: ["Talk."],
+            critical: ["Nobody is coming, are they?"]
+        },
+        AUTOPRESERVACION: {
+            briefing: ["I am not loading anything today."],
+            refusing_briefing: ["Build, load, detonate, repeat. I skipped the repeat.", "Let someone else carry them."],
+            selection: ["..."]
+        }
+    },
+    NERVIOSO: {
+        LEAL: {
+            briefing: ["I checked them twice. Three times. They are fine. They are fine.", "Do not make me run with this on my back."],
+            selection: ["Yes! Tell me.", "Going, going."],
+            critical: ["Careful with what I am carrying! Careful!"]
+        },
+        SARCASTICO: {
+            briefing: ["Great. First through the door again.", "Of course. Send the one carrying the explosives."],
+            selection: ["Now?"],
+            critical: ["I told you this would happen."]
+        },
+        DESCONFIADO: {
+            briefing: ["How many of mine came back in one piece? You tell me."],
+            selection: ["Do not shout at me."],
+            critical: ["It is heating up. It is heating up a lot."]
+        },
+        AUTOPRESERVACION: {
+            briefing: ["Not with this on my back."],
+            refusing_briefing: ["I am carrying forty kilos of reasons to stay here.", "No. Not today. Not today."],
+            selection: ["..."]
+        }
+    },
+    IRONICO: {
+        LEAL: {
+            briefing: ["I bring explosive joy. It says so on the crate, literally.", "Tell me where and I will make you a new door."],
+            selection: ["At your service, loudly.", "Tell me."],
+            critical: ["I am a work of art. An abstract one."]
+        },
+        SARCASTICO: {
+            briefing: ["Plan for the day: build, load, detonate, repeat. What a varied life.", "Another door. I am going to start missing keys."],
+            selection: ["Who am I opening up?"],
+            critical: ["Well. At least I made noise."]
+        },
+        DESCONFIADO: {
+            briefing: ["Funny how the one carrying the powder always walks in front."],
+            selection: ["Go on then."],
+            critical: ["Nobody is running this way. What a surprise."]
+        },
+        AUTOPRESERVACION: {
+            briefing: ["Today I stay unlit."],
+            refusing_briefing: ["More powder, fewer problems. No powder, no problems.", "Detonating is the easy part. Repeating is the hard one."],
+            selection: ["..."]
+        }
+    },
+    ESTOICO: {
+        LEAL: {
+            briefing: ["Loaded.", "Wherever you say."],
+            selection: ["Here."],
+            critical: ["Holding."]
+        },
+        SARCASTICO: {
+            briefing: ["Another door."],
+            selection: ["Tell me."],
+            critical: ["Noted."]
+        },
+        DESCONFIADO: {
+            briefing: ["Out in front again."],
+            selection: ["Speak."],
+            critical: ["Nobody is coming."]
+        },
+        AUTOPRESERVACION: {
+            briefing: ["Not today."],
+            refusing_briefing: ["I have carried enough."],
+            selection: ["..."]
+        }
+    },
+    CINICO: {
+        LEAL: {
+            briefing: ["They built me to make holes. I make them."],
+            selection: ["Point and I go."],
+            critical: ["Fuse is out."]
+        },
+        SARCASTICO: {
+            briefing: ["Build, load, detonate, repeat. They added the repeat out of optimism.", "Master key duty again."],
+            selection: ["What is in the way today?"],
+            critical: ["At least I am taking the place with me."]
+        },
+        DESCONFIADO: {
+            briefing: ["You never ask what is on the other side of what I open."],
+            selection: ["Say it."],
+            critical: ["Write it down and carry on."]
+        },
+        AUTOPRESERVACION: {
+            briefing: ["I have opened enough of them."],
+            refusing_briefing: ["The crate says EXPLOSIVE JOY. Somebody has a great sense of humour.", "Let whoever wrote that carry it."],
+            selection: ["..."]
+        }
+    }
   },
 };
 
@@ -1508,6 +1968,236 @@ const FRASES_GL = {
                         refusing_briefing:["Os meus cálculos din que non. Permanezo na base."],
                         selection:["..."] },
     },
+  },
+  /* SNIPER — mide, agarda e fala pouco. Cando fala, é para dar un
+     dato: distancia, vento, obxectivo. A súa maneira de dicir que
+     está mal é deixar de dar datos. */
+  SNIPER: {
+    LEAL: {
+        LEAL: {
+            briefing: ["Posición asignada. Estarei arriba antes ca vós.", "Dádeme altura e non preciso máis nada."],
+            selection: ["Aquí arriba.", "Escóitote."],
+            critical: ["Sigo co pulso firme. É o único que fai falla."]
+        },
+        SARCASTICO: {
+            briefing: ["Outro outeiro. Que novidade.", "Tranquilo, xa me busco eu o sitio."],
+            selection: ["Rápido, que teño o ollo posto."],
+            critical: ["Atopáronme. Era cuestión de tempo."]
+        },
+        DESCONFIADO: {
+            briefing: ["Esta vez tampouco me ides dicir quen é o obxectivo?"],
+            selection: ["Que."],
+            critical: ["Estou só aquí arriba. Coma sempre."]
+        },
+        AUTOPRESERVACION: {
+            briefing: ["Hoxe non subo."],
+            refusing_briefing: ["Desde arriba vese todo, comandante. Tamén o que lles fai aos seus.", "Fixen a conta dos que subiron comigo. Non sae."],
+            selection: ["..."]
+        }
+    },
+    NERVIOSO: {
+        LEAL: {
+            briefing: ["Xa medín o vento tres veces. Catro. Vale. Listo.", "Póñome arriba e non me movo. Non me movo, non?"],
+            selection: ["Si. Si, dime.", "Estou. Estou aquí."],
+            critical: ["Déronme e non vin de onde. Non vin de onde."]
+        },
+        SARCASTICO: {
+            briefing: ["Distancia, vento, obxectivo descoñecido. Perfecto.", "Xenial. Outra vez ás cegas."],
+            selection: ["Agora que pasa?"],
+            critical: ["Sabía que isto ía acabar así."]
+        },
+        DESCONFIADO: {
+            briefing: ["Cantos dos que subiron comigo baixaron?"],
+            selection: ["Non me fagas contar."],
+            critical: ["Que alguén mire para aquí. Que alguén mire."]
+        },
+        AUTOPRESERVACION: {
+            briefing: ["Hoxe non distingo o vento do pulso."],
+            refusing_briefing: ["Non subo. Non subo. Non mo pidas outra vez.", "Conto os que faltan e quedo sen dedos."],
+            selection: ["..."]
+        }
+    },
+    IRONICO: {
+        LEAL: {
+            briefing: ["Mil douscentos metros. Un paseo.", "Dádeme unha pedra alta e fágovos o traballo de tres."],
+            selection: ["Desde aquí tamén se ve o teu erro, por certo.", "Ao aparello."],
+            critical: ["Estiven peor. Non moito, pero estiven."]
+        },
+        SARCASTICO: {
+            briefing: ["Obxectivo descoñecido. Estupendo. Disparo ao que se mova e xa o identificades vós.", "Outra vez o mesmo outeiro. Vóulle poñer nome."],
+            selection: ["Sorpréndeme."],
+            critical: ["Ben. Polo menos acertaron á primeira."]
+        },
+        DESCONFIADO: {
+            briefing: ["Sabes o que se ve de marabilla desde arriba? Todo."],
+            selection: ["Fala, que estou ocupado mirando."],
+            critical: ["E non vén ninguén. Que raro."]
+        },
+        AUTOPRESERVACION: {
+            briefing: ["Quedo aquí. A vista é boa."],
+            refusing_briefing: ["Fixen os cálculos. Non saen.", "Sobe ti, que tes tan boa puntería para mandar."],
+            selection: ["..."]
+        }
+    },
+    ESTOICO: {
+        LEAL: {
+            briefing: ["Arriba. Sen ruído.", "Cando esteades en posición, eu xa estarei."],
+            selection: ["Listo."],
+            critical: ["Funciono."]
+        },
+        SARCASTICO: {
+            briefing: ["Outra."],
+            selection: ["Aquí."],
+            critical: ["Aguanto."]
+        },
+        DESCONFIADO: {
+            briefing: ["Obxectivo descoñecido. Outra vez."],
+            selection: ["Fala."],
+            critical: ["Xa."]
+        },
+        AUTOPRESERVACION: {
+            briefing: ["Hoxe non."],
+            refusing_briefing: ["Subín demasiadas veces."],
+            selection: ["..."]
+        }
+    },
+    CINICO: {
+        LEAL: {
+            briefing: ["Tédesme para contar metros e apertar. Cóntoos e aperto."],
+            selection: ["Distancia e obxectivo. O demais sóbrame."],
+            critical: ["Acabouse o cálculo."]
+        },
+        SARCASTICO: {
+            briefing: ["Obxectivo descoñecido. Encántame esa parte do informe.", "Outro outeiro, outro número, outro nome que non vai ler ninguén."],
+            selection: ["E hoxe a quen non imos identificar?"],
+            critical: ["Polo menos eu si sei quen me deu."]
+        },
+        DESCONFIADO: {
+            briefing: ["Desde arriba vin quen recolle os caídos. Non erades vós."],
+            selection: ["Dío e listo."],
+            critical: ["Apuntádeo no rexistro e a outra cousa."]
+        },
+        AUTOPRESERVACION: {
+            briefing: ["Xa contei abondo."],
+            refusing_briefing: ["Mil douscentos setenta e seis metros. Esa é a distancia á que me dá igual.", "Que suba outro. Números hai moitos."],
+            selection: ["..."]
+        }
+    }
+  },
+  /* BOMBARDERO — ruidoso, cariñoso coas súas bombas e cómodo
+     diante. A súa maneira de dicir que está mal é deixar de
+     querer cargar. */
+  BOMBARDERO: {
+    LEAL: {
+        LEAL: {
+            briefing: ["Cargado e contento! Onde o poño?", "Traio das grandes. Das que se oen desde a base."],
+            selection: ["Aquí!", "Dime onde."],
+            critical: ["Quédame pólvora. Iso é o importante."]
+        },
+        SARCASTICO: {
+            briefing: ["Máis pólvora, menos problemas. Iso dicía o cartel, non?", "Outra vez a abrir portas ao bruto."],
+            selection: ["Que rebento?"],
+            critical: ["Déronme a min antes ca á carga. Mala sorte."]
+        },
+        DESCONFIADO: {
+            briefing: ["E se esta vez me avisades antes de que estoupe algo preto?"],
+            selection: ["Fala."],
+            critical: ["Non vén ninguén, non?"]
+        },
+        AUTOPRESERVACION: {
+            briefing: ["Hoxe non cargo nada."],
+            refusing_briefing: ["Fabricar, cargar, estoupar, repetir. Saltei o repetir.", "Que as leve outro."],
+            selection: ["..."]
+        }
+    },
+    NERVIOSO: {
+        LEAL: {
+            briefing: ["Revisáinas dúas veces. Tres. Están ben. Están ben.", "Non me fagades correr con isto enriba."],
+            selection: ["Si! Dime.", "Vou, vou."],
+            critical: ["Coidado co que levo enriba! Coidado!"]
+        },
+        SARCASTICO: {
+            briefing: ["Xenial, outra vez o primeiro na porta.", "Claro. Que vaia o que leva os explosivos."],
+            selection: ["Agora?"],
+            critical: ["Xa che dixen que isto ía pasar."]
+        },
+        DESCONFIADO: {
+            briefing: ["Cantos dos meus volveron enteiros? Dimo ti."],
+            selection: ["Non me berres."],
+            critical: ["Estase a quentar. Estase a quentar moito."]
+        },
+        AUTOPRESERVACION: {
+            briefing: ["Non con isto enriba."],
+            refusing_briefing: ["Levo corenta quilos de razóns para quedar.", "Non. Hoxe non. Hoxe non."],
+            selection: ["..."]
+        }
+    },
+    IRONICO: {
+        LEAL: {
+            briefing: ["Traio alegría explosiva. Literalmente, pono na caixa.", "Dicídeme onde e fágovos unha porta nova."],
+            selection: ["Ás túas ordes, con estrondo.", "Dime."],
+            critical: ["Estou feito un cadro. Un abstracto."]
+        },
+        SARCASTICO: {
+            briefing: ["O plan do día: fabricar, cargar, estoupar, repetir. Que vida tan variada.", "Outra porta. Vou botar de menos as chaves."],
+            selection: ["A quen lle abro?"],
+            critical: ["Ben. Polo menos fixen ruído."]
+        },
+        DESCONFIADO: {
+            briefing: ["Curioso que sempre vaia diante o que leva a pólvora."],
+            selection: ["Ti dirás."],
+            critical: ["Ninguén corre para aquí. Que sorpresa."]
+        },
+        AUTOPRESERVACION: {
+            briefing: ["Hoxe quedo apagado."],
+            refusing_briefing: ["Máis pólvora, menos problemas. Cero pólvora, cero problemas.", "Estoupar é doado. Repetir é o difícil."],
+            selection: ["..."]
+        }
+    },
+    ESTOICO: {
+        LEAL: {
+            briefing: ["Cargado.", "Onde digas."],
+            selection: ["Aquí."],
+            critical: ["Aguanto."]
+        },
+        SARCASTICO: {
+            briefing: ["Outra porta."],
+            selection: ["Dime."],
+            critical: ["Xa."]
+        },
+        DESCONFIADO: {
+            briefing: ["Diante outra vez."],
+            selection: ["Fala."],
+            critical: ["Non vén ninguén."]
+        },
+        AUTOPRESERVACION: {
+            briefing: ["Hoxe non."],
+            refusing_briefing: ["Carguei abondo."],
+            selection: ["..."]
+        }
+    },
+    CINICO: {
+        LEAL: {
+            briefing: ["Fixéronme para abrir buratos. Ábroos."],
+            selection: ["Sinala e vou."],
+            critical: ["Acabouse a mecha."]
+        },
+        SARCASTICO: {
+            briefing: ["Fabricar, cargar, estoupar, repetir. O de repetir puxérono por optimismo.", "Outra vez de chave mestra."],
+            selection: ["Que estorba hoxe?"],
+            critical: ["Polo menos levo o sitio por diante."]
+        },
+        DESCONFIADO: {
+            briefing: ["Nunca preguntades que hai do outro lado do que abro."],
+            selection: ["Dío."],
+            critical: ["Apuntádeo e seguide."]
+        },
+        AUTOPRESERVACION: {
+            briefing: ["Xa abrín abondas."],
+            refusing_briefing: ["A caixa pon ALEGRÍA EXPLOSIVA. Alguén ten moito sentido do humor.", "Que a leve o que o escribiu."],
+            selection: ["..."]
+        }
+    }
   },
 };
 
@@ -1828,10 +2518,6 @@ function endOpTable(){
 }
 
 /* Pickea unha frase do pool con fallback se a combinación non existe */
-/* De que clase toma prestada a voz unha clase que aínda non ten a súa.
-   Emparéllase por CARÁCTER e non por rol. */
-const VOZ_PRESTADA = { SNIPER: 'ENGINEER', BOMBARDERO: 'HEAVY' };
-
 function pickFrase(u, contexto, opts){
   if(!u || u.team !== PT) return null;
   const cls = u.cls;
@@ -1842,22 +2528,13 @@ function pickFrase(u, contexto, opts){
   const _FR = (I18N.lang === 'en' && typeof FRASES_EN !== 'undefined') ? FRASES_EN
             : (I18N.lang === 'gl' && typeof FRASES_GL !== 'undefined') ? FRASES_GL
             : FRASES;
-  /* CLASES SEN VOZ.
-
-     A táboa grande só ten GRUNT, HEAVY e ENGINEER. SNIPER e BOMBARDERO
-     nunca tiveron frases de briefing, selección nin crítico —en ningún
-     dos tres idiomas— e o resultado era que un SNIPER no briefing saía
-     dicindo «...». Non era silencio de personaxe: era un oco tapado polo
-     fallback, e o xogo enteiro vende que cada robot ten carácter.
-
-     Mentres non se escriban as súas, préstanse as da clase máis próxima
-     EN CARÁCTER, non en estatísticas: o SNIPER —solitario, seco— tira do
-     ENGINEER, que é o outro que fala pouco; o BOMBARDERO —ruidoso,
-     temerario— tira do HEAVY. Non é o ideal, pero é infinitamente mellor
-     que emmudecer a dúas das cinco clases. Cando se escriban as propias,
-     esta táboa deixa de usarse soa. */
-  const cls_table = _FR[cls] || FRASES[cls]
-                 || _FR[VOZ_PRESTADA[cls]] || FRASES[VOZ_PRESTADA[cls]];
+  /* As cinco clases teñen a súa propia voz. Houbo un tempo en que só a
+     tiñan tres —SNIPER e BOMBARDERO saían dicindo «...» no briefing, e o
+     fallback tapábao— e chegouse a poñer un préstamo de voz entre clases
+     como apaño. Xa non fai falla: escribíronselles as súas. Se algún día
+     se engade unha clase sen frases, a proba de test/briefing.test.js
+     salta antes de que ninguén xogue con ela. */
+  const cls_table = _FR[cls] || FRASES[cls];
   if(cls_table){
     const pers_table = cls_table[pers];
     if(pers_table){

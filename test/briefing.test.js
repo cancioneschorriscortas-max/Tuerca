@@ -77,6 +77,16 @@ proba('ningunha clase queda muda no briefing, en ningún idioma', async () => {
   I18N.lang = 'gl';
   afirmar(mudos.length === 0,
     `${mudos.length} combinacións sen frase de briefing: ${mudos.slice(0, 8).join(', ')}`);
+
+  /* E cada clase ten que ter a SÚA táboa, non valerlle a doutra. Houbo
+     un apaño que lle prestaba a voz do ENGINEER ao SNIPER: funcionaba, e
+     por iso mesmo podía quedar aí para sempre tapando o oco. */
+  for(const tab of ['FRASES', 'FRASES_GL', 'FRASES_EN']){
+    const T = S.aval(tab);
+    for(const cls of CLASES){
+      afirmar(T[cls], `${tab} non ten entrada propia para ${cls}`);
+    }
+  }
 });
 
 proba('o reconstructor ofrece un oco por cada peza que se debuxa', () => {
