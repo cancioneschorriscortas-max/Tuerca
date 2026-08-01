@@ -14,6 +14,31 @@
      5 RUBBLE — escombros/grava
    ============================================================ */
 const TILE_SIZE = 16;
+
+/* ============================================================
+   (v0.95) DETALLE DO CHAN — PUNTO DE RETORNO.
+
+   Ponse a false e o terreo volve EXACTAMENTE ao de v0.94, sen tocar
+   nada máis. Serve para comparar en quente sen pasar por git.
+
+   POR QUE SE ENGADIU. Medindo o contraste local dunha captura, o chan
+   baleiro daba 9,8 mentres unha zona con estruturas daba 18,1: os
+   sprites non eran o problema, era a herba. E medindo a tres escalas
+   —7,8 a 8 px, 9,1 a 16, 9,8 a 32— saíu o dato que o explica: o
+   contraste é case o mesmo en todas. Iso quere dicir que o detalle que
+   había NON TIÑA ESCALA. Eran motas soltas de un píxel, non textura:
+   o 92% de cada cela era unha soa cor.
+
+   Unha textura de verdade dá un pico no seu tamaño característico. Isto
+   engade dúas cousas que si o teñen: grumos de tres ou catro píxeles
+   xuntos, e un anaco de sombra na beira baixa da cela.
+
+   OLLO: subir este número non é gañar. A métrica non distingue
+   "lexible" de "ruidoso", e ruído por píxel subiríaa mentres fai que as
+   unidades deixen de recortarse. Por iso o que se engade é contraste
+   ESTRUTURADO —grumos e beiras, non sal e pementa— e por iso hai
+   interruptor. */
+const TERREO_DETALLE = true;
 let COLS = 60;  /* 960/16 = 60 (MAP1) */
 let ROWS = 34;  /* 540/16 ≈ 34 */
 const T = {GRASS:0, DIRT:1, WATER:2, ROAD:3, BRIDGE:4, RUBBLE:5};
@@ -224,6 +249,47 @@ function drawTile(ctx, grid, x, y){
   for(let i=0; i<3; i++) ctx.fillRect(px+Math.floor(rnd2(10+i)*14)+1, py+Math.floor(rnd2(20+i)*14)+1, 1, 1);
   ctx.fillStyle = p.light;
   for(let i=0; i<2; i++) if(rnd2(30+i) > 0.5) ctx.fillRect(px+Math.floor(rnd2(40+i)*13)+1, py+Math.floor(rnd2(50+i)*13)+1, 2, 1);
+  /* (v0.95) GRUMOS E BEIRA — o que lle daba escala ao chan.
+     Só nos dous tipos que cobren o mapa; a auga, a estrada e a ponte xa
+     teñen detalle de sobra e non tocan. */
+  if(TERREO_DETALLE && (here === T.GRASS || here === T.DIRT)){
+    /* Grumos: tres ou catro píxeles XUNTOS en vez de un solto. A mesma
+       cantidade de tinta pesa moito máis nunha desviación cando está
+       agrupada, e ademais le como mata e non como suciedade. */
+    ctx.fillStyle = p.side;
+    for(let i = 0; i < 3; i++){
+      if(rnd2(200+i) < 0.45) continue;
+      const gx = px + Math.floor(rnd2(210+i) * 12) + 1;
+      const gy = py + Math.floor(rnd2(220+i) * 13) + 1;
+      const gw = 2 + Math.floor(rnd2(230+i) * 2);
+      ctx.fillRect(gx, gy, gw, 2);
+      ctx.fillRect(gx + (rnd2(240+i) > 0.5 ? gw : -1), gy + 1, 1, 1);
+    }
+    /* Sombra curta: a "liña escura interna a escala de poucos píxeles"
+       que ten a arte debuxada a man, e que é o que lle daba o 41,5 á
+       referencia.
+
+       PRIMEIRO INTENTO, e por que non valeu: púxose ao PÉ da cela, que
+       é onde estaría a sombra dun bloque. O número subiu igual de ben
+       —13,3 na herba pelada— pero ampliando a 4x víase o problema: como
+       caía sempre na mesma fila de píxeles, as sombras de todas as
+       celas veciñas aliñaban e o mapa saía a raias horizontais cada 16
+       px. Era a reixa do mosaico asomando.
+
+       Agora vai DENTRO da cela, a unha altura que depende do hash. A
+       marca é a mesma, o contraste é o mesmo, e a reixa desaparece
+       porque xa non hai nada aliñado. Lese como sombra de mata en vez
+       de como bordo de baldosa. */
+    if(rnd2(250) > 0.42){
+      const bw = 4 + Math.floor(rnd2(251) * 6);
+      const bx = px + Math.floor(rnd2(252) * (TILE_SIZE - bw));
+      const by = py + 2 + Math.floor(rnd2(253) * (TILE_SIZE - 5));
+      R(bx, by, bw, 1, p.dark);
+      /* medio píxel de luz por riba: fai que a sombra teña volume en vez
+         de parecer un rabuñón. */
+      if(rnd2(254) > 0.5) R(bx + 1, by - 1, bw - 2, 1, p.light);
+    }
+  }
   /* catch-light ocasional (sen raiado) */
   if(rnd2(5) > 0.62) R(px+Math.floor(rnd2(6)*8), py, 6+Math.floor(rnd2(7)*6), 1, top === p.base ? p.top2 : p.base);
   /* caras laterais do bloque cara a veciños máis baixos */
@@ -232,7 +298,11 @@ function drawTile(ctx, grid, x, y){
 
   /* ---- detalle por tipo ---- */
   if(here === T.GRASS){
-    if(rnd2(80) > 0.86){
+    /* (v0.95) A mata sobe do 14% ao 25% das celas. É o cambio máis barato
+       dos tres e o menos elegante, pero é o que mete masa clara —accent
+       está 55 niveis por riba da base— nun chan onde case todo estaba
+       no mesmo valor. */
+    if(rnd2(80) > (TERREO_DETALLE ? 0.75 : 0.86)){
       cube(px+Math.floor(rnd2(81)*9)+2, py+Math.floor(rnd2(82)*8)+2, 5, 5, p.accent, p.side, '#9ec868');
     }
     if(rnd2(90) > 0.94){   /* vexetación grande por bioma */
