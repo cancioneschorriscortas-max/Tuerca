@@ -78,3 +78,37 @@ proba('ningunha clase queda muda no briefing, en ningún idioma', async () => {
   afirmar(mudos.length === 0,
     `${mudos.length} combinacións sen frase de briefing: ${mudos.slice(0, 8).join(', ')}`);
 });
+
+proba('o reconstructor ofrece un oco por cada peza que se debuxa', () => {
+  /* O motor de montaxe apila SEIS pezas —cabeza, chasis e os catro
+     membros por separado— e o reconstructor ofrecía cinco ocos, cos
+     brazos e as pernas emparellados. Resultado: non se podía darlle o
+     brazo dereito dun HEAVY e o esquerdo dun SNIPER, e un robot
+     reensamblado saía case simétrico. O que fai especial ao sistema de
+     pezas é precisamente que se NOTE.
+
+     Isto ata as dúas listas: todo slot que o compositor debuxa ten que
+     ter o seu oco, e cada oco só acepta pezas do seu lado. */
+  const fs = require('fs');
+  const path = require('path');
+  const dir = path.join(__dirname, '..', 'i', 'js');
+  const hangar = fs.readFileSync(path.join(dir, '12-debrief-hangar.js'), 'utf8');
+  const montar = fs.readFileSync(path.join(dir, '19e-montar.js'), 'utf8');
+
+  const debuxa = JSON.parse(
+    montar.match(/const MON3D_SLOTS = (\[[^\]]*\])/)[1].replace(/'/g, '"'));
+  const taboa = hangar.match(/const RECON_SLOTS = \[[\s\S]*?\n\];/)[0];
+
+  for (const slot of debuxa) {
+    afirmar(new RegExp("slot:\\s*'" + slot + "'").test(taboa),
+      `o compositor debuxa ${slot} pero o reconstructor non ofrece ese oco`);
+  }
+
+  /* E ningún oco pode aceptar as dúas mans ou os dous pés á vez: iso é
+     xustamente o emparellamento que se quitou. */
+  for (const par of [['BRAZO_DER', 'BRAZO_ESQ'], ['PERNA_DER', 'PERNA_ESQ']]) {
+    const xuntos = new RegExp("acepta:\\s*\\['" + par[0] + "','?\\s*'?" + par[1]);
+    afirmar(!xuntos.test(taboa.replace(/\s+/g, ' ')),
+      `hai un oco que acepta ${par[0]} e ${par[1]} á vez: volveron emparellarse`);
+  }
+});

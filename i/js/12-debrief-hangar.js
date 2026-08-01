@@ -980,7 +980,8 @@ function showDespiece(){
     const cobre = (tipos) => pzs.some(p => tipos.includes(p.tipo));
     const slots = [
       ['CABEZA', cobre(['CABEZA'])], ['CHASIS', cobre(['CHASIS'])], ['NUCLEO', cobre(['NUCLEO'])],
-      ['BRAZO', cobre(['BRAZO_DER','BRAZO_ESQ'])], ['PERNA', cobre(['PERNA_DER','PERNA_ESQ'])],
+      ['BRAZO_DER', cobre(['BRAZO_DER'])], ['BRAZO_ESQ', cobre(['BRAZO_ESQ'])],
+      ['PERNA_DER', cobre(['PERNA_DER'])], ['PERNA_ESQ', cobre(['PERNA_ESQ'])],
     ];
     body += `<div class="small" style="margin-bottom:10px; color:#888;">${TXT('dp.slots')}
       ${slots.map(([n, ok]) => ok ? `<b style="color:#7fdc7f;">${pezaLabel(n).toUpperCase()} ✓</b>` : `<span style="color:#666;">${pezaLabel(n).toUpperCase()} ${TXT('dp.recambio')}</span>`).join(' · ')}</div>`;
@@ -1121,7 +1122,7 @@ function showDespiece(){
 /* ============================================================
    RECONSTRUCIÓN (v0.19 R2) — 5 slots, herdanza, taller ocupado
    ============================================================ */
-const RECON_COST = 90, RECON_RECAMBIO = 20;
+const RECON_COST = 90, RECON_RECAMBIO = 14;
 /* (v0.19 R3) SINERXÍAS: o roll oculto da ensamblaxe. Revélase só ao recoller. */
 /* HABILIDADES CRUZADAS: o que che dá montar un robot con pezas doutra
    clase. Estaban escritas DENTRO da función que redacta o debrief, así
@@ -1176,12 +1177,33 @@ function cheatDeath(u, g){
   }
   return false;
 }
+/* UN OCO POR LADO, e non un por parella.
+
+   Estivo cinco ocos —cabeza, chasis, núcleo, BRAZO, PERNA— e iso
+   significaba que só podías poñerlle UN brazo e UNHA perna a un robot
+   reconstruído. Non había maneira de darlle o brazo dereito dun HEAVY e
+   o esquerdo dun SNIPER, aínda que o motor de montaxe sabe debuxalo
+   perfectamente: o banco de probas leva ensinando esas mesturas desde
+   que existe.
+
+   Era unha decisión vella que se comía o que fai especial ao sistema de
+   pezas — que un robot reensamblado SE VEXA reensamblado. Cos ocos
+   emparellados, un reconstruído saía case simétrico e a diferenza
+   apenas se notaba.
+
+   O PREZO NON SOBE. Ao pasar de 5 a 7 ocos, o recambio xenérico baixa
+   de 20 a 14 para que unha reconstrución completa siga custando o
+   mesmo: 5x20=100 antes, 7x14=98 agora. Isto é un arranxo de interface,
+   non un rebalanceo encuberto. Se algún día se quere que a
+   reconstrución sexa máis cara, tócase RECON_RECAMBIO e xa. */
 const RECON_SLOTS = [
-  {slot:'CABEZA', acepta:['CABEZA']},
-  {slot:'CHASIS', acepta:['CHASIS']},
-  {slot:'NUCLEO', acepta:['NUCLEO']},
-  {slot:'BRAZO',  acepta:['BRAZO_DER','BRAZO_ESQ']},
-  {slot:'PERNA',  acepta:['PERNA_DER','PERNA_ESQ']},
+  {slot:'CABEZA',     acepta:['CABEZA']},
+  {slot:'CHASIS',     acepta:['CHASIS']},
+  {slot:'NUCLEO',     acepta:['NUCLEO']},
+  {slot:'BRAZO_DER',  acepta:['BRAZO_DER']},
+  {slot:'BRAZO_ESQ',  acepta:['BRAZO_ESQ']},
+  {slot:'PERNA_DER',  acepta:['PERNA_DER']},
+  {slot:'PERNA_ESQ',  acepta:['PERNA_ESQ']},
 ];
 
 function showReconstruir(iaIdx){
@@ -1193,7 +1215,7 @@ function showReconstruir(iaIdx){
   for(const s of RECON_SLOTS){
     const opcions = pzs.filter(p => s.acepta.includes(p.tipo));
     body += `<div style="padding:5px 0; border-bottom:1px solid #333;">
-      <b>${s.slot}</b>:
+      <b>${pezaLabel(s.slot).toUpperCase()}</b>:
       <select data-slot="${s.slot}" style="background:#111; color:#cfe0ff; border:1px solid #555; font-family:inherit;">
         <option value="">— Recambio xenérico (+${RECON_RECAMBIO}⚙) —</option>
         ${opcions.map(p=>`<option value="${p.id}">${PEZA_LABEL[p.tipo]} de ${p.deNome} (${p.deCls})</option>`).join('')}
@@ -1254,7 +1276,7 @@ function showMontaxe(){
   for(const s of RECON_SLOTS){
     const opcions = pzs.filter(p => s.acepta.includes(p.tipo));
     body += `<div style="padding:5px 0; border-bottom:1px solid #333;">
-      <b>${s.slot}</b>:
+      <b>${pezaLabel(s.slot).toUpperCase()}</b>:
       <select data-slot="${s.slot}" style="background:#111; color:#cfe0ff; border:1px solid #555; font-family:inherit;">
         <option value="">— Recambio xenérico (+${RECON_RECAMBIO}⚙) —</option>
         ${opcions.map(p=>`<option value="${p.id}">${PEZA_LABEL[p.tipo]} de ${p.deNome} (${p.deCls})</option>`).join('')}

@@ -633,7 +633,7 @@ const LANGS = {
     /* (v0.43) Despece */
     'dp.titulo': '\u2699 DESPECE \u2014 banco de pezas',
     'dp.cab': '\u2699 CHATARRA: <b>{c}</b> \u00b7 Pezas no inventario: <b>{p}</b>',
-    'dp.ciclo': 'As pezas son a materia prima do <b>RECONSTRUCTOR</b>: con elas reconstr\u00faes as IAs en arquivo (m\u00e1is abaixo). <b style="color:#ff9a3c;">FUNDIR \u00e9 irreversible.</b><br>Non necesitas as 7 pezas dun robot \u2014 a reconstruci\u00f3n pide s\u00f3 <b>5 slots</b> (cabeza, chasis, n\u00facleo, brazo, perna) e os ocos c\u00f3brense con recambio xen\u00e9rico (+20\u2699). As pezas reais valen m\u00e1is: <b>herdan a experiencia e as habilidades do doador</b>, a\u00ednda que fose doutra clase.',
+    'dp.ciclo': 'As pezas son a materia prima do <b>RECONSTRUCTOR</b>: con elas reconstr\u00faes as IAs en arquivo (m\u00e1is abaixo). <b style="color:#ff9a3c;">FUNDIR \u00e9 irreversible.</b><br>Non necesitas as 7 pezas dun robot \u2014 a reconstruci\u00f3n pide <b>7 slots</b> (cabeza, chasis, n\u00facleo e os catro membros por separado) e os ocos c\u00f3brense con recambio xen\u00e9rico (+14\u2699). As pezas reais valen m\u00e1is: <b>herdan a experiencia e as habilidades do doador</b>, a\u00ednda que fose doutra clase.',
     'dp.slots': 'Slots cubertos co inventario:',
     'dp.recambio': '\u2014 (recambio +20\u2699)',
     'dp.ningunha': 'Ningunha peza no inventario. As pezas recup\u00e9ranse dos ca\u00eddos cando controlas o campo (vitoria).',
@@ -1300,7 +1300,7 @@ const LANGS = {
     /* (v0.43) Despiece */
     'dp.titulo': '\u2699 DESPIECE \u2014 banco de piezas',
     'dp.cab': '\u2699 CHATARRA: <b>{c}</b> \u00b7 Piezas en inventario: <b>{p}</b>',
-    'dp.ciclo': 'Las piezas son la materia prima del <b>RECONSTRUCTOR</b>: con ellas reconstruyes las IAs en archivo (m\u00e1s abajo). <b style="color:#ff9a3c;">FUNDIR es irreversible.</b><br>No necesitas las 7 piezas de un robot \u2014 la reconstrucci\u00f3n pide s\u00f3lo <b>5 slots</b> (cabeza, chasis, n\u00facleo, brazo, pierna) y los huecos se cubren con recambio gen\u00e9rico (+20\u2699). Las piezas reales valen m\u00e1s: <b>heredan la experiencia y las habilidades del donante</b>, aunque fuera de otra clase.',
+    'dp.ciclo': 'Las piezas son la materia prima del <b>RECONSTRUCTOR</b>: con ellas reconstruyes las IAs en archivo (m\u00e1s abajo). <b style="color:#ff9a3c;">FUNDIR es irreversible.</b><br>No necesitas las 7 piezas de un robot \u2014 la reconstrucci\u00f3n pide <b>7 slots</b> (cabeza, chasis, n\u00facleo y los cuatro miembros por separado) y los huecos se cubren con recambio gen\u00e9rico (+14\u2699). Las piezas reales valen m\u00e1s: <b>heredan la experiencia y las habilidades del donante</b>, aunque fuera de otra clase.',
     'dp.slots': 'Slots cubiertos con el inventario:',
     'dp.recambio': '\u2014 (recambio +20\u2699)',
     'dp.ningunha': 'Ninguna pieza en inventario. Las piezas se recuperan de los ca\u00eddos cuando controlas el campo (victoria).',
@@ -1967,7 +1967,7 @@ const LANGS = {
     /* (v0.43) Salvage */
     'dp.titulo': '\u2699 SALVAGE \u2014 parts bank',
     'dp.cab': '\u2699 SCRAP: <b>{c}</b> \u00b7 Parts in inventory: <b>{p}</b>',
-    'dp.ciclo': 'Parts are the raw material of the <b>REBUILDER</b>: with them you rebuild the AIs in archive (below). <b style="color:#ff9a3c;">MELTING is irreversible.</b><br>You do not need all 7 parts of a robot \u2014 a rebuild only asks for <b>5 slots</b> (head, chassis, core, arm, leg) and gaps are filled with generic spares (+20\u2699). Real parts are worth more: <b>they inherit the donor\u2019s experience and skills</b>, even from another class.',
+    'dp.ciclo': 'Parts are the raw material of the <b>REBUILDER</b>: with them you rebuild the AIs in archive (below). <b style="color:#ff9a3c;">MELTING is irreversible.</b><br>You do not need all 7 parts of a robot \u2014 a rebuild asks for <b>7 slots</b> (head, chassis, core and the four limbs separately) and gaps are filled with generic spares (+14\u2699). Real parts are worth more: <b>they inherit the donor\u2019s experience and skills</b>, even from another class.',
     'dp.slots': 'Slots covered by the inventory:',
     'dp.recambio': '\u2014 (spare +20\u2699)',
     'dp.ningunha': 'No parts in inventory. Parts are recovered from the fallen when you hold the field (victory).',
