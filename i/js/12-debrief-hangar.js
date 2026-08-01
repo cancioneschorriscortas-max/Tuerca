@@ -875,9 +875,22 @@ function renderBriefingFrame(){
   /* Render */
   $('brName').textContent = `${u.id} '${nomeCompleto(u)}'`;
   $('brName').style.color = col;
-  $('brMeta').textContent = `${u.cls} · ${u.ops} ops · ${u.personalidad.toLowerCase()} · estado ${est.toLowerCase()} · confianza ${Math.round(u.confianza)}`
-    + ((u.equipment||[]).length ? ` · ⚙ ${u.equipment.map(e=>EQUIPOS[e]?EQUIPOS[e].label:e).join(', ')}` : '')
-    + (u._hqAssigned ? '  [ASIGNADO POLO HQ]' : '');
+  /* Esta liña estaba escrita a man en galego —"estado", "confianza",
+     "[ASIGNADO POLO HQ]"— e collía a etiqueta crúa de EQUIPOS en vez de
+     eqLabel(). Xogando en inglés saía a interface nunha lingua e os
+     datos da unidade noutra. A personalidade e o estado tamén van por
+     clave: son nomes internos, non texto. */
+  const _eq = (u.equipment || []).map(e => (typeof eqLabel === 'function' ? eqLabel(e)
+              : (EQUIPOS[e] ? EQUIPOS[e].label : e)));
+  $('brMeta').textContent = TXT('br.meta2', {
+      cls: clsLabel(u.cls), ops: u.ops,
+      pers: TXT('pers.' + u.personalidad),
+      est: TXT('estc.' + est),
+      conf: Math.round(u.confianza),
+    })
+    /* separador sen palabras: non ten sentido como clave de idioma */
+    + (_eq.length ? ` · ⚙ ${_eq.join(', ')}` : '')
+    + (u._hqAssigned ? TXT('br.hq') : '');
   delete u._hqAssigned;
   const fraseEl = $('brFrase');
   fraseEl.textContent = `«${frase}»`;

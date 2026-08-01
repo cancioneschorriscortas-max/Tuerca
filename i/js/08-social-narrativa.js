@@ -1828,6 +1828,10 @@ function endOpTable(){
 }
 
 /* Pickea unha frase do pool con fallback se a combinación non existe */
+/* De que clase toma prestada a voz unha clase que aínda non ten a súa.
+   Emparéllase por CARÁCTER e non por rol. */
+const VOZ_PRESTADA = { SNIPER: 'ENGINEER', BOMBARDERO: 'HEAVY' };
+
 function pickFrase(u, contexto, opts){
   if(!u || u.team !== PT) return null;
   const cls = u.cls;
@@ -1838,7 +1842,22 @@ function pickFrase(u, contexto, opts){
   const _FR = (I18N.lang === 'en' && typeof FRASES_EN !== 'undefined') ? FRASES_EN
             : (I18N.lang === 'gl' && typeof FRASES_GL !== 'undefined') ? FRASES_GL
             : FRASES;
-  const cls_table = _FR[cls] || FRASES[cls];
+  /* CLASES SEN VOZ.
+
+     A táboa grande só ten GRUNT, HEAVY e ENGINEER. SNIPER e BOMBARDERO
+     nunca tiveron frases de briefing, selección nin crítico —en ningún
+     dos tres idiomas— e o resultado era que un SNIPER no briefing saía
+     dicindo «...». Non era silencio de personaxe: era un oco tapado polo
+     fallback, e o xogo enteiro vende que cada robot ten carácter.
+
+     Mentres non se escriban as súas, préstanse as da clase máis próxima
+     EN CARÁCTER, non en estatísticas: o SNIPER —solitario, seco— tira do
+     ENGINEER, que é o outro que fala pouco; o BOMBARDERO —ruidoso,
+     temerario— tira do HEAVY. Non é o ideal, pero é infinitamente mellor
+     que emmudecer a dúas das cinco clases. Cando se escriban as propias,
+     esta táboa deixa de usarse soa. */
+  const cls_table = _FR[cls] || FRASES[cls]
+                 || _FR[VOZ_PRESTADA[cls]] || FRASES[VOZ_PRESTADA[cls]];
   if(cls_table){
     const pers_table = cls_table[pers];
     if(pers_table){
