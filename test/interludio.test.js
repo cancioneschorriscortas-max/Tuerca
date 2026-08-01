@@ -19,16 +19,96 @@ function estado(S, extra){
   return D;
 }
 
-proba('sen nada feito, o único que pode saír é o da vitoria', async () => {
+proba('a primeira operación di quen es: gañaches ou perdiches', async () => {
+  /* Os dous primeiros interludios son de ÓPTIMA e din o mesmo dúas
+     veces: que ti es un dato. Un felicita e o outro fala do Mundial
+     mentres na imaxe hai un robot morto na lama. */
   const S = cargarXogo();
   await asentar();
-  estado(S);
   const escoller = S.aval('interludioEscoller');
 
-  afirmar(escoller({result: 'defeat'}) === null,
-    'perdendo a primeira non debería saír ningún interludio');
-  const it = escoller({result: 'victory'});
-  afirmar(it && it.id === 'optima', `esperábase "optima" e saíu ${it && it.id}`);
+  estado(S);
+  const gaña = escoller({result: 'victory'});
+  afirmar(gaña && gaña.id === 'optima', `gañando esperábase "optima" e saíu ${gaña && gaña.id}`);
+
+  estado(S);
+  const perde = escoller({result: 'defeat'});
+  afirmar(perde && perde.id === 'ultimatransmision',
+    `perdendo esperábase "ultimatransmision" e saíu ${perde && perde.id}`);
+});
+
+proba('o tramo manda sobre a voz: o epílogo non se adianta', async () => {
+  /* Este é o motivo de que exista o campo `tramo`. Con todo desbloqueado
+     á vez, a alternancia de voces podía escoller o epílogo —o campo
+     comido pola herba— só por non repetir voz, e verías o final antes
+     de rematar a parte escura. */
+  const S = cargarXogo();
+  await asentar();
+  const D = estado(S, {opCount: 40, fallen: ['a','b','c','d','e','f'],
+                       piezas: [{id:'p'}], units: [{reensamblado: true}],
+                       marcas: {primeiroNome: 3}});
+  const escoller = S.aval('interludioEscoller');
+  const TRAMOS = S.aval('TRAMOS');
+
+  const orde = [];
+  for(let i = 0; i < 40; i++){
+    /* Alternando resultado: hai un interludio que só sae ao PERDER
+       —ÓPTIMA falando do Mundial sobre un robot morto na lama— e gañando
+       sempre non se chegaría a el. */
+    const it = escoller({result: i % 3 === 2 ? 'defeat' : 'victory'});
+    if(!it) break;
+    orde.push(it);
+    D.interludios = D.interludios || {vistos: [], ultimaVoz: null};
+    D.interludios.vistos.push(it.id);
+    D.interludios.ultimaVoz = it.voz;
+  }
+  afirmar(orde.length === S.aval('INTERLUDIOS').length,
+    `saíron ${orde.length} de ${S.aval('INTERLUDIOS').length}`);
+
+  /* O índice de tramo nunca pode baixar. */
+  let peor = -1;
+  for(const it of orde){
+    const ix = TRAMOS.indexOf(it.tramo);
+    afirmar(ix >= peor,
+      `${it.id} (${it.tramo}) saíu despois dun tramo posterior: ${orde.map(x => x.tramo).join(' ')}`);
+    peor = ix;
+  }
+  afirmar(orde[orde.length - 1].id === 'pradera',
+    `o último tiña que ser o epílogo e foi ${orde[orde.length - 1].id}`);
+});
+
+proba('ÓPTIMA cala segundo avanza a campaña', async () => {
+  /* Non está escrito en ningunha condición, pero é o arco: ao principio
+     a empresa fala a metade das veces e no final non aparece. Se algún
+     día se engade un interludio de ÓPTIMA no tramo da XENTE, isto
+     avisa. */
+  const S = cargarXogo();
+  await asentar();
+  const porTramo = {};
+  for(const it of S.aval('INTERLUDIOS')){
+    porTramo[it.tramo] = porTramo[it.tramo] || {OPTIMA: 0, TUERCA: 0};
+    porTramo[it.tramo][it.voz]++;
+  }
+  afirmar(porTramo.MAQUINA && porTramo.MAQUINA.OPTIMA >= 3,
+    'no primeiro tramo ÓPTIMA ten que falar bastante');
+  for(const t of ['XENTE', 'EPILOGO']){
+    afirmar(!porTramo[t] || porTramo[t].OPTIMA === 0,
+      `ÓPTIMA fala no tramo ${t}, e aí xa non lle toca`);
+  }
+});
+
+proba('o primeiro nome dispárase por un acto, non polo tempo', async () => {
+  /* É o único interludio que responde a algo que FAI o xogador. Sen
+     bautizar a ninguén non pode saír, por moitas operacións que leves. */
+  const S = cargarXogo();
+  await asentar();
+  const nome = S.aval('INTERLUDIOS').find(i => i.id === 'primernombre');
+  const op = {result: 'victory'};
+
+  afirmar(!nome.cando(estado(S, {opCount: 99, fallen: ['a','b','c']}), op),
+    'saíu sen que o xogador renomease a ninguén');
+  afirmar(nome.cando(estado(S, {opCount: 1, marcas: {primeiroNome: 1}}), op),
+    'renomeando xa na primeira operación ten que poder saír');
 });
 
 proba('cada interludio sae unha soa vez', async () => {
@@ -128,5 +208,39 @@ proba('ningún interludio usa a imaxe doutro', async () => {
   for(const it of S.aval('INTERLUDIOS')){
     afirmar(!vistas.has(it.imaxe), `a imaxe "${it.imaxe}" úsana dous interludios`);
     vistas.add(it.imaxe);
+  }
+});
+
+proba('hai un retrato por clase e chegan ás dúas vías de publicación', () => {
+  /* Tres veces mordeu xa isto: un ficheiro de ui/ que existe en local,
+     que se ve perfecto, e que non chega ao xogo publicado porque unha das
+     DÚAS listas non o coñece. build.py copia por prefixo a dist/ e
+     firebase.json serve i/ menos o que exclúe o seu ignore. Son
+     independentes e hai que mirar as dúas. */
+  const path2 = require('path');
+  const RAIZ = path2.join(__dirname, '..');
+  const CLASES = ['GRUNT', 'SNIPER', 'ENGINEER', 'HEAVY', 'BOMBARDERO'];
+
+  for (const cls of CLASES) {
+    const rel = `ui/retrato_${cls}.jpg`;
+    afirmar(fs.existsSync(path2.join(RAIZ, 'i', rel)),
+      `falta i/${rel}: a ficha dun veterano ${cls} quedaría sen imaxe`);
+  }
+
+  const build = fs.readFileSync(path2.join(RAIZ, 'i', 'build.py'), 'utf8');
+  afirmar(/_UI_PATRONS\s*=\s*\[[^\]]*'retrato_'/.test(build),
+    'build.py non copia retrato_* a dist/: en local veríanse e no ficheiro único non');
+
+  // Glob -> RegExp. O literal escápase PRIMEIRO, o punto incluído: se non,
+  // o patrón dos ficheiros ocultos casa con todo e a proba mente.
+  const fb = JSON.parse(fs.readFileSync(path2.join(RAIZ, 'firebase.json'), 'utf8'));
+  const rex = (p) => new RegExp('^' + p
+    .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+    .replace(/\*\*/g, '\u0001').replace(/\*/g, '[^/]*')
+    .replace(/\u0001/g, '.*') + '$');
+  for (const cls of CLASES) {
+    const rel = `ui/retrato_${cls}.jpg`;
+    const culpable = (fb.hosting.ignore || []).find((p) => rex(p).test(rel));
+    afirmar(!culpable, `firebase.json exclúe ${rel} co patrón "${culpable}"`);
   }
 });

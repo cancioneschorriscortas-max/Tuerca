@@ -49,15 +49,36 @@ if(!fs.existsSync(ORIXE)){
 /* De nome de ficheiro a nome de pantalla. Vaise polo nome e non por unha
    táboa para que engadir un fondo sexa deixar o PNG no cartafol:
    "FondoMemorialDosCaidos.png" -> "fondo_memorialdoscaidos.jpg". */
+/* DÚAS FAMILIAS, e distínguense polo nome do ficheiro:
+
+     fondo<Algo>.png    apaisada, 3:2. Vai detrás dunha pantalla.
+     retrato<Clase>.png vertical, 4:5. É o retrato dunha clase e vai na
+                        ficha da unidade, ao carón (ou no canto) do plano
+                        técnico.
+
+   Separalas non é manía de orde: un retrato vertical metido de fondo
+   nunha caixa apaisada recórtase pola cintura, e un fondo apaisado posto
+   de retrato queda cunha franxa. O destino decide o encadre, así que ten
+   que saberse cal é antes de convertelo.
+
+   O retrato sae en MAIÚSCULAS —retrato_GRUNT.jpg— para casar coas
+   láminas que xa existen (lamina_GRUNT.png) e porque o código busca por
+   nome de clase. */
 const traballos = [];
 for(const f of fs.readdirSync(ORIXE)){
-  const m = /^fondo(.+)\.png$/i.exec(f);
-  if(!m) continue;
   /* Os mockups de interface quedan fóra: teñen nome de fondo pero non o
      son. fondoMundial_Ui_ref.png é un deseño de pantalla enteiro, non
      unha imaxe para poñer detrás dun modal. */
   if(/_?ui_?ref/i.test(f)) continue;
-  traballos.push({ de: f, a: 'fondo_' + m[1].toLowerCase().replace(/[^a-z0-9]/g, '') + '.jpg' });
+  const mf = /^fondo(.+)\.png$/i.exec(f);
+  if(mf){
+    traballos.push({ de: f, a: 'fondo_' + mf[1].toLowerCase().replace(/[^a-z0-9]/g, '') + '.jpg' });
+    continue;
+  }
+  const mr = /^retrato(.+)\.png$/i.exec(f);
+  if(mr){
+    traballos.push({ de: f, a: 'retrato_' + mr[1].toUpperCase().replace(/[^A-Z0-9]/g, '') + '.jpg' });
+  }
 }
 
 if(!traballos.length){

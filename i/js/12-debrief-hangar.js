@@ -913,6 +913,10 @@ function advanceBriefing(){
 /* ============================================================
    DESPIECE (v0.19) — inventario de pezas con nome propio
    ============================================================ */
+/* Operacións que ten que levar unha unidade para que a súa ficha deixe
+   de amosar o plano de fábrica e pase a amosar o seu retrato. */
+const RETRATO_OPS = 5;
+
 /* ============================================================
    FONDO DA PANTALLA. As imaxes de art/ pasan por
    tools/xerar_fondos.js e quedan en ui/fondo_<nome>.jpg.
@@ -1751,8 +1755,24 @@ function showBiography(u){
      pelexan" coa lámina. Era razoar de máis: a lámina non é un fondo,
      é un documento, e sobre a mesa dun arquivo é onde lle toca estar. */
   fondoModal('arquivo');
-  const lam = `ui/lamina_${u.cls}.png`;
-  body = `<div class="lamina-uni" title="${TXT('bio.laminaVer')}">
+  /* PLANO PARA OS NOVATOS, RETRATO PARA OS VETERANOS.
+
+     A lámina técnica é o que ÓPTIMA ten arquivado dun modelo: cotas,
+     peso, despece por módulos. Vale para unha unidade que acaba de saír
+     de fábrica, porque iso é todo o que se sabe dela.
+
+     Pasadas unhas cantas operacións deixa de ser certa. Xa non é un
+     modelo: é alguén, con nome e cun ronsel. Aí a ficha cambia a un
+     retrato —o GRUNT cunha cunca ao pé da estufa, o BOMBARDERO cunha
+     cervexa entre bombas— e o documento pasa de folla de fábrica a
+     recordo. É a mesma caixa e o mesmo clic; o que cambia é quen mira
+     desde ela.
+
+     RETRATO_OPS é o prezo. Cinco operacións é sobrevivir a unhas
+     cantas, non a unha por sorte. Súbeo se queres que custe máis. */
+  const retrato = (u.ops || 0) >= RETRATO_OPS;
+  const lam = retrato ? `ui/retrato_${u.cls}.jpg` : `ui/lamina_${u.cls}.png`;
+  body = `<div class="lamina-uni${retrato ? ' e-retrato' : ''}" title="${TXT('bio.laminaVer')}">
     <img src="${lam}" alt="" onerror="this.style.display='none';
       this.parentNode.classList.add('sen-lamina');
       this.parentNode.dataset.falta='${lam}';">
@@ -1792,6 +1812,14 @@ async function renameUnit(idx){
   }
   const oldName = u.name;
   u.name = clean;
+  /* (v0.90) O primeiro bautizo queda anotado. Hai un interludio que amosa
+     exactamente isto —a man dun robot escribindo "R-09 -> CROMO" no
+     caderno do arquiveiro— e non ten sentido que apareza por número de
+     operacións: ten que aparecer cando o xogador FAI ese acto. */
+  try{
+    DATA.marcas = DATA.marcas || {};
+    if(!DATA.marcas.primeiroNome) DATA.marcas.primeiroNome = DATA.opCount || 0;
+  }catch(e){}
   try{ if(typeof diarioEixos === 'function') diarioEixos({apego: 1}); }catch(e){}   /* (v0.65) bautizar é apegarse */
   await saveData(DATA);
   /* Nota: los eventos pasados conservan referencias al nombre antiguo

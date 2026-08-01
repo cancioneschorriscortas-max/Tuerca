@@ -523,6 +523,13 @@
     position:relative; transition:max-height .18s ease;
   }
   #bioModal .lamina-uni.aberta{max-height:1400px;}
+  /* O retrato é vertical (4:5) e a lámina apaisada. Co mesmo recorte de
+     210 px, o retrato quedaba cortado pola cintura e non se lle vía a
+     cara, que é o único que importa nel. Dáselle altura e encádrase
+     ARRIBA, non ao centro. */
+  #bioModal .lamina-uni.e-retrato{ max-height:340px; }
+  #bioModal .lamina-uni.e-retrato img{ object-fit:cover; object-position:50% 22%; }
+  #bioModal .lamina-uni.e-retrato.aberta img{ object-fit:contain; }
   #bioModal .lamina-uni img{display:block; width:100%; image-rendering:auto;}
   /* degradado ao pé mentres está pechada: di que hai máis debaixo */
   #bioModal .lamina-uni::after{

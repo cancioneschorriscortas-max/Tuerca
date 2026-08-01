@@ -62,7 +62,7 @@ if os.path.isdir(_vsrc):
 # queda en PNG: son 19 KB e é un bordo de interface, onde os artefactos
 # de JPEG si se notarían.
 _UI_PUBLICAS = ['marco-panel.png', 'fondo_menu.jpg']
-_UI_PATRONS = ['lamina_', 'fondo_']
+_UI_PATRONS = ['lamina_', 'fondo_', 'retrato_']
 _usrc = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ui')
 _udst = os.path.join(os.path.dirname(os.path.abspath(out)), 'ui')
 if os.path.isdir(_usrc):

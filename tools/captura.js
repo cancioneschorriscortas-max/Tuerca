@@ -243,6 +243,16 @@ window.addEventListener('load', function(){
           }, 120);
         }, 400);
       }
+      /* RETOQUE LIBRE DO ESTADO, e vai antes de todas as bandeiras a
+         mantenta: a semente deixa sempre a partida "chea" e a metade dos
+         fallos só se ven no caso raro —un memorial sen mortos, un roster
+         dunha unidade, un veterano de doce operacións—.
+
+         Estivo un tempo DENTRO do bloque de --pantalla, e o resultado foi
+         que --ficha --datos non facía nada: pedía a ficha dun veterano e
+         saía a dun novato, sen aviso. Cada bandeira ten que poder
+         combinarse coas outras ou non serve de nada. */
+      if(DATOS){ try{ (new Function('DATA', DATOS))(DATA); }catch(e){ console.error('[--datos]', e); } }
       if(PANTALLA){
         /* Abre unha pantalla calquera polo seu nome, para comprobar que
            o seu fondo chega. Sen isto hai que inventar unha bandeira por
@@ -256,11 +266,6 @@ window.addEventListener('load', function(){
           DATA.piezas = [{id:'p1', tipo:'CABEZA', deCls:'HEAVY', deNome:'MARTELO', act:100},
                          {id:'p2', tipo:'BRAZO_DER', deCls:'SNIPER', deNome:'AGULLA', act:100}];
           DATA.iaArquivo = [{id:'R-09', name:'MARTELO', cls:'GRUNT', ops:9, activity:{}}];
-          /* Retoque libre do estado antes de abrir. A semente sempre deixa
-             a partida "chea", e moitos fallos só se ven co caso baleiro:
-             un memorial sen mortos, un roster dunha soa unidade. Sen isto
-             habería que inventar unha bandeira por caso. */
-          if(DATOS){ try{ (new Function('DATA', DATOS))(DATA); }catch(e){ console.error('[--datos]', e); } }
           if(INTERLUDIO && typeof INTERLUDIOS !== 'undefined'){
             var _it = INTERLUDIOS.filter(function(x){ return x.id === INTERLUDIO; })[0];
             if(_it) interludioAmosar(_it, function(){});

@@ -36,40 +36,115 @@
    que ter perdido a alguén; se non, non significa nada.
    ============================================================ */
 
+/* ============================================================
+   OS TRAMOS — o arco da campaña.
+
+   Ata v0.89 os interludios eran unha lista con condicións soltas. Vale
+   para oito; para quince xa non, porque o TON non estaba escrito en
+   ningures: estaba implícito nos limiares, e engadir unha imaxe nova
+   obrigaba a recalculalos todos.
+
+   Agora cada interludio declara a que tramo pertence, e o tramo é o que
+   di como se sente esa parte da campaña:
+
+     MAQUINA  o principio. Barro, restos, propaganda. Aquí as unidades
+              son números e a que fala máis é ÓPTIMA.
+     NOME     o xiro. Un único interludio, e non se dispara polo tempo
+              senón porque o xogador BAUTIZA a alguén por primeira vez.
+              A imaxe é literalmente iso: unha man escribindo
+              "R-09 -> CROMO" no caderno do arquiveiro.
+     XENTE    o final. Robots sentados ao solpor, cunca na man. É onde
+              van todas as imaxes de xente que veñan despois: as cartas,
+              os dardos, a televisión.
+     EPILOGO  unha soa, ao final de todo.
+
+   E hai unha cousa que non se ve na táboa pero que é o máis importante
+   dela: ÓPTIMA FALA CADA VEZ MENOS. No primeiro tramo leva a metade das
+   voces; no terceiro non aparece. Ninguén o anuncia, pero segundo os
+   robots se converten en xente, a empresa deixa de ter algo que dicir.
+   ============================================================ */
+const TRAMOS = ['MAQUINA', 'NOME', 'XENTE', 'EPILOGO'];
+
 const INTERLUDIOS = [
-  /* ÓPTIMA felicítate pola primeira vitoria. É o primeiro que se ve e
-     está posto a mantenta: primeiro a empresa parece razoable. */
-  { id: 'optima', imaxe: 'optima', voz: 'OPTIMA',
+  /* ---------- I · A MÁQUINA ---------- */
+
+  /* ÓPTIMA felicítate pola primeira vitoria. Vai primeiro a mantenta:
+     ao principio a empresa parece razoable. */
+  { id: 'optima', imaxe: 'optima', voz: 'OPTIMA', tramo: 'MAQUINA',
     cando: (D, op) => op && op.result === 'victory' },
 
+  /* A primeira derrota, contada por ÓPTIMA. Na imaxe hai un robot morto
+     na lama e, por riba, unha valla do MUNDIAL ÓPTIMA con robots
+     relucentes. A empresa fala do torneo. Non fai falla dicir máis. */
+  { id: 'ultimatransmision', imaxe: 'ultimatransmision', voz: 'OPTIMA', tramo: 'MAQUINA',
+    cando: (D, op) => op && op.result !== 'victory' },
+
   /* A primeira baixa. Non se conta cun número: cóntase cun nicho. */
-  { id: 'veteranos', imaxe: 'saladeveteranos', voz: 'TUERCA',
+  { id: 'veteranos', imaxe: 'saladeveteranos', voz: 'TUERCA', tramo: 'MAQUINA',
     cando: (D) => (D.fallen || []).length >= 1 },
 
-  /* O primeiro reensamblado, visto pola contabilidade. O xogador acaba
-     de facer algo que sente como resurrección; ÓPTIMA rexístrao como
-     movemento de almacén. */
-  { id: 'chatarra', imaxe: 'almacendechatarra', voz: 'OPTIMA',
+  /* Recuperar restos do campo. Dous levando a un terceiro nunha padiola. */
+  { id: 'restos', imaxe: 'recuperacionderestos', voz: 'TUERCA', tramo: 'MAQUINA',
+    cando: (D) => (D.piezas || []).length >= 1 },
+
+  /* O primeiro reensamblado, visto pola contabilidade. Acabas de facer
+     algo que sente como resurrección; ÓPTIMA rexístrao como movemento
+     de almacén. */
+  { id: 'chatarra', imaxe: 'almacendechatarra', voz: 'OPTIMA', tramo: 'MAQUINA',
     cando: (D) => (D.units || []).some(r => r.renacido || r.reensamblado) },
 
-  { id: 'radar', imaxe: 'radar', voz: 'OPTIMA',
+  /* ...e a resposta, no mesmo taller: "Se reconstruyen chasis. Las
+     historias continúan." Vai despois do de ÓPTIMA porque é a réplica. */
+  { id: 'taller', imaxe: 'reconstrucciondetaller', voz: 'TUERCA', tramo: 'MAQUINA',
+    cando: (D) => (D.units || []).some(r => r.renacido || r.reensamblado) &&
+                  (D.opCount || 0) >= 6 },
+
+  { id: 'radar', imaxe: 'radar', voz: 'OPTIMA', tramo: 'MAQUINA',
     cando: (D) => (D.opCount || 0) >= 3 },
 
+  /* Volta ao hangar ao solpor, un sentado sen forzas. ÓPTIMA chámalle
+     "rendemento rexistrado". */
+  { id: 'regreso', imaxe: 'regresoacasa', voz: 'OPTIMA', tramo: 'MAQUINA',
+    cando: (D) => (D.opCount || 0) >= 4 },
+
   /* A resposta da resistencia á vixilancia: os catro principios. */
-  { id: 'principios', imaxe: 'principiosdetuerca', voz: 'TUERCA',
+  { id: 'principios', imaxe: 'principiosdetuerca', voz: 'TUERCA', tramo: 'MAQUINA',
     cando: (D) => (D.opCount || 0) >= 5 },
 
-  { id: 'estratexia', imaxe: 'saladeestratexia', voz: 'OPTIMA',
+  { id: 'estratexia', imaxe: 'saladeestratexia', voz: 'OPTIMA', tramo: 'MAQUINA',
     cando: (D) => (D.opCount || 0) >= 8 },
 
   /* Quen escribe o diario do xogo é o sétimo arquiveiro. Aquí dise. */
-  { id: 'arquiveiros', imaxe: 'registrodearchiveros', voz: 'TUERCA',
+  { id: 'arquiveiros', imaxe: 'registrodearchiveros', voz: 'TUERCA', tramo: 'MAQUINA',
     cando: (D) => (D.opCount || 0) >= 11 },
 
-  /* A revelación. Pide dúas cousas á vez: tempo xogado E mortos
-     propios. Sen as dúas non pesa. */
-  { id: 'firmware', imaxe: 'historiafirmware09b', voz: 'TUERCA',
+  /* ---------- II · O NOME ---------- */
+
+  /* NON vai por operacións. Vai porque o xogador premeu RENOMEAR e lle
+     puxo nome a alguén: fixo o mesmo que amosa a imaxe. É o único
+     interludio que responde a un ACTO e non ao paso do tempo, e por iso
+     é o eixo do arco. */
+  { id: 'primernombre', imaxe: 'primernombre', voz: 'TUERCA', tramo: 'NOME',
+    cando: (D) => !!(D.marcas && D.marcas.primeiroNome !== undefined) },
+
+  /* ---------- III · A XENTE ---------- */
+
+  /* A revelación. Pide tempo E mortos propios: a explicación de por que
+     os robots teñen memoria non significa nada antes de perder a alguén. */
+  { id: 'firmware', imaxe: 'historiafirmware09b', voz: 'TUERCA', tramo: 'XENTE',
     cando: (D) => (D.opCount || 0) >= 15 && (D.fallen || []).length >= 3 },
+
+  /* A primeira vez en todo o xogo que alguén está a gusto. */
+  { id: 'descanso', imaxe: 'robotsdescansando', voz: 'TUERCA', tramo: 'XENTE',
+    cando: (D) => (D.opCount || 0) >= 18 },
+
+  /* ---------- EPÍLOGO ---------- */
+
+  /* O mesmo campo de batalla anos despois, comido pola herba, con flores
+     e sol, e unha pedra que pon POR LOS CAÍDOS, POR LOS QUE VOLVERÁN.
+     É a última imaxe do xogo e non hai outra candidata. */
+  { id: 'pradera', imaxe: 'praderadecaidos', voz: 'TUERCA', tramo: 'EPILOGO',
+    cando: (D) => (D.opCount || 0) >= 25 && (D.fallen || []).length >= 5 },
 ];
 
 function interludioEstado(){
@@ -92,11 +167,21 @@ function interludioEscoller(op){
   });
   if(!candidatos.length) return null;
 
-  /* Regra 3: se hai máis dun, prefírese o que cambie de voz. Se todos
-     falan coa mesma que o anterior, vai o primeiro igual — alternar
-     importa, pero non tanto como para calar un interludio. */
-  const outraVoz = candidatos.find(it => it.voz !== est.ultimaVoz);
-  return outraVoz || candidatos[0];
+  /* O TRAMO MANDA SOBRE A VOZ. Primeiro quédase co tramo máis temperán
+     que teña algo pendente, e só despois se escolle dentro del.
+
+     Sen isto, a alternancia de voces podía adiantar un interludio do
+     final para non repetir voz: verías o epílogo —o campo comido pola
+     herba— antes de que che rematase a parte escura. Alternar é un
+     acabado; a orde do arco é a historia. */
+  const tramo = TRAMOS.find(t => candidatos.some(it => it.tramo === t));
+  const desteTramo = candidatos.filter(it => it.tramo === tramo);
+
+  /* Dentro do tramo si: prefírese o que cambie de voz. Se todos falan
+     coa mesma que o anterior, vai o primeiro igual — alternar importa,
+     pero non tanto como para calar un interludio. */
+  const outraVoz = desteTramo.find(it => it.voz !== est.ultimaVoz);
+  return outraVoz || desteTramo[0];
 }
 
 /* Debuxa e amosa. `remate` chámase ao premer seguir. */
