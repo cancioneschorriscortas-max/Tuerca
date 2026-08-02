@@ -77,21 +77,68 @@ o guión de arranque e o bloqueo do bautizo.
 
 ---
 
-## FASE 2 · Presuposto
+### 1.b · A PRIMEIRA DECISIÓN, e é económica
 
-Tras a primeira batalla, o personaxe entra en campaña **cun presuposto
-limitado que depende de gañar ou perder**.
+O banco de pezas non é un regalo: é un **presuposto de chatarra**. Con
+el móntase o primeiro robot, e hai dous camiños:
 
-**Estado actual:** a chatarra xa existe, xa se gaña por vitoria e xa se
-gasta en taller, equipamento, tanques e torretas. O que non hai é
-**presuposto de partida** nin un teito que faga escoller.
+- **Estándar** — un GRUNT con todas as pezas de GRUNT. Sae **barato**, e
+  o que sobra queda para a operación seguinte.
+- **Mesturado** — un GRUNT con brazo de SNIPER, ou o que se lle ocorra.
+  Sae **caro**, e gástase case todo.
 
-**Pregunta aberta que NON teño resolta:** ¿o presuposto substitúe á
-chatarra ou convive con ela? Dúas moedas confunden; unha soa igual non
-distingue «o que gañei nesta operación» de «o que teño para a campaña».
-Isto quero estudalo antes de propoñer nada.
+**Ningún dos dous está castigado.** Un dáche marxe; o outro dáche algo
+que non ten ninguén máis.
 
-**Custo:** baixo se é un número inicial. Alto se é un sistema aparte.
+E aquí está o motivo polo que isto é mellor ca un titorial: **quen aforra
+montando estándar está facendo exactamente o que ÓPTIMA quere.** Quen se
+gasta o presuposto por ter algo único xa está, no primeiro minuto,
+resistíndose. O xogo pregunta «quen es ti?» **sen unha soa liña de
+texto**, e a resposta vai na factura.
+
+A xustificación en ficción é directa e non hai que escribila: *a liña de
+ÓPTIMA está optimizada para montaxes estándar; unha mestura precisa
+recalibración, e cóbrase.* **A empresa fai que saia caro ser distinto.**
+
+#### O prezo actual vai no eixe contrario
+
+Comprobado no código:
+
+    total = MONTAXE_COST (60) + RECON_RECAMBIO (14) por oco SEN cubrir
+
+    todo con pezas reais ......  60
+    todo con recambio xenérico . 158
+
+Hoxe o caro é o **recambio de fábrica**, e usar pezas reais é o barato —
+lóxico, porque as recuperaches ti nun campo de batalla. Pero ese eixe é
+**real fronte a xenérico**, non **homoxéneo fronte a mesturado**.
+
+Fan falla os dous, e non se pisan:
+
+| eixe | pregunta | cando pesa |
+|---|---|---|
+| real / xenérico | ¿rapiñaches ou mercas? | campaña, tras as baixas |
+| homoxéneo / mesturado | ¿estándar ou teu? | sempre, e sobre todo ao empezar |
+
+No arranque só actúa o segundo, porque todas as pezas do banco son
+«reais». Despois conviven.
+
+**Calibración:** o presuposto ten que dar **para un robot mesturado
+xusto**, para que aforrar signifique algo e gastar tamén. Se dá de sobra,
+non hai decisión; se non chega, non hai escolla.
+
+## FASE 2 · O presuposto continúa
+
+Tras a primeira batalla o personaxe entra en campaña co que sobrou, e
+gaña ou perde segundo o resultado.
+
+**Pregunta resolta:** non hai segunda moeda. O presuposto **é** chatarra
+— a que xa existe, xa se gaña por vitoria e xa se gasta en taller,
+equipamento, tanques e torretas. O que cambia é que **empeza cun número
+en vez de con cero**, e que o que non gastas no arranque vai contigo.
+
+**Custo:** baixo. É un valor inicial en `freshData()` e o eixe de prezo
+novo na montaxe.
 
 ---
 
@@ -142,5 +189,6 @@ o arranque asentado.
 
 - Non hai estimacións de tempo. Nesta sesión demostrouse que as miñas
   son optimistas.
-- A fase 2 ten unha pregunta de deseño sen resolver.
+- A calibración do presuposto non está feita: hai que xogar para
+  saber canto é «xusto para un mesturado».
 - Nada disto está probado con ninguén xogando. É deseño sobre papel.
