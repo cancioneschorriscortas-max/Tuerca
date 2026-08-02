@@ -126,16 +126,74 @@ const _PEZA_FORZA = {
   PERNA_ESQ: { imp: 0.60, alto: 0.5, xiro: 4 },
 };
 
+/* ============================================================
+   COMO DESFAI CADA ARMA.
+
+   O primeiro intento facía saltar todas as mortes igual, cunha
+   asimetría fixa por peza. Funcionaba, pero mentía: un tiro de
+   francotirador e un obús do tanque deixaban o mesmo estropicio.
+
+   Agora o QUE TE MATOU decide COMO quedas, e iso convérteo de adorno en
+   información: ves de lonxe se ao teu HEAVY llo levou un francotirador
+   ou se lle caeu unha bomba enriba, sen ler nada.
+
+   A causa sae de foe.deathCause, un campo que xa existía desde a v0.12
+   para a memoria narrativa. Non fixo falla inventar nada: o xogo xa
+   sabía quen matou a quen, só que ninguén llo preguntaba ao debuxar.
+
+   Os números son multiplicadores sobre a forza base de cada peza:
+     <slot>  para ese slot en concreto
+     resto   para os que non se nomean
+     todo    para todos á vez
+     alto    canto sobe a explosión enteira
+   ============================================================ */
+const _PEZA_ESTILO = {
+  /* Un tiro, un sitio. Vólalle a cabeza e o corpo cae case de pé: é a
+     lectura de "morreu antes de saber que o vían". */
+  SNIPER:     { CABEZA: 3.4, xiroCabeza: 4, resto: 0.14, alto: 0.9 },
+
+  /* Explosivos: todo cara a todas partes e cara arriba. */
+  BOMBARDERO: { todo: 1.9, alto: 1.9 },
+  TANQUE:     { todo: 2.2, alto: 1.6 },
+
+  /* Ametralladora pesada. Desfai o torso e os brazos; as pernas quedan
+     onde estaban, que é o que pasa cando alguén cae acribillado. */
+  HEAVY:      { CHASIS: 2.1, BRAZO_DER: 2.0, BRAZO_ESQ: 2.0, resto: 0.45 },
+
+  /* Fogo fixo e sostido, sen a masa dun obús. */
+  torreta:    { todo: 1.3, alto: 1.0 },
+
+  /* O enxeñeiro case non mata, e cando o fai é de preto e a golpes. */
+  ENGINEER:   { todo: 0.8, alto: 0.7 },
+};
+/* Fusil de infantería: o caso normal e a referencia de todos os demais.
+   Non vai na táboa a propósito, para que se vexa que é o 1.0. */
+const _PEZA_ESTILO_BASE = { todo: 1, alto: 1 };
+
+function _pezaEstilo(causa){
+  return (causa && _PEZA_ESTILO[causa]) || _PEZA_ESTILO_BASE;
+}
+/* Que multiplicador lle toca a este slot con esta arma. */
+function _pezaFactor(est, slot){
+  if(est[slot] !== undefined) return est[slot];
+  if(est.todo !== undefined) return est.todo;
+  if(est.resto !== undefined) return est.resto;
+  return 1;
+}
+
 /* Orde de importancia. Se hai que soltar menos pezas por falta de sitio,
    sácanse polo final: mellor tres pezas en dez robots que seis en cinco
    e nada nos outros cinco. */
 const _PEZA_ORDE = ['CABEZA', 'CHASIS', 'BRAZO_DER', 'BRAZO_ESQ', 'PERNA_DER', 'PERNA_ESQ'];
 
-function efxDesmontar(u){
+function efxDesmontar(u, causa){
   if(!EFX.desmontaxe || !u) return;
   if(typeof MON3D === 'undefined' || !MON3D.listo) return;
   if(typeof PEZAS3D === 'undefined' || typeof mon3dDeClase !== 'function') return;
 
+  /* Quen o matou. Pásase ao chamar; se non, tírase do campo que xa
+     garda o xogo para a memoria narrativa. */
+  const est = _pezaEstilo(causa || u.deathCause);
   const m = mon3dDeClase(u.cls);
   /* A dirección non é un campo da unidade: calcúlase ao debuxar e
      gárdase en u._dir3d. Se a unidade morreu sen chegar a debuxarse
@@ -172,8 +230,9 @@ function efxDesmontar(u){
     let rx = dxy[0], ry = dxy[1] - 6;
     const d = Math.hypot(rx, ry) || 1;
     if(d < 0.5){ const t = Math.random() * 6.283; rx = Math.cos(t); ry = Math.sin(t); }
+    const mult = _pezaFactor(est, slot);
     const disp = 0.6 + Math.random() * 0.8;
-    const vel = 46 * f.imp * disp;
+    const vel = 46 * f.imp * mult * disp;
 
     _efxPezas.push({
       im: a.im, sx: cadro * a.w, sw: a.w, sh: a.h,
@@ -183,8 +242,9 @@ function efxDesmontar(u){
       z: 6 + Math.random() * 6,
       vx: (rx / d) * vel + (Math.random() - 0.5) * 18,
       vy: (ry / d) * vel * 0.6 + (Math.random() - 0.5) * 14,
-      vz: 60 * f.alto * (0.8 + Math.random() * 0.6),
-      ang: 0, vang: (Math.random() - 0.5) * f.xiro,
+      vz: 60 * f.alto * (est.alto || 1) * Math.max(0.35, mult) * (0.8 + Math.random() * 0.6),
+      ang: 0, vang: (Math.random() - 0.5) * f.xiro
+             * (slot === 'CABEZA' && est.xiroCabeza ? est.xiroCabeza : 1),
       chan: u.y + dxy[1],
       quieta: 0, parada: PEZA_QUIETA_MIN + Math.random() * (PEZA_QUIETA_MAX - PEZA_QUIETA_MIN),
     });

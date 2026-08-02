@@ -61,6 +61,7 @@ function tickTurrets(g){
           if(foe.hp<=0 && !foe.dead && !cheatDeath(foe, g)){
             foe.dead = true;
             foe.deathCause = 'torreta';  /* (v0.12) memoria */
+            if(typeof efxDesmontar === 'function') efxDesmontar(foe, 'torreta');
             if(tu.occupant) tu.occupant.kills++;
             g.kills[tu.team]++;
             if(foe.team !== PT) dropScrap(g, foe.x, foe.y, CHATARRA_VALUES[foe.cls] || 5);
@@ -311,6 +312,7 @@ function tickVehicles(g){
           if(vfoe.occupant.hp <= 0){
             const dead = vfoe.occupant;
             dead.dead = true; dead.deathCause = 'TANQUE';
+            if(typeof efxDesmontar === 'function') efxDesmontar(dead, 'TANQUE');
             g.kills[v.team]++;
             vfoe.occupant = null;
             if(dead.team !== PT) dropScrap(g, vfoe.x, vfoe.y, CHATARRA_VALUES[dead.cls] || 5);
@@ -342,6 +344,7 @@ function tickVehicles(g){
             if(structT.occupant.hp <= 0){
               const dead = structT.occupant;
               dead.dead = true; dead.deathCause = 'TANQUE';
+            if(typeof efxDesmontar === 'function') efxDesmontar(dead, 'TANQUE');
               g.kills[v.team]++;
               structT.occupant = null;
               if(dead.team !== PT) dropScrap(g, structT.x, structT.y, CHATARRA_VALUES[dead.cls] || 5);

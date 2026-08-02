@@ -994,7 +994,7 @@ function tickUnits(g){
         foe.dead=true; u.kills++; g.kills[u.team]++;
         /* (v0.96) Sáltase en pezas. Vai para OS DOUS bandos: é
            información de combate, non premio. */
-        if(typeof efxDesmontar === 'function') efxDesmontar(foe);
+        if(typeof efxDesmontar === 'function') efxDesmontar(foe, u.cls);
         /* (v0.83) O SNIPER mata lonxe, moitas veces fóra de cámara: sen
            marca, o xogador non se entera de que o seu francotirador está
            a facer o seu traballo. Só nos nosos abates — os do inimigo xa
