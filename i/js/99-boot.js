@@ -76,22 +76,31 @@ catch(e){ console.error('[boot estado]', e); }
    Calquera outro día, interludioArranque chama directamente a showHangar
    e isto non se nota.
    ============================================================ */
-(function arrancarXogo(){
-  /* A ORDE IMPORTA E CUSTOU ATOPALA. showHangar() fai
-   `DATA = await loadData()`, é dicir SUBSTITÚE o obxecto DATA enteiro.
+(async function arrancarXogo(){
+  /* CARGAR ANTES DE DECIDIR NADA, E ISTO XA MORDEU DÚAS VECES.
 
-     Preparábase o primeiro día ANTES de chamalo, así que o banco e o
-     presuposto poñíanse nun DATA que a liña seguinte tiraba ao lixo. O
-     taller abríase cun DATA recén cargado: presuposto 0 e desplegables
-     sen unha soa peza, mentres seguía cobrando a prezo de primeiro día.
+     `DATA` nace como freshData() e non se enche ata que showHangar() fai
+     `DATA = await loadData()`. Calquera pregunta feita antes diso
+     interrógao BALEIRO: interludioPrimeiroDia() mira "cero operacións e
+     ninguén no roster" e respondía que si SEMPRE, para todo o mundo e en
+     cada arranque.
 
-     Funcionaba no arnés de probas porque alí chamábase despois de
-     asentar(), que xa fixera a carga. O erro só existía no xogo. */
+     E o interludio garda. Así que a apertura saía, marcábase vista e
+     escribía o freshData() baleiro enriba da partida do xogador: cada F5
+     borraba a campaña. Aliméntase a si mesmo, porque o que queda gravado
+     volve cumprir a condición.
+
+     Cárgase aquí, unha vez, antes de preguntar nada. showHangar cargará
+     outra vez e non pasa nada; o que non pode volver pasar é decidir sen
+     datos. */
+  try{ DATA = await loadData(); }
+  catch(e){ console.error('[arranque] non se puido cargar a partida', e); }
+
   const aoHangar = () => Promise.resolve(showHangar()).then(async () => {
     if(typeof primeiroDiaPreparar !== 'function') return;
     if(!primeiroDiaPreparar()) return;
-    /* E gárdase de contado: se o xogador pecha a pestana entre o reparto
-       e a montaxe, o banco ten que seguir aí ao volver. */
+    /* Gárdase de contado: se o xogador pecha a pestana entre o reparto e
+       a montaxe, o banco ten que seguir aí ao volver. */
     try{ await saveData(DATA); }catch(e){ console.error('[primeiro día]', e); }
     if(typeof escollaClaseAberta === 'function') escollaClaseAberta();
     else if(typeof showMontaxe === 'function') showMontaxe();

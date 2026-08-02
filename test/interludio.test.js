@@ -371,6 +371,41 @@ proba('o interludio de arranque deixa escoller idioma', () => {
     'o selector de idioma ten que saír SÓ no arranque, non nos quince interludios');
 });
 
+proba('gardar nunca pode pisar unha partida chea cunha baleira', async () => {
+  /* A REGRESIÓN MÁIS CARA DA SERIE: cada F5 borraba a campaña.
+
+     DATA nace como freshData() e non se enche ata que showHangar() fai
+     `DATA = await loadData()`. O arranque preguntaba antes diso, así que
+     interludioPrimeiroDia() interrogaba un DATA baleiro e dicía que si
+     SEMPRE. Saía a apertura, marcábase vista, e o interludio garda: o
+     freshData() baleiro caía enriba da partida do xogador. */
+  const S = await cargarXogo();
+  await asentar();
+  const D = S.aval('DATA');
+  D.opCount = 3; D.units = [{id:'R-01', name:'VETERANO', cls:'GRUNT'}]; D.fallen = [];
+  await S.aval('saveData')(D);
+
+  /* Agora chega o arranque a medio cargar e intenta gardar o baleiro. */
+  await S.aval('saveData')(S.aval('freshData')());
+  const volto = await S.aval('loadData')();
+  afirmar((volto.units || []).length === 1, 'a partida ten que seguir aí');
+  afirmar(volto.opCount === 3, 'e coas súas operacións');
+});
+
+proba('o arranque carga a partida antes de preguntar nada', () => {
+  /* Léese o fonte porque o que se protexe é unha orde. Se volve a
+     preguntarse antes de cargar, volve o borrado. */
+  /* Sen comentarios: a cabeceira do ficheiro nomea as dúas cousas ao
+     explicalas, e senón mídese a prosa en vez do código. */
+  const src = fs.readFileSync(path.join(__dirname, '..', 'i', 'js', '99-boot.js'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n').map(l => l.replace(/\/\/.*$/, '')).join('\n');
+  const iL = src.indexOf('loadData()');
+  const iI = src.indexOf('interludioArranque');
+  afirmar(iL > -1, 'o arranque ten que cargar a partida');
+  afirmar(iI > iL, 'e ten que cargala ANTES de decidir se sae a apertura');
+});
+
 proba('a apertura non se repite ao quedar sen robots', async () => {
   /* REGRESIÓN REAL, e das que borran unha partida. O primeiro día
      definíase só como "cero operacións e ninguén no roster". Se perdías o

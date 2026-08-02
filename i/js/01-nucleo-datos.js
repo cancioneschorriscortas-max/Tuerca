@@ -89,6 +89,26 @@ async function loadData(){
 }
 
 async function saveData(d){
+  /* REDE DE SEGURIDADE. Un gardado cunha partida ACABADA DE NACER
+     —ninguén no roster, ningún caído, cero operacións— enriba dunha que
+     si ten contido non é nunca o que quere o xogador: é código que
+     preguntou antes de cargar. Pasou dúas veces e a segunda custoulle a
+     campaña ao dono.
+
+     Borrar de verdade (btnWipe) pasa por wipeData(), que quita as
+     chaves primeiro, así que aquí xa non hai nada que protexer e a
+     garda non estorba. */
+  try{
+    const previo = localStorage.getItem(SAVE_CLAVE);
+    const baleira = d && !(d.units||[]).length && !(d.fallen||[]).length && !(d.opCount||0);
+    if(baleira && previo){
+      const p = JSON.parse(previo);
+      if((p.units||[]).length || (p.fallen||[]).length || (p.opCount||0)){
+        console.error('[save] BLOQUEADO: intentouse gardar unha partida baleira enriba dunha con contido');
+        return;
+      }
+    }
+  }catch(_){}
   memStore = d;
   try{
     const txt = JSON.stringify(d);
