@@ -63,7 +63,14 @@
    voces; no terceiro non aparece. Ninguén o anuncia, pero segundo os
    robots se converten en xente, a empresa deixa de ter algo que dicir.
    ============================================================ */
-const TRAMOS = ['MAQUINA', 'NOME', 'XENTE', 'EPILOGO'];
+/* (v0.99) ARRANQUE vai por diante de todo e é o único que pode saír
+   SEN ter xogado unha operación. O resto do sistema dispárase ao volver
+   do informe; este dispárase ao entrar no hangar por primeira vez, que é
+   onde ten que empezar a historia: no taller, antes do primeiro tiro.
+
+   Todo o demais segue igual, incluída a regra de que o tramo manda sobre
+   a alternancia de voces. */
+const TRAMOS = ['ARRANQUE', 'MAQUINA', 'NOME', 'XENTE', 'EPILOGO'];
 
 const INTERLUDIOS = [
   /* ---------- I · A MÁQUINA ---------- */
@@ -223,6 +230,23 @@ function interludioAmosar(it, remate){
   const tecla = (e) => { if(e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') pechar(); };
   if(seguir) seguir.onclick = pechar;
   document.addEventListener('keydown', tecla);
+}
+
+/* ¿Estamos no primeiro día? Sen operacións e sen ninguén no roster: o
+   momento no que o xogador acaba de abrir o xogo por primeira vez. */
+function interludioPrimeiroDia(){
+  if(typeof DATA === 'undefined') return false;
+  return (DATA.opCount || 0) === 0 && !(DATA.units || []).length;
+}
+
+/* O guión do primeiro día, que se dispara ao entrar no hangar e non ao
+   volver dunha operación —porque aínda non houbo ningunha—.
+
+   Chámase soa desde o arranque do hangar. Se non hai nada pendente do
+   tramo ARRANQUE, non fai nada e non se entera ninguén. */
+function interludioArranque(remate){
+  if(!interludioPrimeiroDia()){ if(remate) remate(); return false; }
+  return interludioQuizais(remate);
 }
 
 /* A porta de entrada: chámase ao volver do informe ao hangar. Se non

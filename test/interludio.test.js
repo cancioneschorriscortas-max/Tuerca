@@ -19,6 +19,53 @@ function estado(S, extra){
   return D;
 }
 
+proba('o tramo ARRANQUE existe e vai por diante de todo', async () => {
+  /* Todo o sistema de interludios dispárase ao VOLVER dunha operación.
+     A historia, en cambio, ten que empezar antes da primeira: no taller,
+     coa montaxe do primeiro robot.
+
+     ARRANQUE é o único tramo que pode saír sen ter xogado nada, e vai
+     primeiro na lista para que a regra de "o tramo manda sobre a voz"
+     nunca o adiante. */
+  const S = cargarXogo();
+  await asentar();
+  const TRAMOS = S.aval('TRAMOS');
+  afirmar(TRAMOS[0] === 'ARRANQUE',
+    `ARRANQUE ten que ir primeiro e a orde é ${TRAMOS.join(' ')}`);
+  afirmar(TRAMOS.indexOf('EPILOGO') === TRAMOS.length - 1,
+    'o epílogo segue tendo que ir o último');
+});
+
+proba('o primeiro día recoñécese, e só ocorre unha vez', async () => {
+  const S = cargarXogo();
+  await asentar();
+  const primeiroDia = S.aval('interludioPrimeiroDia');
+
+  estado(S);
+  afirmar(primeiroDia() === true, 'sen operacións e sen roster é o primeiro día');
+
+  estado(S, {opCount: 1});
+  afirmar(primeiroDia() === false, 'cunha operación xogada xa non o é');
+
+  estado(S, {units: [{id: 'R-01', name: 'CROMO'}]});
+  afirmar(primeiroDia() === false, 'con alguén no roster tampouco');
+});
+
+proba('fóra do primeiro día, o arranque non se mete no medio', async () => {
+  /* Se non é o primeiro día, interludioArranque ten que chamar ao que
+     lle pasen e desaparecer. Unha partida avanzada non pode notar que
+     isto existe. */
+  const S = cargarXogo();
+  await asentar();
+  estado(S, {opCount: 7, fallen: ['a']});
+  const arranque = S.aval('interludioArranque');
+
+  let chamado = 0;
+  const saiu = arranque(() => { chamado++; });
+  afirmar(saiu === false, 'nunha partida avanzada non pode saír interludio de arranque');
+  afirmar(chamado === 1, 'ten que chamar ao seguinte paso exactamente unha vez');
+});
+
 proba('a primeira operación di quen es: gañaches ou perdiches', async () => {
   /* Os dous primeiros interludios son de ÓPTIMA e din o mesmo dúas
      veces: que ti es un dato. Un felicita e o outro fala do Mundial

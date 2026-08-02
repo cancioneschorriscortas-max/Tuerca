@@ -1960,4 +1960,8 @@ $('btnBioClose').onclick=()=>{ $('bioModal').style.display='none'; };
 $('bioModal').addEventListener('click', e=>{ if(e.target.id==='bioModal') $('bioModal').style.display='none'; });
 
 /* Arranque */
-showHangar();
+/* (v0.99) O primeiro día ten guión, e vai ANTES do hangar. Se non é o
+   primeiro día, interludioArranque chama a showHangar sen máis, así que
+   isto segue facendo o de sempre en calquera outra partida. */
+if(typeof interludioArranque === 'function') interludioArranque(showHangar);
+else showHangar();
