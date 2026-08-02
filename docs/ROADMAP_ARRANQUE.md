@@ -171,17 +171,51 @@ dentes mentres dura esa operación —sen tanque, sen torreta, sen muro— e
 despois acábase. Non se converte nunha economía paralela que haxa que
 manter para sempre.
 
-#### O que hai que decidir aínda
+#### Os números, decididos
 
-- **Canto máis custa unha peza allea.** Se 15 fronte a 10, un mesturado
-  completo son 90 e a débeda máxima 30. Se 20, son 120 e debes 60 —tanto
-  coma o presuposto enteiro—. O número decide se a decisión é un
-  pinchazo ou un compromiso, e **non sae do código: hai que xogalo**.
-- **Como se amosa un negativo.** Hoxe o HUD pon `⚙ CHATARRA: -30` sen
-  máis. Iso funciona pero non comunica: convén que se lea como débeda e
-  non como erro.
-- **Se a débeda se menciona.** ÓPTIMA cobrándoa en ficción —«axuste de
-  conta por montaxe non estándar»— vale máis ca un número vermello.
+    presuposto ............ 80
+    peza estándar ......... 10
+    peza doutra clase ..... 20   (o dobre)
+    slots ................. 6    (os non escollidos van por defecto)
+
+| montaxe | custo | saldo |
+|---|---|---|
+| todo estándar | 60 | **+20** |
+| 1 peza allea | 70 | +10 |
+| **2 alleas** | 80 | **0** |
+| 3 alleas | 90 | −10 |
+| 4 alleas | 100 | −20 |
+| 5 alleas | 110 | −30 |
+| as 6 alleas | 120 | **−40** |
+
+**O equilibrio cae en dúas pezas alleas**, e iso é o mellor do número:
+unha desviación pequena non custa nada. Un brazo e unha cabeza doutra
+clase —que ademais é o que máis se nota a simple vista— sae de balde. O
+que se paga é **comprometerse**.
+
+Contra a economía real do xogo:
+
+    matar GRUNT ....  5        tanque .... 40
+    matar HEAVY ... 10        torreta ... 45
+    torreta ....... 15        muro ...... 10
+    tomar o HQ .... 60   <- gañar unha operación
+
+A **débeda máxima, 40, é exactamente un tanque**. Non hai que explicalo:
+o que gastaches en ser distinto é o tanque que non vas ter. E un robot
+enteiramente teu custa preto dunha operación gañada, que é un prezo real
+e non un castigo.
+
+O aforro do estándar, 20, dá para **dous muros** na primeira batalla.
+Pouco, pero é teu e vai contigo.
+
+#### O que queda por decidir
+
+- **Como se amosa un negativo.** Hoxe o HUD poría `⚙ CHATARRA: -30` sen
+  máis. Funciona, pero le como erro e non como débeda.
+- **Se ÓPTIMA a menciona.** Un «axuste de conta por montaxe non
+  estándar» na súa voz vale máis ca un número vermello. Encaixa co
+  arranque enteiro: a empresa preséntache o renomear como unha función e
+  a débeda como un trámite.
 
 ## FASE 2 · O presuposto continúa
 
@@ -245,6 +279,8 @@ o arranque asentado.
 
 - Non hai estimacións de tempo. Nesta sesión demostrouse que as miñas
   son optimistas.
-- A calibración do presuposto non está feita: hai que xogar para
-  saber canto é «xusto para un mesturado».
+- Os números da fase 1 están decididos sobre papel, non xogados.
+  A táboa di que dúas pezas alleas saen gratis; se ao xogalo
+  resulta que todo o mundo colle dúas e ninguén se endebeda,
+  o equilibrio está mal posto e hai que movelo.
 - Nada disto está probado con ninguén xogando. É deseño sobre papel.
