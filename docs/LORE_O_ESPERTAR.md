@@ -344,6 +344,91 @@ E entendes tamén quen escribiu todas esas páxinas. Non era un narrador
 omnisciente. Eran **sete robots distintos intentando que ninguén
 desaparecese de todo**.
 
+## AS SETE VOCES
+
+Nas imaxes, uns TUERCA escriben en galego e outros en castelán. **Non é
+un erro: é canon.**
+
+Non son da mesma procedencia. Son robots recuperados de frontes
+distintas, reconstruídos con pezas de orixes distintas. **Cada un escribe
+na lingua na que pensa** — non porque llo mandasen, senón porque é a
+única que lembra.
+
+O Diario amósase traducido ao idioma da interface. Pero en momentos moi
+concretos aparece **unha liña sen traducir, como reliquia**:
+
+> TUERCA 03C (orixinal)
+> «Non os puiden traer a todos.»
+
+> TUERCA 05F (original)
+> «Hoy olvidé un nombre. Eso es lo que más miedo me da.»
+
+Iso reforza o que é o Diario: **un obxecto físico que pasou por moitas
+mans**. E xa se ve na propia tapa da imaxe do traspaso, que pon
+`REGISTRO DE ARQUIVEIROS` — *Registro* nunha lingua, *Arquiveiros*
+noutra.
+
+### Cada un ten voz, non ton
+
+O ton do xogo non cambia. **Cambia quen fala.**
+
+| | como escribe |
+|---|---|
+| 01A | con medo. Todo é descubrimento. |
+| 02B | case científico. Intenta entender que pasa. |
+| 03C | empeza a poñer nomes propios a miúdo. |
+| 04E | escribe menos, pero observa moito. |
+| 05F | mete pequenas reflexións. |
+| 06H | xa sabe que probablemente non dure. |
+| 07K | case nunca fala de si mesmo. É o que coñecemos na campaña. |
+
+E cada un deixa **un costume**:
+
+- **01A** asina sempre coa data completa.
+- **03C** non asina nunca.
+- **05F** debuxa un engrenaxe pequeno ao rematar páxina.
+- **06H** corrixe tachando.
+- **07K** ten a letra moito máis firme.
+
+Son detalles diminutos. Son os que fan que o xogador relea un capítulo
+vello e diga **«esta páxina non a escribiu o mesmo»** sen que ninguén llo
+explique.
+
+### O que xa dixo a imaxe
+
+O caderno aberto amosa **a primeira liña de cada arquiveiro ao coller o
+oficio**, e as datas cadran exactamente co rexistro:
+
+| data | liña | quen |
+|---|---|---|
+| 2083.11.07 | «Hoxe esquecín algo. Non sei o que era. Por iso empecei a escribir.» | 01A |
+| 2084.02.22 | «Non escribo para min. Escribo para que non desaparezan.» | 02B |
+| 2085.06.14 | «Cada nome é unha chispa. Se os lembramos, seguen aquí.» | 03C |
+| 2086.09.07 | «A guerra non acaba. Pero nós seguimos escribindo.» | 04E |
+| 2088.02.03 | «Hai días nos que dubido. Aínda así é a razón.» | 05F |
+| 2089.04.22 | «Se eu caio, outro seguirá.» | 06H |
+
+E a páxina dereita: **2090.07.30 — «Xa non podo seguir escribindo.
+NECESITO OUTRO TUERCA.»**
+
+Esa data non é de 07K: **é o día en que remata 06H**. 07K empeza tres
+días despois.
+
+Polo tanto **esa imaxe non é o final do xogo: é o traspaso anterior.** O
+ciclo xa ocorreu seis veces antes de que chegue o xogador, e o final da
+campaña será idéntico. Iso é o que o fai funcionar: non é un xiro, é un
+**oficio**.
+
+### Consecuencia técnica
+
+Hai unha proba no xogo que salta cando unha entrada inglesa é idéntica á
+galega. As **liñas reliquia** farán saltar esa proba, e iso é **bo**:
+obriga a marcalas como reliquias no código en vez de deixalas por
+descoido.
+
+A diferenza entre «isto non está traducido» e «isto **non se traduce**»
+queda escrita, e ninguén a arranxa por engano dentro de dous meses.
+
 ## A TESE
 
 TUERCA non vai de gañar unha guerra. Non vai de derrotar a ÓPTIMA. Nin
