@@ -127,6 +127,62 @@ No arranque só actúa o segundo, porque todas as pezas do banco son
 xusto**, para que aforrar signifique algo e gastar tamén. Se dá de sobra,
 non hai decisión; se non chega, non hai escolla.
 
+### 1.c · A DÉBEDA, e non fai falla programar a regra
+
+Seis pezas a dez de chatarra: **presuposto 60**. Unha peza doutra clase
+custa máis. Se non escolles peza, entra a que corresponde por defecto.
+
+E se te pasas, **quedas en chatarra negativa**.
+
+Non hai tope que impoñer nin diálogo que bloquee. Simplemente **déixase
+baixar de cero**, e o resto xa está no código:
+
+| en débeda | que pasa | por que |
+|---|---|---|
+| infantería | **segue producíndose** | GRUNT, HEAVY, ENGINEER, SNIPER e BOMBARDERO non teñen `cost`: só `prod`, que é tempo |
+| tanque (40) · torreta (45) · muro (10) | **bloqueados** | comparan `DATA.chatarra < cost` antes de gastar |
+| chatarra recollida | **paga a débeda** | `DATA.chatarra += ganada` |
+
+Comprobáronse **todas** as lecturas de `DATA.chatarra` no código: ou
+amosan (un negativo pinta ben), ou comparan antes de gastar (bloquea,
+que é o que queremos), ou suman (paga soa). **Ningunha rompe.**
+
+Segues sendo parte de ÓPTIMA: o HQ non deixa de funcionar. O que non
+podes é mercar xoguetes ata saldar.
+
+#### Por que isto é bo, e non só cómodo
+
+**Empezas o xogo endebedado con ÓPTIMA por querer que o teu robot fose
+distinto.** Esa é a tese do xogo enteiro nun número na esquina da
+pantalla, sen unha liña de diálogo.
+
+**O precedente:** *Hardspace: Shipbreaker*. Es un traballador endebedado
+cunha corporación, todo o que rapiñas paga a débeda, e cóbranche o
+aluguer do equipo, o da vivenda, os intereses e ata o osíxeno. A empresa
+gaña igual.
+
+**E a crítica que lle fan importa máis có eloxio:** esa débeda non chega
+a ser presión real, porque non ten fin nin se pode perder por ela. Queda
+en decorado.
+
+A versión de TUERCA evítao por unha razón sinxela: **só te podes
+endebedar na primeira misión.** É unha decisión, non unha lousa. Ten
+dentes mentres dura esa operación —sen tanque, sen torreta, sen muro— e
+despois acábase. Non se converte nunha economía paralela que haxa que
+manter para sempre.
+
+#### O que hai que decidir aínda
+
+- **Canto máis custa unha peza allea.** Se 15 fronte a 10, un mesturado
+  completo son 90 e a débeda máxima 30. Se 20, son 120 e debes 60 —tanto
+  coma o presuposto enteiro—. O número decide se a decisión é un
+  pinchazo ou un compromiso, e **non sae do código: hai que xogalo**.
+- **Como se amosa un negativo.** Hoxe o HUD pon `⚙ CHATARRA: -30` sen
+  máis. Iso funciona pero non comunica: convén que se lea como débeda e
+  non como erro.
+- **Se a débeda se menciona.** ÓPTIMA cobrándoa en ficción —«axuste de
+  conta por montaxe non estándar»— vale máis ca un número vermello.
+
 ## FASE 2 · O presuposto continúa
 
 Tras a primeira batalla o personaxe entra en campaña co que sobrou, e
