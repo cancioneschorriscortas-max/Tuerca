@@ -89,15 +89,36 @@ function efxOnda(x, y, big){
    nunha batalla normal. */
 const PEZAS_TOPE = 120;
 
-/* Canto tempo queda unha peza no chan antes de esvaecer. Non quedan para
-   sempre a mantenta: nesta fase non se poden recoller, e un campo cheo de
+/* Canto tempo queda unha peza no chan antes de esvaecer. Curto a
+   mantenta: nesta fase non se poden recoller, e un campo cheo de
    chatarra permanente promete algo que non existe. */
-const PEZA_QUIETA_MIN = 2.0, PEZA_QUIETA_MAX = 4.0;
+const PEZA_QUIETA_MIN = 1.2, PEZA_QUIETA_MAX = 2.2;
 
 /* Gravidade en píxeles por segundo ao cadrado, e canto conserva un
-   rebote. O 0.32 sae de probar: máis alto e as pezas botan coma pelotas,
-   máis baixo e caen coma sacos. Son chatarra, teñen que botar UNHA vez. */
-const PEZA_GRAV = 620, PEZA_REBOTE = 0.32;
+   rebote.
+
+   ESTIVO EN 620 E ERA O ERRO GORDO. Coas velocidades que se lanzaban, o
+   apoxeo dunha peza sae de v²/2g: o corpo dun GRUNT elevaba DOUS
+   píxeles e a cabeza nove. A unidade mide vinte e dous. As pezas non
+   saltaban, esvaraban, e por iso o efecto non se apreciaba — non era
+   cuestión de estilo nin de duración.
+
+   Con 230 o mesmo lanzamento arquea corenta píxeles e tarda algo máis
+   dun segundo en caer. Iso xa é un salto que se ve. O rebote queda no
+   0.32: máis alto e botan coma pelotas, e son chatarra. */
+const PEZA_GRAV = 230, PEZA_REBOTE = 0.32;
+
+/* Teito da velocidade vertical, e fai falla. Ao baixar a gravidade sen
+   recortar os multiplicadores —que estaban calibrados para a vella—
+   unha explosión mandaba as pezas a 536 píxeles de alto e catro
+   segundos no aire. O mapa visible mide 540: a peza saía da pantalla, o
+   xogador deixaba de vela, e volvía caer moito despois. Iso non lese
+   como unha explosión, lese como un fallo de debuxo.
+
+   235 dá un apoxeo de 120 píxeles e dous segundos: alto abondo para que
+   unha bomba se distinga dun fusil, e non tanto como para perder a peza
+   de vista. */
+const PEZA_VZ_TOPE = 235;
 
 /* Que capa representa cada slot. Sae de darlle a volta a MON3D_SLOT_DE
    en vez de escribila a man: se algún día se engade unha capa, isto
@@ -119,11 +140,11 @@ const _PEZA_CAPA = (function(){
    non como un puñado de cousas saíndo dun punto. */
 const _PEZA_FORZA = {
   CABEZA:    { imp: 1.35, alto: 1.6, xiro: 9 },
-  CHASIS:    { imp: 0.55, alto: 0.7, xiro: 3 },
+  CHASIS:    { imp: 0.55, alto: 1.0, xiro: 3 },
   BRAZO_DER: { imp: 1.15, alto: 1.1, xiro: 7 },
   BRAZO_ESQ: { imp: 1.15, alto: 1.1, xiro: 7 },
-  PERNA_DER: { imp: 0.60, alto: 0.5, xiro: 4 },
-  PERNA_ESQ: { imp: 0.60, alto: 0.5, xiro: 4 },
+  PERNA_DER: { imp: 0.60, alto: 0.7, xiro: 4 },
+  PERNA_ESQ: { imp: 0.60, alto: 0.7, xiro: 4 },
 };
 
 /* ============================================================
@@ -153,8 +174,8 @@ const _PEZA_ESTILO = {
   SNIPER:     { CABEZA: 3.4, xiroCabeza: 4, resto: 0.14, alto: 0.9 },
 
   /* Explosivos: todo cara a todas partes e cara arriba. */
-  BOMBARDERO: { todo: 1.9, alto: 1.9 },
-  TANQUE:     { todo: 2.2, alto: 1.6 },
+  BOMBARDERO: { todo: 1.9, alto: 1.9, cara: 2 },
+  TANQUE:     { todo: 2.2, alto: 1.6, cara: 2 },
 
   /* Ametralladora pesada. Desfai o torso e os brazos; as pernas quedan
      onde estaban, que é o que pasa cando alguén cae acribillado. */
@@ -185,6 +206,31 @@ function _pezaFactor(est, slot){
    sácanse polo final: mellor tres pezas en dez robots que seis en cinco
    e nada nos outros cinco. */
 const _PEZA_ORDE = ['CABEZA', 'CHASIS', 'BRAZO_DER', 'BRAZO_ESQ', 'PERNA_DER', 'PERNA_ESQ'];
+
+/* ============================================================
+   PEZAS QUE VEÑEN CARA A TI.
+
+   Nunha explosión, unha ou dúas pezas non arquean contra o chan: veñen
+   dereitas á cámara. Medran, xiran e desaparecen ao pasar por diante.
+
+   É un truco vello e funciona porque a escala é o sinal de
+   profundidade máis forte que hai nun xogo plano. Un sprite que vai de
+   1x a 4x en medio segundo lese como "iso pasoume rozando" sen que
+   faga falla ningunha proxección. En arco contra o chan a mesma peza
+   despraza vinte píxeles e pérdese entre o terreo.
+
+   SÓ NAS EXPLOSIÓNS. Se o fixese cada morte, o campo sería un carrusel
+   e deixaría de significar nada: o que ten que dicir é "isto foi unha
+   BOMBA". E son unha ou dúas, non seis, porque o resto ten que seguir
+   caendo ao chan para que se vexa de onde saíron.
+
+   DEBÚXANSE POR RIBA DE TODO, ao revés cás outras. Están entre a cámara
+   e o mundo: unha peza que che vén á cara non pode quedar tapada por un
+   robot que está detrás dela. Por iso van no pase tardío de
+   efxDebuxar() e non no de antes das unidades.
+   ============================================================ */
+const PEZA_CARA_DUR = 0.55;    /* o que tarda en pasar de longo */
+const PEZA_CARA_ESC = 4.2;     /* canto medra antes de desaparecer */
 
 function efxDesmontar(u, causa){
   if(!EFX.desmontaxe || !u) return;
@@ -242,12 +288,29 @@ function efxDesmontar(u, causa){
       z: 6 + Math.random() * 6,
       vx: (rx / d) * vel + (Math.random() - 0.5) * 18,
       vy: (ry / d) * vel * 0.6 + (Math.random() - 0.5) * 14,
-      vz: 60 * f.alto * (est.alto || 1) * Math.max(0.35, mult) * (0.8 + Math.random() * 0.6),
+      vz: Math.min(PEZA_VZ_TOPE,
+            82 * f.alto * (est.alto || 1) * Math.min(2, mult) * (0.8 + Math.random() * 0.6)),
       ang: 0, vang: (Math.random() - 0.5) * f.xiro
              * (slot === 'CABEZA' && est.xiroCabeza ? est.xiroCabeza : 1),
       chan: u.y + dxy[1],
       quieta: 0, parada: PEZA_QUIETA_MIN + Math.random() * (PEZA_QUIETA_MAX - PEZA_QUIETA_MIN),
     });
+  }
+  /* As de fronte escóllense DESPOIS, entre as que xa saíron, para que
+     sexan pezas de verdade deste robot e non un adorno aparte. */
+  if(est.cara){
+    const novas = _efxPezas.slice(-cantas);
+    for(let k = 0; k < Math.min(est.cara, novas.length); k++){
+      const p = novas[Math.floor(Math.random() * novas.length)];
+      if(!p || p.cara) continue;
+      p.cara = 0;                       /* progreso de 0 a 1 */
+      p.esc = 1;
+      /* Un pouco de deriva para que non medre no sitio: unha peza que
+         se infla sen moverse lese como un erro de escala. */
+      p.dx = (Math.random() - 0.5) * 90;
+      p.dy = 30 + Math.random() * 70;   /* cara abaixo: vén ao espectador */
+      p.vang = (Math.random() - 0.5) * 7;
+    }
   }
   /* Se aínda así se pasou, van as máis vellas. */
   while(_efxPezas.length > PEZAS_TOPE) _efxPezas.shift();
@@ -261,6 +324,14 @@ function efxPezasDebuxar(g, dt){
   dt = Math.min(0.05, dt || 0.016);
 
   for(const p of _efxPezas){
+    if(p.cara !== undefined){
+      /* Vén á cámara: nin gravidade nin chan. Só medra e márchase. */
+      p.cara += dt / PEZA_CARA_DUR;
+      p.esc = 1 + (PEZA_CARA_ESC - 1) * p.cara * p.cara;   /* acelera ao achegarse */
+      p.x += p.dx * dt; p.y += p.dy * dt;
+      p.ang += p.vang * dt;
+      continue;
+    }
     if(p.z > 0 || p.vz !== 0){
       p.x += p.vx * dt; p.y += p.vy * dt;
       p.vz -= PEZA_GRAV * dt;
@@ -280,11 +351,12 @@ function efxPezasDebuxar(g, dt){
       p.quieta += dt;
     }
   }
-  _efxPezas = _efxPezas.filter(p => p.quieta < p.parada);
+  _efxPezas = _efxPezas.filter(p => (p.cara !== undefined ? p.cara < 1 : p.quieta < p.parada));
 
   const suav = ctx.imageSmoothingEnabled;
   ctx.imageSmoothingEnabled = false;
   for(const p of _efxPezas){
+    if(p.cara !== undefined) continue;    /* esas van no pase de arriba */
     /* O último medio segundo esvaece. Non desaparecen de golpe: un
        sprite que se apaga lese como que rematou, un que salta lese como
        un fallo de debuxo. */
@@ -293,6 +365,28 @@ function efxPezasDebuxar(g, dt){
     ctx.save();
     ctx.translate(p.x, p.y - p.z);
     if(p.ang) ctx.rotate(p.ang);
+    ctx.drawImage(p.im, p.sx, 0, p.sw, p.sh, p.ox, p.oy, p.sw, p.sh);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+  ctx.imageSmoothingEnabled = suav;
+}
+
+/* As que veñen de fronte, por riba de todo. Chámase desde efxDebuxar(),
+   que é o último pase do mundo. */
+function efxPezasCara(){
+  if(!_efxPezas.length) return;
+  const suav = ctx.imageSmoothingEnabled;
+  ctx.imageSmoothingEnabled = false;
+  for(const p of _efxPezas){
+    if(p.cara === undefined) continue;
+    /* Esváese no último terzo: unha peza que desaparece de golpe a
+       catro aumentos lese como un fallo de debuxo. */
+    ctx.globalAlpha = p.cara > 0.66 ? Math.max(0, (1 - p.cara) / 0.34) : 1;
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.ang);
+    ctx.scale(p.esc, p.esc);
     ctx.drawImage(p.im, p.sx, 0, p.sw, p.sh, p.ox, p.oy, p.sw, p.sh);
     ctx.restore();
   }
@@ -319,6 +413,11 @@ function efxFocos(){
    Chámase ao final de draw(), por riba de todo. */
 function efxDebuxar(g, dt){
   dt = Math.min(0.05, dt || 0.016);
+
+  /* Pezas que veñen á cámara: primeiro de todo o pase tardío, para que
+     queden por riba do mundo pero por baixo das ondas e das marcas, que
+     son lectura pura. */
+  try{ efxPezasCara(); }catch(e){ console.error('[pezas cara]', e); }
 
   /* --- Ondas de choque --- */
   for(const o of _efxOndas){
