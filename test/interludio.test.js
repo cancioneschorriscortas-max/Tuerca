@@ -370,3 +370,25 @@ proba('o interludio de arranque deixa escoller idioma', () => {
   afirmar(/tramo === 'ARRANQUE'/.test(js),
     'o selector de idioma ten que saír SÓ no arranque, non nos quince interludios');
 });
+
+proba('o presuposto do primeiro día chega aínda coa partida a medio empezar', () => {
+  /* O fallo real: montaxePrimeiroDia() dicía que si —non hai operacións
+     nin roster— e primeiroDiaPreparar() dicía que non, porque adiviñaba
+     mirando se xa había pezas. Cunha partida a medio empezar as dúas
+     discrepaban e cobrábase a prezo de primeiro día CON PRESUPOSTO CERO:
+     o xogador vía "DEBES 70" tendo dereito a 90.
+
+     Dúas condicións que teñen que coincidir non poden saír de dous
+     cálculos distintos. */
+  const S = cargarXogo();
+  const D = S.aval('DATA');
+  D.opCount = 0; D.units = []; D.chatarra = 0; D.marcas = {};
+  D.piezas = [{id: 'x', tipo: 'CABEZA', deCls: 'GRUNT'}];   /* restos dun intento anterior */
+
+  afirmar(S.aval('primeiroDiaPreparar')() === true,
+    'con restos dun intento anterior deixou de repartir o presuposto');
+  afirmar(D.chatarra === S.aval('PRIMEIRO_PRESUPOSTO'),
+    `o presuposto quedou en ${D.chatarra}`);
+  afirmar(S.aval('primeiroDiaPreparar')() === false,
+    'repartiu o presuposto dúas veces');
+});

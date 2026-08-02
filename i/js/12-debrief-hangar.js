@@ -1481,12 +1481,22 @@ async function bautizoObrigatorio(rec){
   return rec.name;
 }
 
-/* O primeiro día: banco de pezas e presuposto. Chámase antes de abrir o
-   taller, e só unha vez —se xa hai pezas ou chatarra, algo pasou antes e
-   non se pisa. */
+/* O primeiro día: banco de pezas e presuposto.
+
+   ANÓTASE, NON SE ADIVIÑA. A versión anterior deducía se xa se
+   preparara mirando se había pezas ou chatarra, e iso rompía cunha
+   partida a medio empezar: montaxePrimeiroDia() dicía que si —non hai
+   operacións nin roster— pero preparar dicía que non, e cobrábase a
+   prezo de primeiro día CON PRESUPOSTO CERO. O xogador vía "DEBES 70"
+   tendo dereito a 90.
+
+   Dúas condicións que teñen que coincidir non poden saír de dous
+   cálculos distintos. Agora hai unha marca e as dúas mírana. */
 function primeiroDiaPreparar(){
   if(!montaxePrimeiroDia()) return false;
-  if((DATA.piezas || []).length || (DATA.chatarra || 0) !== 0) return false;
+  DATA.marcas = DATA.marcas || {};
+  if(DATA.marcas.diaUn) return false;          /* xa se repartiu */
+  DATA.marcas.diaUn = true;
   DATA.piezas = bancoPrimeiroDia();
   DATA.chatarra = PRIMEIRO_PRESUPOSTO;
   return true;
