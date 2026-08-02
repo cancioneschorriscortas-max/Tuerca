@@ -1218,7 +1218,7 @@ function showReconstruir(iaIdx){
       <b>${pezaLabel(s.slot).toUpperCase()}</b>:
       <select data-slot="${s.slot}" style="background:#111; color:#cfe0ff; border:1px solid #555; font-family:inherit;">
         <option value="">— Recambio xenérico (+${RECON_RECAMBIO}⚙) —</option>
-        ${opcions.map(p=>`<option value="${p.id}">${PEZA_LABEL[p.tipo]} de ${p.deNome} (${p.deCls})</option>`).join('')}
+        ${opcions.map(p=>`<option value="${p.id}">${PEZA_LABEL[p.tipo]} ${p.nova ? '' : 'de ' + p.deNome + ' '}(${p.deCls})</option>`).join('')}
       </select>
     </div>`;
   }
@@ -1266,6 +1266,71 @@ function showReconstruir(iaIdx){
 
 /* (v0.28) MONTAXE DESDE CERO — robot novo no taller, IA en branco.
    Reutiliza o pipeline do Reconstructor: ocupa o taller 1 op e entrégase en endBattle. */
+/* ============================================================
+   O PRIMEIRO DÍA.
+
+   Na primeira partida non se monta cun puñado de restos rapiñados:
+   dáseche un BANCO completo de pezas base e un presuposto, e a primeira
+   decisión do xogo é económica.
+
+     estándar   unha peza da mesma clase có chasis .... 10
+     allea      unha peza doutra clase ................ 20
+     presuposto ............................ 90
+
+   Son sete ocos (os seis que se debuxan máis o núcleo), así que:
+
+     todo estándar ..... 70   +20   e o troco vai contigo
+     1 allea ........... 80   +10
+     2 alleas .......... 90     0   <- o equilibrio
+     7 alleas .......... 140  -50
+
+   O EQUILIBRIO EN DÚAS É O IMPORTANTE: unha desviación pequena non custa
+   nada —un brazo e unha cabeza doutra clase, que ademais é o que máis se
+   nota— e o que se paga é COMPROMETERSE.
+
+   E se te pasas quedas en NEGATIVO. Non hai que impoñer ningún tope: as
+   cinco clases de infantería non custan chatarra, só tempo, así que o HQ
+   segue producindo tropa; o que non podes é mercar tanque (40), torreta
+   (45) nin muro (10) ata saldar. Segues sendo de ÓPTIMA. O que non tes é
+   crédito.
+
+   A xustificación en ficción non hai que escribila en ningures: a liña
+   de ÓPTIMA está optimizada para montaxes estándar, e unha mestura pide
+   recalibración. A empresa fai que saia caro ser distinto.
+   ============================================================ */
+const PRIMEIRO_PRESUPOSTO = 90;
+const PEZA_ESTANDAR = 10, PEZA_ALLEA = 20;
+
+/* O banco do primeiro día: unha peza de cada clase para cada oco. Non
+   teñen doador —son material de fábrica, non restos— e por iso levan
+   `nova`, que é o que fai que se etiqueten pola clase e non por un nome
+   que non existe. */
+function bancoPrimeiroDia(){
+  const pezas = [];
+  let n = 1;
+  for(const s of RECON_SLOTS){
+    for(const cls of Object.keys(CLS)){
+      pezas.push({ id: 'b' + (n++), tipo: s.acepta[0], deCls: cls,
+                   deNome: null, nova: true, act: 100 });
+    }
+  }
+  return pezas;
+}
+
+/* ¿Estamos no primeiro día? Mesmo criterio que o dos interludios: sen
+   operacións e sen ninguén no roster. */
+function montaxePrimeiroDia(){
+  return (DATA.opCount || 0) === 0 && !(DATA.units || []).length;
+}
+
+/* O que custa unha peza no primeiro día. Fóra del vale o modelo de
+   sempre, que cobra polo RECAMBIO XENÉRICO e non pola mestura: alí as
+   pezas son túas porque as recuperaches. */
+function prezoPeza(peza, clsChasis){
+  if(!peza) return PEZA_ESTANDAR;      /* oco baleiro: entra a de serie */
+  return peza.deCls === clsChasis ? PEZA_ESTANDAR : PEZA_ALLEA;
+}
+
 const MONTAXE_COST = 60;
 function showMontaxe(){
   if(DATA.reconstruccion) return;
@@ -1278,34 +1343,48 @@ function showMontaxe(){
     body += `<div style="padding:5px 0; border-bottom:1px solid #333;">
       <b>${pezaLabel(s.slot).toUpperCase()}</b>:
       <select data-slot="${s.slot}" style="background:#111; color:#cfe0ff; border:1px solid #555; font-family:inherit;">
-        <option value="">— Recambio xenérico (+${RECON_RECAMBIO}⚙) —</option>
-        ${opcions.map(p=>`<option value="${p.id}">${PEZA_LABEL[p.tipo]} de ${p.deNome} (${p.deCls})</option>`).join('')}
+        <option value="">${_pd ? TXT('mt.diaUnSerie', {e: PEZA_ESTANDAR}) : `— Recambio xenérico (+${RECON_RECAMBIO}⚙) —`}</option>
+        ${opcions.map(p=>`<option value="${p.id}">${PEZA_LABEL[p.tipo]} ${p.nova ? '' : 'de ' + p.deNome + ' '}(${p.deCls})</option>`).join('')}
       </select>
     </div>`;
   }
   body += VISTA_HTML;
   body += `<div style="margin-top:12px;"><b id="montTotal" style="color:#c8a86a;"></b> <span id="montCls" style="color:#7fdc7f;"></span></div>
   <div style="margin-top:8px;">
-    <button class="bio-btn" id="montConfirm" style="color:#7fdc7f; border-color:#7fdc7f;">▸ ENSAMBLAR (ocupa o taller 1 operación)</button>
+    <button class="bio-btn" id="montConfirm" style="color:#7fdc7f; border-color:#7fdc7f;">${_pd ? TXT('mt.diaUnBoton') : '▸ ENSAMBLAR (ocupa o taller 1 operación)'}</button>
     <button class="bio-btn" id="montBack">◂ volver</button>
   </div>`;
   fondoModal('taller');
   $('bioTitle').innerHTML = `⚒ MONTAXE DESDE CERO`;
   $('bioBody').innerHTML = body;
   $('bioModal').style.display = 'flex';
+  const primeiro = montaxePrimeiroDia();
   const calc = () => {
-    let total = MONTAXE_COST, clsPreview = 'GRUNT';
+    let clsPreview = 'GRUNT';
+    /* A clase sae do CHASIS, e hai que sabela ANTES de poder cobrar: o
+       prezo dunha peza depende de se casa con ela. Por iso vai en dúas
+       pasadas e non nunha. */
     $('bioBody').querySelectorAll('select[data-slot]').forEach(sel => {
-      if(!sel.value){ total += RECON_RECAMBIO; return; }
-      if(sel.dataset.slot === 'CHASIS'){
-        const p = pzs.find(x => x.id === sel.value);
-        if(p && CLS[p.deCls]) clsPreview = p.deCls;
-      }
+      if(sel.dataset.slot !== 'CHASIS' || !sel.value) return;
+      const p = pzs.find(x => x.id === sel.value);
+      if(p && CLS[p.deCls]) clsPreview = p.deCls;
     });
-    $('montTotal').textContent = `TOTAL: ${total}⚙` + (total > (DATA.chatarra||0) ? '  — CHATARRA INSUFICIENTE' : '');
+    let total = primeiro ? 0 : MONTAXE_COST;
+    $('bioBody').querySelectorAll('select[data-slot]').forEach(sel => {
+      const p = sel.value ? pzs.find(x => x.id === sel.value) : null;
+      if(primeiro){ total += prezoPeza(p, clsPreview); return; }
+      if(!p) total += RECON_RECAMBIO;
+    });
+    /* NO PRIMEIRO DÍA NON SE BLOQUEA POR NON CHEGAR. Podes gastar máis do
+       que tes e quedar a deber: iso é a decisión, non un erro. Fóra do
+       primeiro día segue mandando o tope de sempre. */
+    const falta = total - (DATA.chatarra || 0);
+    $('montTotal').textContent = `TOTAL: ${total}⚙`
+      + (primeiro ? (falta > 0 ? `  — QUEDAS A DEBER ${falta}⚙` : `  — SÓBRANCHE ${-falta}⚙`)
+                  : (falta > 0 ? '  — CHATARRA INSUFICIENTE' : ''));
     $('montCls').textContent = `→ clase: ${clsPreview}`;
-    $('montConfirm').disabled = total > (DATA.chatarra||0);
-    $('montConfirm').style.opacity = total > (DATA.chatarra||0) ? 0.4 : 1;
+    $('montConfirm').disabled = !primeiro && falta > 0;
+    $('montConfirm').style.opacity = (!primeiro && falta > 0) ? 0.4 : 1;
     /* Aquí a clase decídea o CHASIS, así que a vista cambia ao trocalo. */
     pintarVistaMontaxe(clsPreview);
     return {total, clsPreview};
@@ -1315,7 +1394,7 @@ function showMontaxe(){
   $('montBack').addEventListener('click', () => showDespiece());
   $('montConfirm').addEventListener('click', async () => {
     const {total, clsPreview} = calc();
-    if(total > (DATA.chatarra||0)) return;
+    if(!primeiro && total > (DATA.chatarra||0)) return;
     const usadas = {};
     $('bioBody').querySelectorAll('select[data-slot]').forEach(sel => {
       if(sel.value){
@@ -1335,11 +1414,69 @@ function showMontaxe(){
       confianza: 38 + Math.floor(Math.random() * 8),
       activity: {dist:0, shots:0, kills:0, dmgTaken:0, caps:0, veh:0},
     };
+    if(primeiro){
+      /* NO PRIMEIRO DÍA ENTRÉGASE NO ACTO. O taller ocupa unha operación
+         porque estás a reconstruír mentres a guerra segue; aquí non hai
+         guerra aínda, e mandar ao xogador a unha batalla sen o robot que
+         acaba de montar sería absurdo. */
+      rec.montaxe = montaxeCrua(Object.values(usadas));
+      rec.desdeCero = true;
+      DATA.units.push(rec);
+      await saveData(DATA);
+      sfx('order_confirm');
+      /* E aquí vén o momento. O bautizo NON é opcional. */
+      if(typeof bautizoObrigatorio === 'function') await bautizoObrigatorio(rec);
+      await showHangar();
+      return;
+    }
     DATA.reconstruccion = { rec, pezas: usadas, encargadaOp: DATA.opCount, sinergia: rollSinerxia(usadas), desdeCero: true };
     sfx('order_confirm');
     await saveData(DATA);
     showDespiece();
   });
+}
+
+/* ============================================================
+   O BAUTIZO.
+
+   ÓPTIMA non pon nomes: pon números. Un número recíclase; un nome non.
+   Por iso o xogo pide un nome UNHA soa vez e non deixa seguir sen el —
+   non é un formulario, é o primeiro acto de rebeldía, e un acto que se
+   pode saltar non é un acto.
+
+   Insiste ata que haxa algo. Non se acepta baleiro nin o número de
+   fábrica, porque non poñer nome É a resposta de ÓPTIMA.
+   ============================================================ */
+async function bautizoObrigatorio(rec){
+  const orixinal = rec.name;
+  for(let intento = 0; intento < 20; intento++){
+    let posto = null;
+    try{ posto = prompt(TXT('bau.pide', {id: rec.id}), ''); }catch(e){ break; }
+    const limpo = (posto || '').trim().toUpperCase().slice(0, 14);
+    if(limpo && limpo !== rec.id && limpo !== orixinal){
+      rec.name = limpo;
+      DATA.marcas = DATA.marcas || {};
+      if(DATA.marcas.primeiroNome === undefined) DATA.marcas.primeiroNome = DATA.opCount || 0;
+      try{ if(typeof diarioEixos === 'function') diarioEixos({apego: 1}); }catch(e){}
+      await saveData(DATA);
+      return limpo;
+    }
+  }
+  /* Vinte intentos. Se alguén se empeña en non poñer nome, non se lle
+     bloquea o xogo: queda coa designación de fábrica, que xa é unha
+     resposta e ademais é a de ÓPTIMA. */
+  return rec.name;
+}
+
+/* O primeiro día: banco de pezas e presuposto. Chámase antes de abrir o
+   taller, e só unha vez —se xa hai pezas ou chatarra, algo pasou antes e
+   non se pisa. */
+function primeiroDiaPreparar(){
+  if(!montaxePrimeiroDia()) return false;
+  if((DATA.piezas || []).length || (DATA.chatarra || 0) !== 0) return false;
+  DATA.piezas = bancoPrimeiroDia();
+  DATA.chatarra = PRIMEIRO_PRESUPOSTO;
+  return true;
 }
 
 /* De pezas escollidas a montaxe. Úsase en dous sitios —a vista previa
@@ -1963,5 +2100,12 @@ $('bioModal').addEventListener('click', e=>{ if(e.target.id==='bioModal') $('bio
 /* (v0.99) O primeiro día ten guión, e vai ANTES do hangar. Se non é o
    primeiro día, interludioArranque chama a showHangar sen máis, así que
    isto segue facendo o de sempre en calquera outra partida. */
-if(typeof interludioArranque === 'function') interludioArranque(showHangar);
-else showHangar();
+if(typeof interludioArranque === 'function'){
+  /* O guión do primeiro día: ÓPTIMA dá a benvida, e ao pechar ábrese o
+     taller co banco e o presuposto xa postos. Se non é o primeiro día,
+     primeiroDiaPreparar devolve false e vaise ao hangar de sempre. */
+  interludioArranque(() => {
+    if(primeiroDiaPreparar()){ showHangar().then(() => showMontaxe()); }
+    else showHangar();
+  });
+} else showHangar();
