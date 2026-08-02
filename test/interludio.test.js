@@ -371,6 +371,43 @@ proba('o interludio de arranque deixa escoller idioma', () => {
     'o selector de idioma ten que saír SÓ no arranque, non nos quince interludios');
 });
 
+proba('primeiro día: o banco sobrevive á carga de partida', async () => {
+  /* ISTO É UNHA REGRESIÓN REAL, e das caras. showHangar() fai
+     `DATA = await loadData()`: SUBSTITÚE o obxecto DATA enteiro. Como o
+     arranque preparaba o primeiro día ANTES de chamalo, o banco e o
+     presuposto poñíanse nun obxecto que a liña seguinte tiraba, e o
+     xogador atopaba o taller con PRESUPOSTO 0, sen unha soa peza nos
+     desplegables, e cobrándolle igual.
+
+     Non o colleu ningunha proba porque todas chamaban a preparar DESPOIS
+     de asentar(), que xa fixera a carga: probaban a orde boa mentres o
+     xogo corría a mala. Isto proba as dúas. */
+  const S = await cargarXogo();
+  await asentar();
+  const D = S.aval('DATA');
+  D.opCount = 0; D.units = []; D.piezas = []; D.chatarra = 0;
+
+  S.aval('primeiroDiaPreparar')();
+  S.aval('DATA = freshData()');            /* <- o que fai loadData */
+  afirmar((S.aval('DATA').piezas || []).length === 0,
+    'preparar antes da carga pérdese: iso era o fallo');
+
+  S.aval('primeiroDiaPreparar')();          /* <- a orde correcta */
+  afirmar(S.aval('DATA').chatarra === 90, 'presuposto tras a carga');
+  afirmar(S.aval('DATA').piezas.length === 35, 'banco enteiro tras a carga');
+});
+
+/* E que o arranque siga a orde boa: preparar DENTRO do then de
+   showHangar, nunca antes. Léese o fonte porque o que se protexe é
+   literalmente unha orde de dúas liñas. */
+proba('primeiro día: o arranque prepara despois de showHangar', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'i', 'js', '99-boot.js'), 'utf8');
+  const iH = src.indexOf('showHangar');
+  const iP = src.indexOf('primeiroDiaPreparar()');
+  afirmar(iH > -1 && iP > iH,
+    'primeiroDiaPreparar ten que ir despois de showHangar: antes, a carga bórrao');
+});
+
 proba('o presuposto do primeiro día chega aínda coa partida a medio empezar', () => {
   /* O fallo real: montaxePrimeiroDia() dicía que si —non hai operacións
      nin roster— e primeiroDiaPreparar() dicía que non, porque adiviñaba

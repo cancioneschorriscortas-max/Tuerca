@@ -77,17 +77,25 @@ catch(e){ console.error('[boot estado]', e); }
    e isto non se nota.
    ============================================================ */
 (function arrancarXogo(){
-  const aoHangar = () => {
-    if(typeof primeiroDiaPreparar === 'function' && primeiroDiaPreparar()){
-      Promise.resolve(showHangar()).then(() => {
-        /* Primeiro a escolla de clase, e o taller despois. */
-        if(typeof escollaClaseAberta === 'function') escollaClaseAberta();
-        else if(typeof showMontaxe === 'function') showMontaxe();
-      });
-    } else {
-      showHangar();
-    }
-  };
+  /* A ORDE IMPORTA E CUSTOU ATOPALA. showHangar() fai
+   `DATA = await loadData()`, é dicir SUBSTITÚE o obxecto DATA enteiro.
+
+     Preparábase o primeiro día ANTES de chamalo, así que o banco e o
+     presuposto poñíanse nun DATA que a liña seguinte tiraba ao lixo. O
+     taller abríase cun DATA recén cargado: presuposto 0 e desplegables
+     sen unha soa peza, mentres seguía cobrando a prezo de primeiro día.
+
+     Funcionaba no arnés de probas porque alí chamábase despois de
+     asentar(), que xa fixera a carga. O erro só existía no xogo. */
+  const aoHangar = () => Promise.resolve(showHangar()).then(async () => {
+    if(typeof primeiroDiaPreparar !== 'function') return;
+    if(!primeiroDiaPreparar()) return;
+    /* E gárdase de contado: se o xogador pecha a pestana entre o reparto
+       e a montaxe, o banco ten que seguir aí ao volver. */
+    try{ await saveData(DATA); }catch(e){ console.error('[primeiro día]', e); }
+    if(typeof escollaClaseAberta === 'function') escollaClaseAberta();
+    else if(typeof showMontaxe === 'function') showMontaxe();
+  });
   if(typeof interludioArranque === 'function') interludioArranque(aoHangar);
   else aoHangar();
 })();
