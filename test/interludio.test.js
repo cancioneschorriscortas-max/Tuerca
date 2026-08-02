@@ -307,3 +307,29 @@ proba('hai un retrato por clase e chegan ás dúas vías de publicación', () =>
     afirmar(!culpable, `firebase.json exclúe ${rel} co patrón "${culpable}"`);
   }
 });
+
+proba('o taller do primeiro día ábrese e conta o sistema que usa', async () => {
+  /* ESTA PROBA EXISTE POR UN FALLO CONCRETO. A pantalla usaba unha
+     variable que non estaba declarada —quedaron os usos sen a
+     declaración despois dun parche a medias— e petaba con
+     "ReferenceError: _pd is not defined" ao abrila.
+
+     As 133 probas pasaban igual, porque NINGUNHA CHAMABA A showMontaxe.
+     Comprobaban a aritmética do prezo e o estado do primeiro día, pero
+     non abrían a pantalla. Unha pantalla que ninguén abre é unha
+     pantalla que ninguén sabe se funciona. */
+  const S = cargarXogo();
+  await asentar();
+  const D = S.aval('DATA');
+  D.opCount = 0; D.units = []; D.piezas = []; D.chatarra = 0; D.reconstruccion = null;
+  S.aval('primeiroDiaPreparar')();
+
+  S.aval('showMontaxe')();
+  const h = S.document.getElementById('bioBody').innerHTML;
+
+  afirmar(h.length > 100, 'o taller do primeiro día non pintou nada');
+  afirmar(/PRESUPOSTO|PRESUPUESTO|BUDGET/i.test(h),
+    'non fala do presuposto, que é a decisión do primeiro día');
+  afirmar(!/recambio xen/i.test(h),
+    'segue contando o modelo vello de recambio xenérico');
+});

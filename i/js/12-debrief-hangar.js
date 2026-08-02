@@ -1335,7 +1335,15 @@ const MONTAXE_COST = 60;
 function showMontaxe(){
   if(DATA.reconstruccion) return;
   const pzs = DATA.piezas || [];
-  let body = `<div class="small" style="margin-bottom:8px;">Robot NOVO ensamblado no taller. Custo base ${MONTAXE_COST}⚙ · recambio xenérico +${RECON_RECAMBIO}⚙ por slot baleiro.<br>
+  /* A pantalla ten que explicar O SISTEMA QUE ESTÁ A USAR. No primeiro
+     día non hai recambio xenérico nin taller ocupado: hai un banco, un
+     presuposto e un prezo por saírse do estándar. Contar o outro sería
+     mentir na primeira pantalla que le o xogador. */
+  const _pd = montaxePrimeiroDia();
+  let body = _pd
+    ? `<div class="small" style="margin-bottom:8px;">${TXT('mt.diaUnDesc', {e: PEZA_ESTANDAR, a: PEZA_ALLEA})}</div>
+  <div class="small" style="color:#c8a86a; margin-bottom:10px;">${TXT('mt.diaUnPres', {n: DATA.chatarra||0})}</div>`
+    : `<div class="small" style="margin-bottom:8px;">Robot NOVO ensamblado no taller. Custo base ${MONTAXE_COST}⚙ · recambio xenérico +${RECON_RECAMBIO}⚙ por slot baleiro.<br>
     <b>O CHASIS decide a clase</b> (recambio xenérico = GRUNT). IA en branco: nome novo, sen memorias, confianza baixa (~40). As pezas achegan herdanza de experiencia e habilidades cruzadas — tropas especiais por confianza.</div>
   <div class="small" style="color:#c8a86a; margin-bottom:10px;">⚙ CHATARRA: <b>${DATA.chatarra||0}</b></div>`;
   for(const s of RECON_SLOTS){
