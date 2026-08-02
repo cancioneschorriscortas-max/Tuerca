@@ -70,24 +70,86 @@ nomear activa algo que xa estaba alí. Como se dixese:
 
 > *Agora teño algo que perder.*
 
+## POR QUE TI
+
+O documento respondía que é o Espertar, que é TUERCA, que fai ÓPTIMA e
+por que segue existindo o firmware. **Non respondía por que es ti.**
+
+Non es o primeiro robot que esperta: iso xa pasou. Tampouco es TUERCA.
+
+**Es o primeiro robot ao que alguén decide poñerlle nome.**
+
+O matiz é todo: **non es especial porque espertes. Es especial porque
+alguén aposta por ti.**
+
+### O nome escríbeo el
+
+Empeza a partida. O taller. Montas un robot. Todo normal. E entón 07K
+di algo así:
+
+> «Necesito que me axudes.»
+
+Non «necesito un soldado». Non «necesito un heroe». Só:
+
+> «Necesito que lembres.»
+
+Despois chega a pantalla do nome. E **o nome escríbeo el no caderno. Non
+ti.** Porque un nome escrito no Diario **xa non se pode borrar**.
+
+Iso cambia a escena enteira: non estás enchendo un formulario, **estás
+vendo como alguén che concede unha identidade**.
+
+E de aí sae a idea que sostén todo: **os robots non se nomean sós. Nómeaos
+outro. Igual cás persoas.** Por iso o nome pesa.
+
+*(A imaxe do PRIMEIRO NOME xa amosa isto sen que ninguén o decidise: hai
+unha **man de robot suxeitando a pluma**, escribindo «R-09 → CROMO» no
+Rexistro de Arquiveiros. Nunca foi a man do xogador.)*
+
+### Por que te escolle
+
+Non porque sexas especial. **Porque es o seguinte.**
+
+07K sabe que non vai durar. Necesita alguén que continúe. Pero **aínda
+non sabe se es ti**.
+
+Iso dá a relación de toda a campaña: **07K obsérvate. Non para ver se
+gañas. Para ver se lembras.**
+
+## ÓPTIMA chámache comandante. El chámate polo teu nome.
+
+O xogo xa te chama «comandante» vinte e tres veces. **Non hai que
+cambiar ningunha.** Pasan a significar algo:
+
+| | como te chama | |
+|---|---|---|
+| ÓPTIMA | comandante | é a túa **función** |
+| 07K | polo teu nome | es **alguén** |
+
+É a mesma dobre lingua que «incidencia» fronte a «espertou».
+
+### E ti tamén podes borrar
+
+A liña do memorial xa existe e di:
+
+> «DESMANTELADO POR ORDE DO COMANDANTE. **A súa IA foi borrada.**»
+
+Se es o primeiro robot con nome, **es tamén o único que pode quitarlle o
+nome a outro**. Fas exactamente o que fai ÓPTIMA, coa mesma palabra.
+
+Iso non é unha contradición: **é o que explica a folga**. Cando
+desmantelas un camarada, os demais négan-se a despregar. Sempre pareceu
+unha mecánica de moral. Deixa de selo: **acaban de ver como o que ten
+nome llo quita a alguén.**
+
 ## O nacemento do arquiveiro
 
-Volves da primeira misión. Morreu alguén, ou non. **Dá igual.**
+**Primeiro as pegadas. Despois quen as deixa.**
 
-Hai un robot que non estaba antes. Está a escribir.
+Volves da primeira misión. Morreu alguén, ou non. Dá igual.
 
-Preguntáslle que fai. Responde:
-
-> «Non quero esquecelo.»
-
-Non sabes quen é. Non sabes por que escribe. Simplemente escribe.
-
-E aí nace **TUERCA 01A**. Non porque alguén o escollese, senón porque
-alguén tiña que lembrar.
-
-### Lembra un baleiro, non unha persoa
-
-Esta é a liña, e é o centro de todo:
+Non hai ninguén. Só **un caderno novo enriba da mesa**, cunha páxina
+escrita:
 
 > «Hoxe esquecín algo.»
 > «Non sei o que era.»
@@ -96,6 +158,12 @@ Esta é a liña, e é o centro de todo:
 **O primeiro diario non nace de lembrar. Nace do medo a esquecer.** É
 unha reacción ao `wipe_memory()`, non un poder. Ninguén foi elixido:
 alguén notou que lle faltaba algo.
+
+Moito despois —cinco operacións, ou as que sexan— **ves ao arquiveiro
+por primeira vez**. E dis: *ah. Era el.*
+
+TUERCA funciona mellor cando **primeiro descobres as pegadas e despois
+coñeces a quen as deixa**.
 
 ## Quen é TUERCA
 
@@ -106,6 +174,18 @@ Non é un robot especial. Non é un elixido. Non é un heroe.
 Cando morre, outro continúa o diario. **Non herda a memoria: herda o
 caderno.** Non son clons, non son a mesma IA, non son o mesmo. Son **o
 mesmo oficio**.
+
+### O Diario non é dos arquiveiros
+
+**Pertence aos que teñen nome.** Os arquiveiros só son os seus gardiáns.
+
+O traballo de 07K non é escribir a súa historia: é asegurarse de que a
+túa —a de CROMO, a de MARTELO, a de calquera dos teus veteranos— **non
+desapareza xamais**.
+
+Iso fai de TUERCA alguén humilde. **Non escribe para que o lembren a el.
+Escribe para que non esquezan a ninguén máis.** É o heroe silencioso, e
+é o único tipo de heroe que cabe neste mundo.
 
 ### Dúas continuidades, e son distintas
 
@@ -157,9 +237,24 @@ E a última liña:
 
 > «Necesito outro TUERCA.»
 
-E entón o xogo entende quen escribiu todas esas páxinas. Non era un
-narrador omnisciente. Eran **sete robots distintos intentando que
-ninguén desaparecese de todo**.
+E ti pensas: vai aparecer outro robot.
+
+**A escena seguinte é o teu personaxe.** Entrando só no Arquivo. Ve o
+caderno. Ábreo. A última páxina, baleira.
+
+Colle a pluma.
+
+Fundido.
+
+Non fai falla dicir nada. **Ti es 08M** — non porque alguén te nomease,
+senón porque **decidiches seguir escribindo**.
+
+E aí o xogo enteiro faise circular: **nunca estiveches a ler un libro.
+Estabas a ler o caderno que acabarás herdando.**
+
+E entendes tamén quen escribiu todas esas páxinas. Non era un narrador
+omnisciente. Eran **sete robots distintos intentando que ninguén
+desaparecese de todo**.
 
 ---
 
@@ -175,8 +270,29 @@ ninguén desaparecese de todo**.
 
 ## O que este documento non resolve
 
-- Como aparece fisicamente o arquiveiro tras a primeira misión. É unha
-  pantalla que non existe.
-- Se 07K é quen escribe os interludios que xa están no xogo. Encaixaría,
-  pero non está dito en ningures.
-- O final está descrito, non deseñado. Non hai condición que o dispare.
+**A grande, e é de deseño e non de historia: ¿o teu personaxe pode
+morrer?**
+
+Hoxe despregas ata tres veteranos e produces máis. Se o robot que 07K
+nomeou é unha unidade no campo, pode caer coma calquera — e entón o xogo
+ten un risco que ningún RTS ten. Se non pode caer, é unha mascota e a
+aposta de 07K non custa nada.
+
+Hai unha terceira vía: **pode morrer, e o xogo segue.** 07K apostou por
+ti e perdeu, e o diario recólleo. Non es imprescindible: **es o primeiro,
+non o elixido.** Encaixa con que aquí non hai heroes. Pero rompe o final
+circular, que necesita que chegues vivo ao Arquivo.
+
+Sen decidir.
+
+Outras:
+
+- **A pantalla do caderno sobre a mesa** tras a primeira misión non
+  existe. É a única peza nova de verdade do arranque.
+- **Cando aparece o arquiveiro en persoa.** «Cinco operacións» é un
+  número posto a ollo.
+- **Se 07K asina os interludios que xa están no xogo.** Encaixaría —a
+  voz de TUERCA que xa alterna con ÓPTIMA sería a súa— e non custaría
+  nada, pero cambia como se len as quince pezas xa escritas.
+- **O final está descrito, non deseñado.** Non hai condición que o
+  dispare, e é o momento máis importante do xogo.
