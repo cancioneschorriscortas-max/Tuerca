@@ -278,6 +278,9 @@ function interludioAmosar(it, remate){
    momento no que o xogador acaba de abrir o xogo por primeira vez. */
 function interludioPrimeiroDia(){
   if(typeof DATA === 'undefined') return false;
+  /* Mesma garda que a montaxe: sen ela o laboratorio de ÓPTIMA volvía
+     saír cada vez que quedabas sen robots. */
+  if(typeof aperturaFeita === 'function' && aperturaFeita()) return false;
   return (DATA.opCount || 0) === 0 && !(DATA.units || []).length;
 }
 

@@ -1324,8 +1324,25 @@ function bancoPrimeiroDia(){
 
 /* ¿Estamos no primeiro día? Mesmo criterio que o dos interludios: sen
    operacións e sen ninguén no roster. */
+/* E A APERTURA NON SE REPITE. Definir o primeiro día só como "cero
+   operacións e ninguén no roster" abría un burato: se perdías o teu
+   único robot antes de rematar unha operación volvías cumprir as dúas
+   condicións, e o xogo repetíache o laboratorio, o selector de clase e o
+   reparto de 90⚙ como se acabases de instalalo. Perdías a campaña sen
+   que ninguén cha borrase.
+
+   A marca boa non é "xa repartín" —esa foi a que fallou antes, porque
+   quedaba posta de intentos a medias— senón "XA BAUTIZASTE O TEU
+   PRIMEIRO ROBOT". Non se pon ata que hai un nome escrito, así que
+   pechar o taller a medias devólveche o banco; pero unha vez que
+   bautizaches, a apertura rematou para sempre pase o que pase despois.
+
+   Compárase con undefined a mantenta: no primeiro día vale 0. */
+function aperturaFeita(){
+  return !!(DATA.marcas && DATA.marcas.primeiroNome !== undefined);
+}
 function montaxePrimeiroDia(){
-  return (DATA.opCount || 0) === 0 && !(DATA.units || []).length;
+  return (DATA.opCount || 0) === 0 && !(DATA.units || []).length && !aperturaFeita();
 }
 
 /* O que custa unha peza no primeiro día. Fóra del vale o modelo de

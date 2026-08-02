@@ -371,6 +371,29 @@ proba('o interludio de arranque deixa escoller idioma', () => {
     'o selector de idioma ten que saír SÓ no arranque, non nos quince interludios');
 });
 
+proba('a apertura non se repite ao quedar sen robots', async () => {
+  /* REGRESIÓN REAL, e das que borran unha partida. O primeiro día
+     definíase só como "cero operacións e ninguén no roster". Se perdías o
+     teu único robot antes de rematar unha operación volvías cumprir as
+     dúas condicións e o xogo repetía o laboratorio, o selector de clase e
+     o reparto de 90⚙ como se acabases de instalalo: a campaña empezaba de
+     novo sen que ninguén cha borrase. */
+  const S = await cargarXogo();
+  await asentar();
+  const D = S.aval('DATA');
+  D.opCount = 0; D.units = []; D.piezas = []; D.chatarra = 0; D.marcas = {};
+  afirmar(S.aval('montaxePrimeiroDia')(), 'nunha instalación nova si é o primeiro día');
+  afirmar(S.aval('interludioPrimeiroDia')(), 'e o laboratorio ten que saír');
+
+  /* Bautizaches o teu primeiro robot: a apertura rematou. */
+  S.aval('DATA').marcas.primeiroNome = 0;
+  S.aval('DATA').units = [];      /* e despois morreron todos */
+  S.aval('DATA').opCount = 0;     /* sen chegar a rematar unha operación */
+  afirmar(!S.aval('montaxePrimeiroDia')(), 'quedar sen robots non devolve ao primeiro día');
+  afirmar(!S.aval('interludioPrimeiroDia')(), 'nin repite o laboratorio de ÓPTIMA');
+  afirmar(!S.aval('primeiroDiaPreparar')(), 'nin volve repartir banco e presuposto');
+});
+
 proba('peso e potencia: un robot puro móvese como sempre', async () => {
   /* A INVARIANTE QUE FAI SEGURO O MODELO. Nun robot todo dunha clase a
      carga vale 6M e a potencia 2M para CALQUERA clase, así que a razón dá
