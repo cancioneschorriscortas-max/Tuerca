@@ -2100,12 +2100,10 @@ $('bioModal').addEventListener('click', e=>{ if(e.target.id==='bioModal') $('bio
 /* (v0.99) O primeiro día ten guión, e vai ANTES do hangar. Se non é o
    primeiro día, interludioArranque chama a showHangar sen máis, así que
    isto segue facendo o de sempre en calquera outra partida. */
-if(typeof interludioArranque === 'function'){
-  /* O guión do primeiro día: ÓPTIMA dá a benvida, e ao pechar ábrese o
-     taller co banco e o presuposto xa postos. Se non é o primeiro día,
-     primeiroDiaPreparar devolve false e vaise ao hangar de sempre. */
-  interludioArranque(() => {
-    if(primeiroDiaPreparar()){ showHangar().then(() => showMontaxe()); }
-    else showHangar();
-  });
-} else showHangar();
+/* O arranque do xogo vive en 99-boot.js, que carga o ÚLTIMO.
+
+   Estivo aquí e non funcionaba: este ficheiro corre antes ca
+   21-interludio.js, así que interludioArranque aínda non existía, o
+   typeof daba falso e caíase nun showHangar() de reserva SEN DICIR NADA.
+   O guión do primeiro día nunca chegou a executarse e non había erro
+   ningún que o delatase. */

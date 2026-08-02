@@ -20,7 +20,13 @@ proba('gardar escribe de verdade no almacenamento', () => {
   const LS = S.aval('localStorage');
   const CLAVE = S.aval('SAVE_CLAVE');
 
-  afirmar(LS.getItem(CLAVE) == null, 'a ranura non estaba baleira ao empezar');
+  /* (v0.99) O arranque do xogo xa escribe: o guión do primeiro día marca
+     o seu interludio como visto ANTES de amosalo, para que saír da
+     páxina no medio non o repita na seguinte partida. Así que a ranura
+     xa non está baleira ao cargar, e o que hai que comprobar é que
+     saveData escribe o que se lle dá — non que ninguén escribise antes. */
+  LS.removeItem(CLAVE);
+  afirmar(LS.getItem(CLAVE) == null, 'non se puido baleirar a ranura');
   return S.aval('saveData')(partida()).then((ok) => {
     afirmar(ok === true, 'saveData dixo que non puido gardar');
     const txt = LS.getItem(CLAVE);

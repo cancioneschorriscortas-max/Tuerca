@@ -57,3 +57,35 @@ catch(e){ console.error('[boot estado]', e); }
   new MutationObserver(sincronizar).observe(hg, {attributes: true, attributeFilter: ['style']});
   sincronizar();
 })();
+
+/* ============================================================
+   O ARRANQUE DO XOGO.
+
+   Vai aquí e non en 12-debrief-hangar.js porque depende de
+   interludioArranque(), que se define en 21-interludio.js — un ficheiro
+   que carga DESPOIS. Estivo alá e o resultado foi que o guión do
+   primeiro día non se executaba nunca: o typeof daba falso e caíase
+   nunha reserva silenciosa.
+
+   Secuencia do primeiro día:
+     1. interludio de ÓPTIMA — a instalación de probas
+     2. bánco de pezas e presuposto
+     3. o taller, obrigatorio
+     4. o bautizo, dentro do taller ao confirmar
+
+   Calquera outro día, interludioArranque chama directamente a showHangar
+   e isto non se nota.
+   ============================================================ */
+(function arrancarXogo(){
+  const aoHangar = () => {
+    if(typeof primeiroDiaPreparar === 'function' && primeiroDiaPreparar()){
+      Promise.resolve(showHangar()).then(() => {
+        if(typeof showMontaxe === 'function') showMontaxe();
+      });
+    } else {
+      showHangar();
+    }
+  };
+  if(typeof interludioArranque === 'function') interludioArranque(aoHangar);
+  else aoHangar();
+})();
