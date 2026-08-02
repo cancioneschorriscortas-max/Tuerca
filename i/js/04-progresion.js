@@ -190,6 +190,43 @@ const PEZA_TIPOS = ['CABEZA','CHASIS','NUCLEO','BRAZO_DER','BRAZO_ESQ','PERNA_DE
 const PEZA_LABEL = {CABEZA:'Cabeza', CHASIS:'Chasis', NUCLEO:'Núcleo',
   BRAZO_DER:'Brazo der.', BRAZO_ESQ:'Brazo esq.', PERNA_DER:'Perna der.', PERNA_ESQ:'Perna esq.'};
 /* Que actividade do doador leva cada peza (skill asociada para calidade/herdanza) */
+/* ============================================================
+   PESO E POTENCIA — de que depende a velocidade dun robot mesturado.
+
+   As pernas son o MOTOR e todo o demais é CARGA. Un chasis pesado sobre
+   pernas lixeiras vai lento aínda que conserve a súa blindaxe; unhas
+   pernas de HEAVY baixo un corpo lixeiro corren máis do normal. Non hai
+   táboa de bonificacións por clase: hai unha razón potencia/carga, e o
+   resto sae só.
+
+   A masa non se inventa: é o `hp` da clase entre 100. Quen aguanta máis
+   pesa máis, que é o que xa contaba o xogo sen dicilo.
+
+   E ISTO NON PODE ROMPER O EQUILIBRIO QUE HABÍA. Nun robot todo dunha
+   clase a carga vale 6M e a potencia 2M PARA CALQUERA CLASE: a razón dá
+   sempre 1/3 e o factor sempre 1. Un HEAVY enteiro móvese a 0.72 igual
+   que antes. Só se desvía o que estea mesturado, que é o que se quería.
+
+   O chasis conta dobre porque é o corpo, non unha peza máis. */
+const MASA_CLS = {GRUNT:1.00, HEAVY:2.00, ENGINEER:0.62, SNIPER:0.70, BOMBARDERO:0.90};
+const VEL_EXP = 0.35, VEL_MIN = 0.80, VEL_MAX = 1.20;
+
+/* Carga e potencia dunha montaxe. Un oco baleiro é recambio xenérico da
+   clase do propio robot, así que pesa o que pesa esa clase. */
+function montaxeFisica(montaxe, cls){
+  const m = (slot) => MASA_CLS[(montaxe || {})[slot]] || MASA_CLS[cls] || 1;
+  const carga = 2 * m('CHASIS') + m('CABEZA') + m('NUCLEO') + m('BRAZO_DER') + m('BRAZO_ESQ');
+  const potencia = m('PERNA_DER') + m('PERNA_ESQ');
+  let factor = 1;
+  if(carga > 0){
+    /* O expoñente amansa a razón: sen el, unhas pernas de HEAVY baixo un
+       corpo de ENGINEER darían máis do triplo de velocidade. */
+    const rel = (potencia / carga) / (1 / 3);
+    factor = Math.min(VEL_MAX, Math.max(VEL_MIN, Math.pow(rel, VEL_EXP)));
+  }
+  return {carga, potencia, factor};
+}
+
 const PEZA_SKILL = {CABEZA:'OJO', CHASIS:'BLINDADO', NUCLEO:'PILOTO',
   BRAZO_DER:'VERDUGO', BRAZO_ESQ:'VERDUGO', PERNA_DER:'PISTONES', PERNA_ESQ:'PISTONES'};
 

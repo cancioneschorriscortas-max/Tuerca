@@ -1423,7 +1423,8 @@ function showMontaxe(){
     </div>`;
   }
   body += VISTA_HTML;
-  body += `<div style="margin-top:12px;"><b id="montTotal" style="color:#c8a86a;"></b> <span id="montCls" style="color:#7fdc7f;"></span></div>
+  body += `<div id="montFis" class="small" style="margin-top:10px; line-height:1.7;"></div>
+  <div style="margin-top:12px;"><b id="montTotal" style="color:#c8a86a;"></b> <span id="montCls" style="color:#7fdc7f;"></span></div>
   <div style="margin-top:8px;">
     <button class="bio-btn" id="montConfirm" style="color:#7fdc7f; border-color:#7fdc7f;">${_pd ? TXT('mt.diaUnBoton') : '▸ ENSAMBLAR (ocupa o taller 1 operación)'}</button>
     ${_pd ? '' : '<button class="bio-btn" id="montBack">◂ volver</button>'}
@@ -1462,6 +1463,32 @@ function showMontaxe(){
       + (primeiro ? (falta > 0 ? `  — QUEDAS A DEBER ${falta}⚙` : `  — SÓBRANCHE ${-falta}⚙`)
                   : (falta > 0 ? '  — CHATARRA INSUFICIENTE' : ''));
     $('montCls').textContent = `→ clase: ${clsPreview}`;
+
+    /* O QUE VAS LEVAR, ANTES DE PAGALO. Sen isto o xogador solta 20⚙ por
+       unha peza doutra clase e non se entera nunca de que comprou: as
+       habilidades só se anunciaban na entrega, e o peso non se anunciaba
+       en ningures. Pregúntase ás mesmas funcións que despois se aplican
+       —habilidadesDe e montaxeFisica— para que non poidan discrepar. */
+    const _fis = $('montFis');
+    if(_fis && typeof montaxeFisica === 'function'){
+      const escollidas = {}, mont = {};
+      $('bioBody').querySelectorAll('select[data-slot]').forEach(sel => {
+        const p = sel.value ? pzs.find(x => x.id === sel.value) : null;
+        if(p){ escollidas[sel.dataset.slot] = p; mont[sel.dataset.slot] = p.deCls; }
+      });
+      const f = montaxeFisica(mont, clsPreview);
+      const pc = Math.round((f.factor - 1) * 100);
+      const cor = pc > 0 ? '#7fdc7f' : pc < 0 ? '#ff9a3c' : '#8a8a7a';
+      let txt = `<span style="color:#8a8a7a;">${TXT('mt.carga')}: <b>${f.carga.toFixed(2)}</b>
+        · ${TXT('mt.potencia')}: <b>${f.potencia.toFixed(2)}</b></span>
+        → <span style="color:${cor};">${TXT('mt.vel')} <b>${pc > 0 ? '+' : ''}${pc}%</b></span>`;
+      const hab = habilidadesDe(escollidas);
+      const ks = Object.keys(hab).filter(k => hab[k] && HABILIDADES[k]);
+      txt += ks.length
+        ? `<br><span style="color:#b48aff;">◈ ${ks.map(k => `<b>${HABILIDADES[k].label}</b>`).join(' · ')}</span>`
+        : `<br><span style="color:#6a6a5a;">◈ ${TXT('mt.senHab')}</span>`;
+      _fis.innerHTML = txt;
+    }
     $('montConfirm').disabled = !primeiro && falta > 0;
     $('montConfirm').style.opacity = (!primeiro && falta > 0) ? 0.4 : 1;
     /* Aquí a clase decídea o CHASIS, así que a vista cambia ao trocalo. */
@@ -1621,6 +1648,31 @@ function pintarVistaMontaxe(clsBase){
 const VISTA_HTML = `<canvas id="montVista" style="display:none; image-rendering:pixelated;
   margin:6px auto 10px; border:1px solid #333; background:#12140f;"></canvas>`;
 
+/* ============================================================
+   AS HABILIDADES CRUZADAS, NUN SÓ SITIO.
+
+   Estaban escritas dentro da entrega, e por iso o taller non podía
+   dicirche o que ías levar antes de pagar: para sabelo había que montar
+   o robot. Tela aquí deixa que a pantalla de montaxe pregunte o mesmo
+   que despois se aplica, sen unha segunda copia das regras que se poida
+   desincronizar.
+   ============================================================ */
+function habilidadesDe(pezas){
+  const hab = {};
+  for(const p of Object.values(pezas || {})){
+    if(!p) continue;
+    if(p.tipo.startsWith('BRAZO') && p.deCls === 'ENGINEER') hab.recolector = true;
+    if(p.tipo.startsWith('BRAZO') && p.deCls === 'BOMBARDERO') hab.antimuro = true;
+    if(p.tipo === 'CABEZA' && p.deCls === 'SNIPER') hab.cazapilotos = true;
+    if(p.tipo === 'NUCLEO'){
+      const lv = p.act >= SKILLS.PILOTO.th[2] ? 3 : p.act >= SKILLS.PILOTO.th[1] ? 2 : p.act >= SKILLS.PILOTO.th[0] ? 1 : 0;
+      if(lv > 0) hab.nucleoPiloto = SKILLS.PILOTO.bonus[lv-1];
+    }
+    if(p.tipo === 'CHASIS' && p.deCls === 'HEAVY') hab.chasisHeavy = true;
+  }
+  return hab;
+}
+
 /* Entrega da reconstrución (chámase en endBattle tras xogar a op ocupada) */
 function entregarReconstruccion(lines){
   const R = DATA.reconstruccion;
@@ -1641,16 +1693,8 @@ function entregarReconstruccion(lines){
     const sk = SKILLS[PEZA_SKILL[p.tipo]];
     const par = p.tipo.startsWith('BRAZO') || p.tipo.startsWith('PERNA');
     rec.activity[sk.track] = Math.round((rec.activity[sk.track]||0) + p.act * 0.6 * (par ? 0.5 : 1));
-    /* Habilidades cruzadas */
-    if(p.tipo.startsWith('BRAZO') && p.deCls === 'ENGINEER') hab.recolector = true;
-    if(p.tipo.startsWith('BRAZO') && p.deCls === 'BOMBARDERO') hab.antimuro = true;
-    if(p.tipo === 'CABEZA' && p.deCls === 'SNIPER') hab.cazapilotos = true;
-    if(p.tipo === 'NUCLEO'){
-      const lv = p.act >= SKILLS.PILOTO.th[2] ? 3 : p.act >= SKILLS.PILOTO.th[1] ? 2 : p.act >= SKILLS.PILOTO.th[0] ? 1 : 0;
-      if(lv > 0) hab.nucleoPiloto = SKILLS.PILOTO.bonus[lv-1];
-    }
-    if(p.tipo === 'CHASIS' && p.deCls === 'HEAVY') hab.chasisHeavy = true;
   }
+  Object.assign(hab, habilidadesDe(R.pezas));
   if(Object.keys(hab).length) rec.habilidades = hab;
   rec.piezasDe = [...doadores];
   rec.piezasClases = [...new Set(Object.values(R.pezas).filter(Boolean).map(p => p.deCls))];

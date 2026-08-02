@@ -361,7 +361,12 @@ function mkUnit(team, cls, x, y, persisted){
   const sinergia = (persisted && persisted.sinergia) || null;
   const sold = sinergia === 'SOLDADURA' ? 1.10 : 1;
   const servo = equipment.includes('servo_alleo') ? 1.08 : 1;
-  const eqSpd = (equipment.includes('mochila') ? 1.15 : 1) * (1 + skillBonus(actv,'PISTONES')) * sold * servo;
+  /* A velocidade dun robot mesturado sae da razón potencia/carga da súa
+     montaxe (ver montaxeFisica). Sen montaxe —unidade de fábrica— o
+     factor é 1 e non cambia nada. */
+  const _fis = (persisted && persisted.montaxe && typeof montaxeFisica === 'function')
+    ? montaxeFisica(persisted.montaxe, cls) : null;
+  const eqSpd = (equipment.includes('mochila') ? 1.15 : 1) * (1 + skillBonus(actv,'PISTONES')) * sold * servo * (_fis ? _fis.factor : 1);
   const eqHp  = (equipment.includes('blindaxe') ? 1.2 : 1) * (1 + skillBonus(actv,'BLINDADO')) * (hab && hab.chasisHeavy ? 1.12 : 1) * sold;
   const eqRng = (equipment.includes('mira') ? 1.2 : 1) * (1 + skillBonus(actv,'OJO')) * (hab && hab.cazapilotos ? 1.15 : 1) * sold;
   const skDmg = (1 + skillBonus(actv,'VERDUGO')) * sold * servo;

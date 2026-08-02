@@ -371,6 +371,52 @@ proba('o interludio de arranque deixa escoller idioma', () => {
     'o selector de idioma ten que saír SÓ no arranque, non nos quince interludios');
 });
 
+proba('peso e potencia: un robot puro móvese como sempre', async () => {
+  /* A INVARIANTE QUE FAI SEGURO O MODELO. Nun robot todo dunha clase a
+     carga vale 6M e a potencia 2M para CALQUERA clase, así que a razón dá
+     sempre 1/3 e o factor exactamente 1. Se isto se rompe, o modelo
+     deixou de ser unha regra de mestura e pasou a reequilibrar o xogo
+     enteiro polas costas. */
+  const S = await cargarXogo();
+  await asentar();
+  const F = S.aval('montaxeFisica'), CLS = S.aval('CLS');
+  const todo = (c) => ({CHASIS:c, CABEZA:c, NUCLEO:c, BRAZO_DER:c,
+                        BRAZO_ESQ:c, PERNA_DER:c, PERNA_ESQ:c});
+  for(const c of Object.keys(CLS)){
+    afirmar(Math.abs(F(todo(c), c).factor - 1) < 1e-9,
+      'montaxe pura de ' + c + ' ten que dar factor 1');
+  }
+  /* Sen montaxe —unidade de fábrica— tampouco cambia nada. */
+  const u = S.aval('mkUnit')(S.aval('PT'), 'HEAVY', 0, 0, null);
+  afirmar(Math.abs(u.spd - CLS.HEAVY.spd) < 1e-9, 'unha unidade de fábrica non se ve tocada');
+});
+
+proba('peso e potencia: as pernas son o motor e o chasis a carga', async () => {
+  const S = await cargarXogo();
+  await asentar();
+  const F = S.aval('montaxeFisica');
+  const todo = (c) => ({CHASIS:c, CABEZA:c, NUCLEO:c, BRAZO_DER:c,
+                        BRAZO_ESQ:c, PERNA_DER:c, PERNA_ESQ:c});
+
+  /* Pernas de HEAVY baixo un corpo lixeiro: corre máis. */
+  const rapido = F(Object.assign(todo('GRUNT'), {PERNA_DER:'HEAVY', PERNA_ESQ:'HEAVY'}), 'GRUNT');
+  afirmar(rapido.factor > 1, 'pernas pesadas nun corpo lixeiro teñen que acelerar');
+
+  /* Chasis de HEAVY sobre pernas lixeiras: vai máis lento, e conserva o HP. */
+  const lento = F(Object.assign(todo('GRUNT'), {CHASIS:'HEAVY'}), 'HEAVY');
+  afirmar(lento.factor < 1, 'un chasis pesado sobre pernas lixeiras ten que frear');
+
+  /* E o factor está acoutado: sen tope, unhas pernas de HEAVY baixo un
+     ENGINEER darían máis do triplo de velocidade. */
+  const extremo = F(Object.assign(todo('ENGINEER'), {PERNA_DER:'HEAVY', PERNA_ESQ:'HEAVY'}), 'ENGINEER');
+  afirmar(extremo.factor <= 1.2 + 1e-9, 'o factor non pode pasar do tope');
+
+  /* A montaxe ten que chegar ao campo para que nada disto se note. */
+  const mont = Object.assign(todo('GRUNT'), {PERNA_DER:'HEAVY', PERNA_ESQ:'HEAVY'});
+  const u = S.aval('mkUnit')(S.aval('PT'), 'GRUNT', 0, 0, {montaxe: mont, ops:0});
+  afirmar(u.spd > S.aval('CLS').GRUNT.spd, 'a velocidade da montaxe ten que aplicarse en batalla');
+});
+
 proba('primeiro día: mesturar clases dá habilidades e corpo', async () => {
   /* DOUS FALLOS REAIS NUN. A entrega do primeiro día era un atallo
      escrito á man que non pasaba por entregarReconstruccion: nin
