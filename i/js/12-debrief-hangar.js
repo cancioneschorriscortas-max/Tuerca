@@ -1218,7 +1218,7 @@ function showReconstruir(iaIdx){
       <b>${pezaLabel(s.slot).toUpperCase()}</b>:
       <select data-slot="${s.slot}" style="background:#111; color:#cfe0ff; border:1px solid #555; font-family:inherit;">
         <option value="">— Recambio xenérico (+${RECON_RECAMBIO}⚙) —</option>
-        ${opcions.map(p=>`<option value="${p.id}">${PEZA_LABEL[p.tipo]} ${p.nova ? '' : 'de ' + p.deNome + ' '}(${p.deCls})</option>`).join('')}
+        ${opcions.map(p=>`<option value="${p.id}">${p.nova ? PEZA_LABEL[p.tipo] + ' de ' + p.deCls : PEZA_LABEL[p.tipo] + ' de ' + p.deNome + ' (' + p.deCls + ')'}</option>`).join('')}
       </select>
     </div>`;
   }
@@ -1413,7 +1413,7 @@ function showMontaxe(){
       <b>${pezaLabel(s.slot).toUpperCase()}</b>:
       <select data-slot="${s.slot}" style="background:#111; color:#cfe0ff; border:1px solid #555; font-family:inherit;">
         <option value="">${_pd ? TXT('mt.diaUnSerie', {e: PEZA_ESTANDAR}) : `— Recambio xenérico (+${RECON_RECAMBIO}⚙) —`}</option>
-        ${opcions.map(p=>`<option value="${p.id}">${PEZA_LABEL[p.tipo]} ${p.nova ? '' : 'de ' + p.deNome + ' '}(${p.deCls})</option>`).join('')}
+        ${opcions.map(p=>`<option value="${p.id}">${p.nova ? PEZA_LABEL[p.tipo] + ' de ' + p.deCls : PEZA_LABEL[p.tipo] + ' de ' + p.deNome + ' (' + p.deCls + ')'}</option>`).join('')}
       </select>
     </div>`;
   }
@@ -1560,13 +1560,20 @@ async function bautizoObrigatorio(rec){
    cálculos distintos. Agora hai unha marca e as dúas mírana. */
 function primeiroDiaPreparar(){
   if(!montaxePrimeiroDia()) return false;
-  DATA.marcas = DATA.marcas || {};
-  if(DATA.marcas.diaUn) return false;          /* xa se repartiu */
-  DATA.marcas.diaUn = true;
-  DATA.piezas = bancoPrimeiroDia();
-  DATA.chatarra = PRIMEIRO_PRESUPOSTO;
+  /* NON HAI MARCA DE "XA REPARTÍN", e o intento anterior de poñela foi o
+     erro. O primeiro día remata SÓ: acaba no momento en que montas o
+     robot, porque aí xa hai alguén no roster. Mentres siga sendo o
+     primeiro día, o banco e o presuposto teñen que ESTAR — non "terse
+     repartido algunha vez".
+
+     Coa marca, unha partida a medio empezar quedaba sen banco e con
+     presuposto cero, e o taller cobraba igual: "QUEDAS A DEBER 70" cun
+     desplegable sen unha soa peza. */
+  if(!(DATA.piezas || []).length) DATA.piezas = bancoPrimeiroDia();
+  if((DATA.chatarra || 0) < PRIMEIRO_PRESUPOSTO) DATA.chatarra = PRIMEIRO_PRESUPOSTO;
   return true;
 }
+
 
 /* De pezas escollidas a montaxe. Úsase en dous sitios —a vista previa
    dos diálogos e a entrega— e ten que dar o mesmo nos dous, se non a

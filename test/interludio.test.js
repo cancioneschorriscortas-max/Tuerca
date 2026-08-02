@@ -389,8 +389,17 @@ proba('o presuposto do primeiro día chega aínda coa partida a medio empezar', 
     'con restos dun intento anterior deixou de repartir o presuposto');
   afirmar(D.chatarra === S.aval('PRIMEIRO_PRESUPOSTO'),
     `o presuposto quedou en ${D.chatarra}`);
-  afirmar(S.aval('primeiroDiaPreparar')() === false,
-    'repartiu o presuposto dúas veces');
+  /* Chamalo outra vez NON pode duplicar nada. Non hai marca de "xa
+     repartín" a propósito: o primeiro día remata só, cando montas o
+     robot e xa hai alguén no roster. Con marca, unha partida a medio
+     empezar quedaba sen banco e con presuposto cero, e o taller cobraba
+     igual — "QUEDAS A DEBER 70" cun desplegable sen unha soa peza. */
+  const nPezas = D.piezas.length;
+  S.aval('primeiroDiaPreparar')();
+  afirmar(D.chatarra === S.aval('PRIMEIRO_PRESUPOSTO'),
+    `chamalo dúas veces cambiou o presuposto a ${D.chatarra}`);
+  afirmar(D.piezas.length === nPezas,
+    'chamalo dúas veces duplicou o banco de pezas');
 });
 
 proba('a primeira pantalla do taller é escoller clase, con ficha', async () => {
