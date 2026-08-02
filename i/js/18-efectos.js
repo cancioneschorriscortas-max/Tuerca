@@ -19,6 +19,7 @@ const EFX = {
   cura: true,        /* soldadura + cruz no que se repara */
   sniper: true,      /* marca de abate a distancia */
   onda: true,        /* anel de choque das explosións */
+  desmontaxe: true,  /* un robot que morre sáltase en pezas */
   curaCor: '#7fdc7f',    /* verde de curación; a cruz le ao instante */
   curaFrames: 20,        /* canto dura a marca tras o último tick de reparación */
 };
@@ -27,6 +28,7 @@ const EFX = {
    xeometría e duración distintas, e algúns queren dar luz. */
 let _efxOndas = [];      /* {x,y,r,rMax,vida,max,big} */
 let _efxMarcas = [];     /* {x,y,vida,max,tipo} */
+let _efxPezas = [];      /* pezas voando; ver efxDesmontar */
 
 /* ---------- Emisores (chámaos o motor) ---------- */
 
@@ -53,6 +55,189 @@ function efxOnda(x, y, big){
   _efxOndas.push({x, y, r: big ? 6 : 4, rMax: big ? 78 : 46,
                   vida: big ? 0.55 : 0.4, max: big ? 0.55 : 0.4, big: !!big});
   if(_efxOndas.length > 12) _efxOndas.shift();
+}
+
+
+/* ============================================================
+   MORTE POR DESMONTAXE — un robot que cae sáltase en pezas.
+
+   Ata agora unha unidade morta desaparecía. Agora as súas seis pezas
+   sepáranse desde onde estaban montadas, voan, xiran, caen e apáganse.
+
+   NON SE DEBUXA NADA NOVO. Os sprites xa existen: 19d-pezas.js ten un
+   por (slot, peza, capa, bando), renderizados desde os mesmos modelos e
+   coa mesma luz có robot enteiro. Eran 403 KB que só se usaban no banco
+   de montaxe do taller. O activo máis caro do proxecto estaba parado.
+
+   ISTO É CAPA DE FX, NON SIMULACIÓN. As pezas non chocan, non bloquean,
+   non se seleccionan, non tocan a navegación e non entran en g.units nin
+   en g.remains. Viven nesta lista e non saen dela.
+
+   E POR ISO VAN CON Math.random() E NON CON rnd(). Parece ao revés do
+   que se esperaría, pero é a convención do proxecto: o fluxo sementado é
+   da simulación, e se o render tirase del o resultado dependería de
+   cantos frames se debuxaron. Como isto é puramente visual, vai co azar
+   solto e o determinismo non se entera.
+
+   Cando as pezas sexan recollibles —outra fase— cambiarán de categoría e
+   terán que usar rnd(). Non se mesturan as dúas cousas.
+   ============================================================ */
+
+/* Tope global de pezas vivas. Cada peza é un drawImage con rotación, que
+   obriga a save/translate/rotate/restore: son os debuxos máis caros do
+   cadro. 120 son vinte robots desfeitos á vez, moito máis do que pasa
+   nunha batalla normal. */
+const PEZAS_TOPE = 120;
+
+/* Canto tempo queda unha peza no chan antes de esvaecer. Non quedan para
+   sempre a mantenta: nesta fase non se poden recoller, e un campo cheo de
+   chatarra permanente promete algo que non existe. */
+const PEZA_QUIETA_MIN = 2.0, PEZA_QUIETA_MAX = 4.0;
+
+/* Gravidade en píxeles por segundo ao cadrado, e canto conserva un
+   rebote. O 0.32 sae de probar: máis alto e as pezas botan coma pelotas,
+   máis baixo e caen coma sacos. Son chatarra, teñen que botar UNHA vez. */
+const PEZA_GRAV = 620, PEZA_REBOTE = 0.32;
+
+/* Que capa representa cada slot. Sae de darlle a volta a MON3D_SLOT_DE
+   en vez de escribila a man: se algún día se engade unha capa, isto
+   segue. O chasis ten tres (torso, peito, mochila) e quédase coa
+   primeira, que é a que ten masa. */
+const _PEZA_CAPA = (function(){
+  const m = {};
+  if(typeof MON3D_SLOT_DE === 'undefined') return m;
+  for(const capa in MON3D_SLOT_DE){
+    const slot = MON3D_SLOT_DE[capa];
+    if(!(slot in m)) m[slot] = capa;
+  }
+  return m;
+})();
+
+/* Canta enerxía leva cada peza ao saltar. Un robot non estoupa uniforme:
+   a cabeza sae disparada, o chasis case non se move e as pernas caen
+   onde estaban. Iso é o que fai que se lea como un corpo desfacéndose e
+   non como un puñado de cousas saíndo dun punto. */
+const _PEZA_FORZA = {
+  CABEZA:    { imp: 1.35, alto: 1.6, xiro: 9 },
+  CHASIS:    { imp: 0.55, alto: 0.7, xiro: 3 },
+  BRAZO_DER: { imp: 1.15, alto: 1.1, xiro: 7 },
+  BRAZO_ESQ: { imp: 1.15, alto: 1.1, xiro: 7 },
+  PERNA_DER: { imp: 0.60, alto: 0.5, xiro: 4 },
+  PERNA_ESQ: { imp: 0.60, alto: 0.5, xiro: 4 },
+};
+
+/* Orde de importancia. Se hai que soltar menos pezas por falta de sitio,
+   sácanse polo final: mellor tres pezas en dez robots que seis en cinco
+   e nada nos outros cinco. */
+const _PEZA_ORDE = ['CABEZA', 'CHASIS', 'BRAZO_DER', 'BRAZO_ESQ', 'PERNA_DER', 'PERNA_ESQ'];
+
+function efxDesmontar(u){
+  if(!EFX.desmontaxe || !u) return;
+  if(typeof MON3D === 'undefined' || !MON3D.listo) return;
+  if(typeof PEZAS3D === 'undefined' || typeof mon3dDeClase !== 'function') return;
+
+  const m = mon3dDeClase(u.cls);
+  /* A dirección non é un campo da unidade: calcúlase ao debuxar e
+     gárdase en u._dir3d. Se a unidade morreu sen chegar a debuxarse
+     nunca —pasa se cae no mesmo frame en que aparece— non existe, e
+     entón vale 0, que é de fronte. */
+  const dir = ((u._dir3d | 0) % (PEZAS3D.dirs || 8) + 8) % 8;
+  const ix = PEZAS3D.indice.REPOUSO;
+  const cadro = ix ? ix.base + dir * ix.fases : 0;
+  const equipo = u.team;
+
+  /* Cantas pezas caben. Nunca cero: unha morte sen efecto lese como un
+     fallo do xogo, non como unha decisión. */
+  const oco = PEZAS_TOPE - _efxPezas.length;
+  const cantas = Math.max(2, Math.min(_PEZA_ORDE.length, oco));
+
+  for(let i = 0; i < cantas; i++){
+    const slot = _PEZA_ORDE[i];
+    const capa = _PEZA_CAPA[slot];
+    if(!capa) continue;
+    const a = MON3D.imx[`${slot}|${m[slot]}|${capa}|${equipo}`]
+           || MON3D.imx[`${slot}|${m[slot]}|${capa}|0`];
+    if(!a || !a.im) continue;
+
+    /* Onde estaba montada. As áncoras xa veñen proxectadas a píxeles e
+       por dirección, así que abonda con sumar: nunha proxección
+       ortográfica, trasladar en 3D é trasladar en 2D. */
+    const anc = (PEZAS3D.ancoras[m.CHASIS] || {})[slot];
+    const dxy = anc ? anc[dir] : [0, 0];
+    const f = _PEZA_FORZA[slot] || _PEZA_FORZA.CHASIS;
+
+    /* Radial desde o centro do corpo, para que cada peza saia cara a
+       onde xa apuntaba. Se cae xusto no centro, dáselle unha dirección
+       calquera para que non quede quieta no aire. */
+    let rx = dxy[0], ry = dxy[1] - 6;
+    const d = Math.hypot(rx, ry) || 1;
+    if(d < 0.5){ const t = Math.random() * 6.283; rx = Math.cos(t); ry = Math.sin(t); }
+    const disp = 0.6 + Math.random() * 0.8;
+    const vel = 46 * f.imp * disp;
+
+    _efxPezas.push({
+      im: a.im, sx: cadro * a.w, sw: a.w, sh: a.h,
+      /* o encadre do atlas: mesma aritmética que mon3dDebuxar */
+      ox: a.ox - PEZAS3D.orixe[0], oy: a.oy - PEZAS3D.orixe[1],
+      x: u.x + dxy[0], y: u.y + dxy[1],
+      z: 6 + Math.random() * 6,
+      vx: (rx / d) * vel + (Math.random() - 0.5) * 18,
+      vy: (ry / d) * vel * 0.6 + (Math.random() - 0.5) * 14,
+      vz: 60 * f.alto * (0.8 + Math.random() * 0.6),
+      ang: 0, vang: (Math.random() - 0.5) * f.xiro,
+      chan: u.y + dxy[1],
+      quieta: 0, parada: PEZA_QUIETA_MIN + Math.random() * (PEZA_QUIETA_MAX - PEZA_QUIETA_MIN),
+    });
+  }
+  /* Se aínda así se pasou, van as máis vellas. */
+  while(_efxPezas.length > PEZAS_TOPE) _efxPezas.shift();
+}
+
+/* Debúxase en coordenadas de MUNDO e por BAIXO das unidades vivas: unha
+   peza voando non pode tapar un robot que che importa. Por iso non vai
+   dentro de efxDebuxar(), que se chama ao final de todo. */
+function efxPezasDebuxar(g, dt){
+  if(!_efxPezas.length) return;
+  dt = Math.min(0.05, dt || 0.016);
+
+  for(const p of _efxPezas){
+    if(p.z > 0 || p.vz !== 0){
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      p.vz -= PEZA_GRAV * dt;
+      p.z += p.vz * dt;
+      p.ang += p.vang * dt;
+      if(p.z <= 0){
+        p.z = 0;
+        if(Math.abs(p.vz) > 40){
+          /* un rebote curto e amortecido, e para */
+          p.vz = -p.vz * PEZA_REBOTE;
+          p.vx *= 0.5; p.vy *= 0.5; p.vang *= 0.4;
+        } else {
+          p.vz = 0; p.vx = 0; p.vy = 0; p.vang = 0;
+        }
+      }
+    } else {
+      p.quieta += dt;
+    }
+  }
+  _efxPezas = _efxPezas.filter(p => p.quieta < p.parada);
+
+  const suav = ctx.imageSmoothingEnabled;
+  ctx.imageSmoothingEnabled = false;
+  for(const p of _efxPezas){
+    /* O último medio segundo esvaece. Non desaparecen de golpe: un
+       sprite que se apaga lese como que rematou, un que salta lese como
+       un fallo de debuxo. */
+    const resto = p.parada - p.quieta;
+    ctx.globalAlpha = resto < 0.5 ? Math.max(0, resto / 0.5) : 1;
+    ctx.save();
+    ctx.translate(p.x, p.y - p.z);
+    if(p.ang) ctx.rotate(p.ang);
+    ctx.drawImage(p.im, p.sx, 0, p.sw, p.sh, p.ox, p.oy, p.sw, p.sh);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+  ctx.imageSmoothingEnabled = suav;
 }
 
 /* ---------- Focos para a capa de luz ----------

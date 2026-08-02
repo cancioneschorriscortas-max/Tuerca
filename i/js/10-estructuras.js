@@ -923,6 +923,13 @@ function draw(g){
   try{
     if(typeof sombrasDebuxar === 'function') sombrasDebuxar(g);
   }catch(e){ console.error('[sombras]', e); }
+  /* (v0.96) Pezas de robots desfeitos. AQUÍ e non en efxDebuxar(), que
+     se chama ao final: teñen que ir por riba do chan e por BAIXO das
+     unidades vivas. Unha peza voando non pode tapar un robot que che
+     importa. */
+  try{
+    if(typeof efxPezasDebuxar === 'function') efxPezasDebuxar(g, _fxDt);
+  }catch(e){ console.error('[pezas]', e); }
   /* HQs */
   for(const h of g.hq){
     const cx = h.x + h.w/2, cy = h.y + h.h/2;
