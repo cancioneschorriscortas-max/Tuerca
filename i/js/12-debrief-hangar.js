@@ -1331,6 +1331,67 @@ function prezoPeza(peza, clsChasis){
   return peza.deCls === clsChasis ? PEZA_ESTANDAR : PEZA_ALLEA;
 }
 
+/* ============================================================
+   ESCOLLA DE CLASE — a primeira pantalla do taller, e só a primeira vez.
+
+   Antes deducíase a clase do CHASIS que escolleses nun desplegable no
+   medio doutros seis. Iso non ensina nada: o xogador non sabe que ao
+   trocar o chasis está a cambiar de clase, e chega ao seu primeiro
+   combate sen que ninguén lle dixese que fai cada unha.
+
+   Aquí escóllese primeiro, con ficha diante. As láminas técnicas levan
+   meses feitas —unha por clase— e só se vían na ficha dun veterano; este
+   é o momento no que serven para o que servían.
+
+   E o que fai a escolla é decidir QUE PEZAS SON BARATAS. As da clase
+   escollida custan o normal; as das outras, o dobre. Todas están
+   dispoñibles, e só esta vez: despois só terás o que recuperes.
+   ============================================================ */
+function escollaClaseAberta(){
+  const CLASES = Object.keys(CLS);
+  let sel = DATA.marcas && DATA.marcas.clsInicial;
+  const ficha = (c) => {
+    const s = CLS[c];
+    return `<div class="small" style="line-height:1.6;">
+      <div style="color:#c8a86a; margin-bottom:6px;">${TXT('cl.' + c)}</div>
+      <div>${TXT('cl.vida')}: <b>${s.hp}</b> · ${TXT('cl.dano')}: <b>${s.dmg}</b>
+           · ${TXT('cl.rango')}: <b>${s.rng}</b> · ${TXT('cl.vel')}: <b>${s.spd}</b></div>
+    </div>`;
+  };
+  const pintar = () => {
+    let b = `<div class="small" style="margin-bottom:10px;">${TXT('cl.intro')}</div>
+      <div class="row" style="flex-wrap:wrap; gap:6px; margin-bottom:10px;">`;
+    for(const c of CLASES){
+      b += `<button class="bio-btn" data-cls="${c}"
+        style="${sel === c ? 'color:#7fdc7f; border-color:#7fdc7f;' : ''}">${clsLabel(c)}</button>`;
+    }
+    b += `</div>`;
+    if(sel){
+      b += `<div class="lamina-uni" style="max-height:260px;">
+        <img src="ui/lamina_${sel}.png" alt="" onerror="this.style.display='none';">
+      </div>${ficha(sel)}
+      <div class="row" style="margin-top:12px;">
+        <button class="bio-btn" id="clsOk" style="color:#7fdc7f; border-color:#7fdc7f;">${TXT('cl.escoller', {c: clsLabel(sel)})}</button>
+      </div>`;
+    }
+    $('bioBody').innerHTML = b;
+    $('bioBody').querySelectorAll('[data-cls]').forEach(x => {
+      x.onclick = () => { sel = x.dataset.cls; pintar(); };
+    });
+    const ok = $('clsOk');
+    if(ok) ok.onclick = async () => {
+      DATA.marcas = DATA.marcas || {};
+      DATA.marcas.clsInicial = sel;
+      await saveData(DATA);
+      showMontaxe();
+    };
+  };
+  fondoModal('taller');
+  $('bioTitle').innerHTML = TXT('cl.titulo');
+  pintar();
+  $('bioModal').style.display = 'flex';
+}
+
 const MONTAXE_COST = 60;
 function showMontaxe(){
   if(DATA.reconstruccion) return;
@@ -1377,6 +1438,11 @@ function showMontaxe(){
       const p = pzs.find(x => x.id === sel.value);
       if(p && CLS[p.deCls]) clsPreview = p.deCls;
     });
+    /* No primeiro día a clase NON sae do chasis: sae do que escolliches
+       na pantalla anterior. Se saíse do chasis, cambiaría o prezo de
+       todas as pezas cada vez que troques un desplegable, e a decisión
+       que tomaches deixaría de valer. */
+    if(primeiro && DATA.marcas && DATA.marcas.clsInicial) clsPreview = DATA.marcas.clsInicial;
     let total = primeiro ? 0 : MONTAXE_COST;
     $('bioBody').querySelectorAll('select[data-slot]').forEach(sel => {
       const p = sel.value ? pzs.find(x => x.id === sel.value) : null;

@@ -392,3 +392,44 @@ proba('o presuposto do primeiro día chega aínda coa partida a medio empezar', 
   afirmar(S.aval('primeiroDiaPreparar')() === false,
     'repartiu o presuposto dúas veces');
 });
+
+proba('a primeira pantalla do taller é escoller clase, con ficha', async () => {
+  /* Antes deducíase a clase do CHASIS nun desplegable no medio doutros
+     seis. Iso non ensina nada: o xogador non sabe que ao trocar o chasis
+     está a cambiar de clase, e chega ao seu primeiro combate sen que
+     ninguén lle dixese que fai cada unha.
+
+     E a escolla ten consecuencia: decide QUE PEZAS SON BARATAS. */
+  const S = cargarXogo();
+  await asentar();
+  const D = S.aval('DATA');
+  D.opCount = 0; D.units = []; D.piezas = []; D.chatarra = 0;
+  D.marcas = {}; D.reconstruccion = null;
+  S.aval('primeiroDiaPreparar')();
+
+  S.aval('escollaClaseAberta')();
+  let h = S.document.getElementById('bioBody').innerHTML;
+  for (const c of Object.keys(S.aval('CLS'))) {
+    afirmar(h.includes(`data-cls="${c}"`), `falta a clase ${c} no selector`);
+  }
+  afirmar(!h.includes('clsOk'), 'deixa montar sen escoller clase');
+
+  D.marcas.clsInicial = 'SNIPER';
+  S.aval('escollaClaseAberta')();
+  h = S.document.getElementById('bioBody').innerHTML;
+  afirmar(/lamina_SNIPER/.test(h), 'a ficha non amosa a lámina da clase');
+  afirmar(/190/.test(h), 'a ficha non amosa os datos da clase (rango do SNIPER)');
+
+  /* E o prezo segue a clase ESCOLLIDA, non o chasis que trabuques. */
+  const pz = S.aval('prezoPeza');
+  afirmar(pz({deCls: 'SNIPER'}, 'SNIPER') === S.aval('PEZA_ESTANDAR'),
+    'a peza da clase escollida non é a barata');
+  afirmar(pz({deCls: 'GRUNT'}, 'SNIPER') === S.aval('PEZA_ALLEA'),
+    'a peza doutra clase non custa o dobre');
+
+  /* E TODAS as clases están dispoñibles, que era a outra metade. */
+  S.aval('showMontaxe')();
+  const m = S.document.getElementById('bioBody').innerHTML;
+  afirmar((m.match(/<option/g) || []).length >= 35,
+    'o banco do primeiro día non ofrece pezas de todas as clases');
+});

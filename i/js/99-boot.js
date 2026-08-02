@@ -80,7 +80,9 @@ catch(e){ console.error('[boot estado]', e); }
   const aoHangar = () => {
     if(typeof primeiroDiaPreparar === 'function' && primeiroDiaPreparar()){
       Promise.resolve(showHangar()).then(() => {
-        if(typeof showMontaxe === 'function') showMontaxe();
+        /* Primeiro a escolla de clase, e o taller despois. */
+        if(typeof escollaClaseAberta === 'function') escollaClaseAberta();
+        else if(typeof showMontaxe === 'function') showMontaxe();
       });
     } else {
       showHangar();
