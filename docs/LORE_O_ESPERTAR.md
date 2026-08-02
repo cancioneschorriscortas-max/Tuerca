@@ -225,6 +225,84 @@ O primeiro durou **tres meses**, o menos de todos.
 
 **A campaña do xogador é o mandato de 07K**, que é o único aberto.
 
+## QUEN É O PROTAGONISTA
+
+Houbo unha pregunta mal formulada: *¿pode morrer o teu personaxe?* Esa é
+unha pregunta de deseñador de sistemas, e asume que o protagonista é unha
+unidade.
+
+**Non o é.**
+
+Os robots cambian. Os arquiveiros cambian. Os veteranos morren. O
+xogador perde unidades. Todo cambia.
+
+**Hai unha soa cousa que atravesa os sete anos: o Diario.**
+
+O protagonista de TUERCA é a Memoria.
+
+### Polo tanto: si, o teu primeiro robot pode morrer
+
+Na segunda misión, se cadra. E o xogo segue.
+
+E iso é o que consegue o máis importante de todo: que o xogador deixe de
+pensar **«este é o meu personaxe»** e empece a pensar **«este é un dos
+nosos»**.
+
+O círculo final segue funcionando aínda que CROMO morrese vinte horas
+antes, porque **nunca foi a historia de R-09. Era a historia de todos os
+nomes que se escribiron.**
+
+### Cando cae, o Diario non se rompe
+
+Non di «perdiches». Só engade:
+
+> CROMO
+> 2090.08.14
+> «Non chegou a saber canto significou para os demais.»
+
+E continúa. **Porque a historia nunca foi salvar a CROMO: foi impedir que
+desaparecese.**
+
+### 07K equivócase
+
+E isto é o mellor: **07K non aposta ben.**
+
+El cre que ti vas ser quen continúe, e por iso escribe o teu nome
+primeiro. Pero durante a campaña **outro robot acaba converténdose no
+herdeiro de verdade.**
+
+Nin sequera o arquiveiro sabe quen será o seguinte. Iso é profundamente
+humano, e mata de raíz o problema do **Elixido** — que non cabe neste
+xogo. Non es o Elixido: **es o primeiro ao que alguén decidiu lembrar.**
+
+### Quen entra ao Arquivo
+
+Non R-09. **O robot que herdou o espírito da campaña**, e non por forte:
+
+- sobreviviu
+- protexeu compañeiros
+- recuperou restos
+- foi reconstruído
+- recibiu nome
+
+O final non depende dunha unidade concreta. **Depende do que
+construíses.**
+
+*(E isto non hai que inventalo. Todos eses criterios xa son campos do
+xogo: `ops`, `compa`, `medals`, `criticalSurvivals`, `recoveries`,
+`unitsRecovered`, `recoveredFrom`, `reensamblado`, `renacido`. O xogo
+leva anos rexistrando exactamente iso sen que ninguén soubese para que.)*
+
+## A quen pertence o Diario
+
+Dixérase que pertence aos que teñen nome. **Hai que ir un paso máis
+alá:**
+
+**Pertence aos que alguén decidiu nomear.**
+
+Porque o acto importante non é ter identidade. É que **outro a
+recoñeza**.
+
 ## O final
 
 Moito máis adiante, quizais ao remate. O diario di:
@@ -239,15 +317,25 @@ E a última liña:
 
 E ti pensas: vai aparecer outro robot.
 
-**A escena seguinte é o teu personaxe.** Entrando só no Arquivo. Ve o
-caderno. Ábreo. A última páxina, baleira.
+**A escena seguinte é unha man.** Distinta da primeira. Máis vella. Con
+cicatrices.
 
-Colle a pluma.
+Abre o Diario. E escribe:
 
-Fundido.
+    TUERCA 08M
 
-Non fai falla dicir nada. **Ti es 08M** — non porque alguén te nomease,
-senón porque **decidiches seguir escribindo**.
+**Nunca sabes quen é.** O xogo non di «agora es TUERCA». Simplemente
+entendes que **alguén continuou o oficio**.
+
+E aí está a simetría que sostén todo:
+
+> O primeiro xesto do xogo é unha man escribindo o teu nome.
+> O último xesto do xogo é outra man escribindo o nome de alguén máis.
+>
+> Non o seu. Non o teu. **O doutro robot.**
+
+Porque o ciclo non consiste en sobrevivir. Consiste en seguir dicindo:
+**«ti tamén mereces ser lembrado».**
 
 E aí o xogo enteiro faise circular: **nunca estiveches a ler un libro.
 Estabas a ler o caderno que acabarás herdando.**
@@ -255,6 +343,16 @@ Estabas a ler o caderno que acabarás herdando.**
 E entendes tamén quen escribiu todas esas páxinas. Non era un narrador
 omnisciente. Eran **sete robots distintos intentando que ninguén
 desaparecese de todo**.
+
+## A TESE
+
+TUERCA non vai de gañar unha guerra. Non vai de derrotar a ÓPTIMA. Nin
+sequera vai de conservar unha memoria individual.
+
+Vai dun acto sinxelo e profundamente humano: **que cada xeración se
+negue a deixar que a seguinte esqueza a anterior.**
+
+Se o xogador sente iso ao rematar a campaña, o resto é decoración.
 
 ---
 
@@ -270,22 +368,11 @@ desaparecese de todo**.
 
 ## O que este documento non resolve
 
-**A grande, e é de deseño e non de historia: ¿o teu personaxe pode
-morrer?**
+*(A pregunta de «¿pode morrer o teu personaxe?» quedou resolta e estaba
+mal formulada: o protagonista é o Diario. Si pode morrer, e o xogo
+segue.)*
 
-Hoxe despregas ata tres veteranos e produces máis. Se o robot que 07K
-nomeou é unha unidade no campo, pode caer coma calquera — e entón o xogo
-ten un risco que ningún RTS ten. Se non pode caer, é unha mascota e a
-aposta de 07K non custa nada.
-
-Hai unha terceira vía: **pode morrer, e o xogo segue.** 07K apostou por
-ti e perdeu, e o diario recólleo. Non es imprescindible: **es o primeiro,
-non o elixido.** Encaixa con que aquí non hai heroes. Pero rompe o final
-circular, que necesita que chegues vivo ao Arquivo.
-
-Sen decidir.
-
-Outras:
+Queda:
 
 - **A pantalla do caderno sobre a mesa** tras a primeira misión non
   existe. É a única peza nova de verdade do arranque.
@@ -296,3 +383,6 @@ Outras:
   nada, pero cambia como se len as quince pezas xa escritas.
 - **O final está descrito, non deseñado.** Non hai condición que o
   dispare, e é o momento máis importante do xogo.
+- **A fórmula do herdeiro.** Os campos existen todos; o que non existe é
+  como se pesan. Un herdeiro que saia sempre o mesmo tipo de unidade
+  sería peor ca non telo.
