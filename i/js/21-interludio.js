@@ -244,6 +244,24 @@ function interludioAmosar(it, remate){
      aberta. Poñela nos dous sitios sería ter dúas verdades. */
   const seguir = document.getElementById('intSeguir');
 
+  /* O selector de idioma só no tramo de arranque: despois xa está o do
+     hangar, e telo nos quince interludios sería ruído. Ao trocar,
+     repíntase o propio interludio para que se vexa o cambio no acto. */
+  const idi = document.getElementById('intIdioma');
+  if(idi){
+    const arranque = it.tramo === 'ARRANQUE';
+    idi.style.display = arranque ? 'flex' : 'none';
+    if(arranque) idi.querySelectorAll('[data-lang]').forEach(b => {
+      b.onclick = () => {
+        try{
+          if(typeof setLang === 'function') setLang(b.dataset.lang);
+          else if(typeof I18N !== 'undefined'){ I18N.lang = b.dataset.lang; aplicarIdioma(); }
+        }catch(e){ console.error('[idioma]', e); }
+        interludioAmosar(it, remate);
+      };
+    });
+  }
+
   cx.style.display = 'flex';
   const pechar = () => {
     cx.style.display = 'none';

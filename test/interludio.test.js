@@ -333,3 +333,40 @@ proba('o taller do primeiro día ábrese e conta o sistema que usa', async () =>
   afirmar(!/recambio xen/i.test(h),
     'segue contando o modelo vello de recambio xenérico');
 });
+
+proba('no primeiro día o taller non ten porta de saída', () => {
+  /* Montar o teu robot é a primeira mecánica do xogo e a que o fai
+     distinto. Se se pode pechar a pantalla e seguir, o xogador sáltaa sen
+     sabelo e entra nunha campaña sen entender de que vai isto.
+
+     Comprobado no código e non no render, porque son dous camiños: o
+     botón "volver" da propia pantalla e o PECHAR do modal. Tapar un só
+     deixa o outro aberto. */
+  const fs = require('fs');
+  const path = require('path');
+  const js = fs.readFileSync(
+    path.join(__dirname, '..', 'i', 'js', '12-debrief-hangar.js'), 'utf8');
+
+  afirmar(/_pd \? '' : '<button class="bio-btn" id="montBack">/.test(js),
+    'o botón de volver do taller segue saíndo no primeiro día');
+  const pechar = js.slice(js.indexOf("$('btnBioClose').onclick"), js.indexOf("$('btnBioClose').onclick") + 500);
+  afirmar(/montaxePrimeiroDia/.test(pechar),
+    'o PECHAR do modal non mira se estamos no primeiro día');
+});
+
+proba('o interludio de arranque deixa escoller idioma', () => {
+  /* O selector vive no hangar, e o guión de arranque pasa por diante
+     del: sen isto, quen abre o xogo por primeira vez non pode cambiar de
+     lingua ata rematar todo o arranque, que é onde máis texto hai. */
+  const fs = require('fs');
+  const path = require('path');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'i', 'index.html'), 'utf8');
+  const js = fs.readFileSync(
+    path.join(__dirname, '..', 'i', 'js', '21-interludio.js'), 'utf8');
+
+  for (const l of ['gl', 'es', 'en']) {
+    afirmar(html.includes(`data-lang="${l}"`), `falta o botón de idioma ${l} no arranque`);
+  }
+  afirmar(/tramo === 'ARRANQUE'/.test(js),
+    'o selector de idioma ten que saír SÓ no arranque, non nos quince interludios');
+});

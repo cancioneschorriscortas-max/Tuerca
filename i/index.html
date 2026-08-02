@@ -128,6 +128,15 @@
     <h2 id="intTitulo"></h2>
     <div id="intTexto"></div>
     <div class="row"><button id="intSeguir"></button></div>
+    <!-- Só no primeiro día. O selector de idioma vive no hangar, e o
+         guión de arranque pasa por diante del: sen isto, quen abre o
+         xogo por primeira vez non pode cambiar de lingua ata rematar
+         todo o arranque, que é precisamente onde máis texto hai. -->
+    <div class="row" id="intIdioma" style="display:none; margin-top:10px;">
+      <button class="bio-btn" data-lang="gl">GALEGO</button>
+      <button class="bio-btn" data-lang="es">CASTELLANO</button>
+      <button class="bio-btn" data-lang="en">ENGLISH</button>
+    </div>
   </div>
 </div>
 

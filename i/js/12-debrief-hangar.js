@@ -1360,7 +1360,7 @@ function showMontaxe(){
   body += `<div style="margin-top:12px;"><b id="montTotal" style="color:#c8a86a;"></b> <span id="montCls" style="color:#7fdc7f;"></span></div>
   <div style="margin-top:8px;">
     <button class="bio-btn" id="montConfirm" style="color:#7fdc7f; border-color:#7fdc7f;">${_pd ? TXT('mt.diaUnBoton') : '▸ ENSAMBLAR (ocupa o taller 1 operación)'}</button>
-    <button class="bio-btn" id="montBack">◂ volver</button>
+    ${_pd ? '' : '<button class="bio-btn" id="montBack">◂ volver</button>'}
   </div>`;
   fondoModal('taller');
   $('bioTitle').innerHTML = `⚒ MONTAXE DESDE CERO`;
@@ -1399,7 +1399,12 @@ function showMontaxe(){
   };
   $('bioBody').querySelectorAll('select[data-slot]').forEach(sel => sel.addEventListener('change', calc));
   calc();
-  $('montBack').addEventListener('click', () => showDespiece());
+  /* NO PRIMEIRO DÍA NON HAI VOLTA ATRÁS, e é a mantenta. Montar o teu
+     robot é a primeira mecánica do xogo e a que o fai distinto: se se
+     pode pechar a pantalla e seguir, o xogador sáltaa sen sabelo e
+     entra nunha campaña sen entender de que vai isto. */
+  const _volver = $('montBack');
+  if(_volver) _volver.addEventListener('click', () => showDespiece());
   $('montConfirm').addEventListener('click', async () => {
     const {total, clsPreview} = calc();
     if(!primeiro && total > (DATA.chatarra||0)) return;
@@ -2101,7 +2106,14 @@ $('btnBack').onclick = () => {
     interludioQuizais(showHangar);
   } else showHangar();
 };
-$('btnBioClose').onclick=()=>{ $('bioModal').style.display='none'; };
+$('btnBioClose').onclick=()=>{
+  /* O mesmo motivo có ◂ volver: no primeiro día o taller non se pecha.
+     Deixar unha porta aberta na única pantalla obrigatoria do xogo é
+     tanto como non facela obrigatoria. */
+  if(typeof montaxePrimeiroDia === 'function' && montaxePrimeiroDia()
+     && $('bioTitle') && /MONTAXE/.test($('bioTitle').textContent || '')) return;
+  $('bioModal').style.display='none';
+};
 $('bioModal').addEventListener('click', e=>{ if(e.target.id==='bioModal') $('bioModal').style.display='none'; });
 
 /* Arranque */
