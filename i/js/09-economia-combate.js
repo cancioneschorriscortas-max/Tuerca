@@ -400,6 +400,12 @@ function mkUnit(team, cls, x, y, persisted){
     sinergia,
     renacido: (persisted && persisted.renacido) || null,
     piezasClases: (persisted && persisted.piezasClases) || null,
+    /* A MONTAXE TEN QUE VIAXAR AO CAMPO. O debuxante decide por
+       `u.montaxe`: se non chega, cae ao sprite xenérico da clase e o
+       corpo que o xogador acaba de montar no taller non se ve en ningures.
+       Copiábase piezasClases —que só serve para a ficha— e non esta, que
+       é a que se debuxa. */
+    montaxe: (persisted && persisted.montaxe) || null,
     vinculos: (persisted && persisted.vinculos) || null,
     alcume: (persisted && persisted.alcume) || null,
     rival: (persisted && persisted.rival) || null,

@@ -1310,8 +1310,13 @@ function bancoPrimeiroDia(){
   let n = 1;
   for(const s of RECON_SLOTS){
     for(const cls of Object.keys(CLS)){
+      /* act: 0 PORQUE NON LEMBRAN NADA. Estaba a 100, e o limiar de
+         VERDUGO son 8 mortes: un brazo recén saído da liña contaba como
+         veterano e subía a probabilidade de sinerxía. Ao revés do canon
+         —as pezas levan memoria, e estas non teñen ningunha— e ademais
+         regalaba o que se supón que hai que gañar no campo. */
       pezas.push({ id: 'b' + (n++), tipo: s.acepta[0], deCls: cls,
-                   deNome: null, nova: true, act: 100 });
+                   deNome: null, nova: true, act: 0 });
     }
   }
   return pezas;
@@ -1494,13 +1499,25 @@ function showMontaxe(){
       activity: {dist:0, shots:0, kills:0, dmgTaken:0, caps:0, veh:0},
     };
     if(primeiro){
-      /* NO PRIMEIRO DÍA ENTRÉGASE NO ACTO. O taller ocupa unha operación
-         porque estás a reconstruír mentres a guerra segue; aquí non hai
-         guerra aínda, e mandar ao xogador a unha batalla sen o robot que
-         acaba de montar sería absurdo. */
-      rec.montaxe = montaxeCrua(Object.values(usadas));
-      rec.desdeCero = true;
-      DATA.units.push(rec);
+      /* NO PRIMEIRO DÍA ENTRÉGASE NO ACTO: non hai guerra aínda, e mandar
+         o xogador a unha batalla sen o robot que acaba de montar sería
+         absurdo. Pero entrégase POLA VÍA NORMAL.
+
+         Antes había aquí un atallo de cinco liñas que só poñía a montaxe
+         e metía o robot no roster. Saltaba entón todo o que fai
+         entregarReconstruccion: as HABILIDADES CRUZADAS (brazo de
+         ENGINEER → recolector, de BOMBARDERO → antimuro, cabeza de
+         SNIPER → cazapilotos, chasis de HEAVY…), a sinerxía, os doadores
+         e a herdanza de experiencia. É dicir: pagabas 20⚙ por unha peza
+         doutra clase e non compraba NADA. A mestura, que é a decisión
+         enteira desta pantalla, non tiña efecto ningún.
+
+         encargadaOp vai a -1 a mantenta: a entrega esixe que pasase unha
+         operación desde o encargo, e aquí a entrega é inmediata. */
+      DATA.reconstruccion = { rec, pezas: usadas, encargadaOp: -1,
+                              sinergia: rollSinerxia(usadas), desdeCero: true };
+      const parte = [];
+      entregarReconstruccion(parte);
       await saveData(DATA);
       sfx('order_confirm');
       /* E aquí vén o momento. O bautizo NON é opcional. */
@@ -1617,7 +1634,10 @@ function entregarReconstruccion(lines){
   const hab = {};
   for(const [slot, p] of Object.entries(R.pezas)){
     if(!p) continue;
-    doadores.add(p.deNome);
+    /* As pezas do banco do primeiro día non teñen doador: saen da liña,
+       non dun morto. Sen esta garda colábase un `null` na lista e o
+       debrief anunciaba "con pezas de " seguido de nada. */
+    if(p.deNome) doadores.add(p.deNome);
     const sk = SKILLS[PEZA_SKILL[p.tipo]];
     const par = p.tipo.startsWith('BRAZO') || p.tipo.startsWith('PERNA');
     rec.activity[sk.track] = Math.round((rec.activity[sk.track]||0) + p.act * 0.6 * (par ? 0.5 : 1));

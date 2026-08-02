@@ -371,6 +371,48 @@ proba('o interludio de arranque deixa escoller idioma', () => {
     'o selector de idioma ten que saír SÓ no arranque, non nos quince interludios');
 });
 
+proba('primeiro día: mesturar clases dá habilidades e corpo', async () => {
+  /* DOUS FALLOS REAIS NUN. A entrega do primeiro día era un atallo
+     escrito á man que non pasaba por entregarReconstruccion: nin
+     habilidades cruzadas, nin sinerxía, nin doadores. Pagabas o dobre por
+     unha peza doutra clase e non compraba nada.
+
+     E aínda que as houbese, mkUnit non copiaba `montaxe` ao campo, así
+     que o debuxante caía no sprite xenérico: o corpo que montabas non se
+     vía no xogo. */
+  const S = await cargarXogo();
+  await asentar();
+  const D = S.aval('DATA');
+  D.opCount = 0; D.units = []; D.piezas = []; D.chatarra = 0;
+  S.aval('primeiroDiaPreparar')();
+  const pzs = S.aval('DATA').piezas;
+  const p = (tipo, cls) => pzs.find(x => x.tipo === tipo && x.deCls === cls);
+  afirmar(pzs.every(x => x.act === 0), 'as pezas de fábrica non lembran nada');
+
+  const usadas = { CHASIS: p('CHASIS','SNIPER'), CABEZA: p('CABEZA','SNIPER'),
+    BRAZO_DER: p('BRAZO_DER','ENGINEER'), BRAZO_ESQ: p('BRAZO_ESQ','BOMBARDERO'),
+    NUCLEO: p('NUCLEO','SNIPER'), PERNA_DER: p('PERNA_DER','HEAVY'),
+    PERNA_ESQ: p('PERNA_ESQ','SNIPER') };
+  S.aval('DATA').reconstruccion = { encargadaOp: -1, sinergia: null, desdeCero: true,
+    pezas: usadas,
+    rec: { id:'R-01', name:'PROBA', cls:'SNIPER', ops:0, kills:0, traits:[], events:[],
+           medals:[], crossings:0, recoveries:0, criticalSurvivals:0, captures:0,
+           confianza:40, activity:{dist:0,shots:0,kills:0,dmgTaken:0,caps:0,veh:0} } };
+  S.aval('entregarReconstruccion')([]);
+  const u = S.aval('DATA').units.slice(-1)[0];
+
+  const h = u.habilidades || {};
+  afirmar(h.cazapilotos, 'cabeza de SNIPER → cazapilotos');
+  afirmar(h.recolector, 'brazo de ENGINEER → recolector');
+  afirmar(h.antimuro, 'brazo de BOMBARDERO → antimuro');
+  afirmar((u.piezasDe || []).length === 0, 'as pezas de fábrica non teñen doador');
+  afirmar(u.montaxe && u.montaxe.BRAZO_DER === 'ENGINEER', 'a montaxe garda cada slot');
+
+  const mk = S.aval('mkUnit')(S.aval('PT'), u.cls, 0, 0, u);
+  afirmar(mk.montaxe && mk.montaxe.BRAZO_DER === 'ENGINEER',
+    'a montaxe ten que chegar ao campo: senón debúxase o sprite xenérico');
+});
+
 proba('primeiro día: o banco sobrevive á carga de partida', async () => {
   /* ISTO É UNHA REGRESIÓN REAL, e das caras. showHangar() fai
      `DATA = await loadData()`: SUBSTITÚE o obxecto DATA enteiro. Como o
