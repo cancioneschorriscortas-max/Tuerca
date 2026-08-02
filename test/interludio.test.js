@@ -16,6 +16,15 @@ function estado(S, extra){
   const D = S.aval('DATA');
   D.opCount = 0; D.fallen = []; D.units = []; D.interludios = null;
   Object.assign(D, extra || {});
+  /* O tramo ARRANQUE dáse por VISTO. Todas as probas menos as do propio
+     arranque falan do que pasa despois da primeira operación, e a esas
+     alturas o guión do primeiro día xa pasou. Se non se marcase, cada
+     unha delas empezaría atopando o laboratorio e non o que vai medir.
+     As probas do arranque poñen `vistos: []` a man. */
+  if(!extra || !extra.interludios){
+    const arr = S.aval('INTERLUDIOS').filter(i => i.tramo === 'ARRANQUE').map(i => i.id);
+    D.interludios = { vistos: arr, ultimaVoz: 'OPTIMA' };
+  }
   return D;
 }
 
@@ -91,9 +100,12 @@ proba('o tramo manda sobre a voz: o epílogo non se adianta', async () => {
      de rematar a parte escura. */
   const S = cargarXogo();
   await asentar();
+  /* Aquí SI se empeza sen nada visto: esta proba percorre o arco enteiro
+     desde o primeiro día ata o epílogo. */
   const D = estado(S, {opCount: 40, fallen: ['a','b','c','d','e','f'],
                        piezas: [{id:'p'}], units: [{reensamblado: true}],
-                       marcas: {primeiroNome: 3}});
+                       marcas: {primeiroNome: 3},
+                       interludios: {vistos: [], ultimaVoz: null}});
   const escoller = S.aval('interludioEscoller');
   const TRAMOS = S.aval('TRAMOS');
 
@@ -211,20 +223,24 @@ proba('non se colan en PvP, Mundial nin Crisol', async () => {
   }
 });
 
-proba('a revelación do firmware garda a súa quenda', async () => {
-  /* Pide operacións E mortos. A explicación de por que os robots teñen
-     memoria non significa nada antes de perder a alguén. */
+proba('a revelación tardía garda a súa quenda', async () => {
+  /* A entrega do caderno pide operacións E mortos. Saber que isto xa
+     pasou seis veces antes non significa nada ata que perdiches a
+     alguén.
+
+     (Este posto ocupábao o laboratorio v0.9β. Movéuse ao arranque: o
+     xogador non tropeza cun fallo, entra na sala onde naceu.) */
   const S = cargarXogo();
   await asentar();
-  const firmware = S.aval('INTERLUDIOS').find(i => i.id === 'firmware');
+  const tardia = S.aval('INTERLUDIOS').find(i => i.id === 'entrega');
   const op = {result: 'victory'};
 
-  afirmar(!firmware.cando(estado(S, {opCount: 40, fallen: []}), op),
-    'o firmware saíu sen que morrese ninguén');
-  afirmar(!firmware.cando(estado(S, {opCount: 2, fallen: ['a','b','c','d']}), op),
-    'o firmware saíu na segunda operación');
-  afirmar(firmware.cando(estado(S, {opCount: 15, fallen: ['a','b','c']}), op),
-    'co tempo e coas baixas, o firmware ten que poder saír');
+  afirmar(!tardia.cando(estado(S, {opCount: 40, fallen: []}), op),
+    'saíu sen que morrese ninguén');
+  afirmar(!tardia.cando(estado(S, {opCount: 2, fallen: ['a','b','c','d']}), op),
+    'saíu na segunda operación');
+  afirmar(tardia.cando(estado(S, {opCount: 15, fallen: ['a','b','c']}), op),
+    'co tempo e coas baixas ten que poder saír');
 });
 
 proba('todo interludio ten imaxe, texto nas tres linguas e unha das dúas voces', async () => {

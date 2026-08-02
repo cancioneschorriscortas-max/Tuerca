@@ -73,6 +73,25 @@
 const TRAMOS = ['ARRANQUE', 'MAQUINA', 'NOME', 'XENTE', 'EPILOGO'];
 
 const INTERLUDIOS = [
+  /* ---------- 0 · O ARRANQUE ---------- */
+
+  /* O PRIMEIRO QUE VE O XOGADOR, e a escena xa estaba pintada.
+
+     A imaxe é o laboratorio v0.9β: na parede, o rexistro de probas da
+     serie D-07 á D-12 con seis ERROR seguidos e "CAUSA: DESCONOCIDA", e
+     as observacións de "comportamento inestable, fallos aleatorios no
+     núcleo". Diante, ÓPTIMA dá a benvida e remata dicindo que non se
+     rexistraron incidencias relevantes.
+
+     Non hai que subliñar a mentira. Está escrita na parede de detrás.
+
+     Isto estivo un tempo no tramo da XENTE, como revelación tardía e coa
+     voz do arquiveiro descubríndoo. Movéuse porque a historia empeza
+     aquí: o xogador non tropeza cun fallo, entra na sala onde o fallo
+     naceu. */
+  { id: 'firmware', imaxe: 'historiafirmware09b', voz: 'OPTIMA', tramo: 'ARRANQUE',
+    cando: () => true },
+
   /* ---------- I · A MÁQUINA ---------- */
 
   /* ÓPTIMA felicítate pola primeira vitoria. Vai primeiro a mantenta:
@@ -136,9 +155,14 @@ const INTERLUDIOS = [
 
   /* ---------- III · A XENTE ---------- */
 
-  /* A revelación. Pide tempo E mortos propios: a explicación de por que
-     os robots teñen memoria non significa nada antes de perder a alguén. */
-  { id: 'firmware', imaxe: 'historiafirmware09b', voz: 'TUERCA', tramo: 'XENTE',
+  /* A REVELACIÓN, e agora non é un descubrimento senón un recordo: 07K
+     lembra o día en que lle deron o caderno. A imaxe son dúas mans, unha
+     que entrega e outra que recibe, e na parede "A MEMORIA NON É UNHA
+     ORDE, É UNHA PROMESA".
+
+     Pide tempo E mortos propios. Saber que isto xa pasou seis veces
+     antes non significa nada ata que perdiches a alguén. */
+  { id: 'entrega', imaxe: 'entregadediariodetuerca', voz: 'TUERCA', tramo: 'XENTE',
     cando: (D) => (D.opCount || 0) >= 15 && (D.fallen || []).length >= 3 },
 
   /* A primeira vez en todo o xogo que alguén está a gusto. */
