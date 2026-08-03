@@ -227,6 +227,115 @@ function montaxeFisica(montaxe, cls){
   return {carga, potencia, factor};
 }
 
+/* ============================================================
+   DOUTRINAS — o que ÓPTIMA non sabe nomear.
+
+   ÓPTIMA ten unha palabra para SNIPER porque fabrica snipers. Non ten
+   ningunha para un sniper con chasis e pernas de HEAVY, porque iso non
+   está no catálogo. Esa palabra ponna a resistencia, e o Arquivo anota
+   cando aparece por primeira vez.
+
+   A designación sae de tres cousas e non de sete:
+
+     IA      a clase que escolliches  -> o comportamento base
+     CHASIS  de que está feito o corpo -> resistencia
+     PERNAS  o seu peso RELATIVO AO CHASIS -> mobilidade
+
+   Os brazos non entran: eses dan habilidades (ver habilidadesDe). Así a
+   designación di O QUE É e as habilidades din O QUE LEVA, e son dúas
+   lecturas independentes.
+
+   E NON SE NOMEA TODO. Son 5x5x3 = 75 celas e aquí hai 28. O resto queda
+   coa clase pelada, a mantenta: se toda mestura tivese palabra, ningunha
+   palabra valería nada, e todo isto depende de que sexan raras.
+   ============================================================ */
+const DOUTRINA_COR = {
+  ASEDIO:    '#e85d3a',   /* demolición e artillería */
+  PRECISION: '#6fc8e8',   /* vixilancia e tiro */
+  MURALLA:   '#8fa8b8',   /* aguante; apagada a mantenta, a blindaxe non luce */
+  APOIO:     '#c8d86a',   /* reparación e sabotaxe */
+  LINA:      '#d8cfc0',   /* tropa de liña */
+};
+
+/* CIDADO COS PORTES IMPOSIBLES. HEAVY é a masa máis alta e ENGINEER a
+   máis baixa, así que un chasis HEAVY nunca pode levar pernas '+' e un
+   chasis ENGINEER nunca pode levalas '-'. Catro filas naceron mortas por
+   isto e non se notaba: simplemente non saía designación. Hai unha proba
+   que percorre a táboa e esixe que toda fila sexa alcanzable.
+
+   [chasis, porte, nome, familia] — porte: '+' pernas máis pesadas có
+   chasis, '=' o mesmo, '-' máis lixeiras. */
+const DOUTRINAS = {
+  SNIPER: [
+    ['HEAVY',      '=', 'BASTIÓN',          'MURALLA'],
+    ['SNIPER',     '+', 'SENTINELA',        'PRECISION'],
+    ['HEAVY',      '-', 'TIRADOR BLINDADO', 'MURALLA'],
+    ['ENGINEER',   '=', 'OBSERVADOR',       'PRECISION'],
+    ['BOMBARDERO', '+', 'MORTEIRO',         'ASEDIO'],
+    ['GRUNT',      '-', 'ESPREITADOR',      'PRECISION'],
+  ],
+  HEAVY: [
+    ['GRUNT',      '=', 'ASALTANTE',        'LINA'],
+    ['ENGINEER',   '+', 'FORTIFICADOR',     'MURALLA'],
+    ['BOMBARDERO', '+', 'DEMOLEDOR',        'ASEDIO'],
+    ['BOMBARDERO', '=', 'ARIETE',           'ASEDIO'],
+    ['SNIPER',     '+', 'VIXÍA',            'PRECISION'],
+    ['HEAVY',      '-', 'ÁNCORA',           'MURALLA'],
+  ],
+  ENGINEER: [
+    ['HEAVY',      '=', 'FORXADOR',         'APOIO'],
+    ['ENGINEER',   '+', 'ZAPADOR',          'APOIO'],
+    ['SNIPER',     '=', 'RECONSTRUTOR',     'APOIO'],
+    ['BOMBARDERO', '+', 'ARTIFICEIRO',      'ASEDIO'],
+    ['GRUNT',      '=', 'RECUPERADOR',      'APOIO'],
+  ],
+  BOMBARDERO: [
+    ['HEAVY',      '=', 'VULCANO',          'ASEDIO'],
+    ['HEAVY',      '-', 'BATERÍA',          'ASEDIO'],
+    ['SNIPER',     '=', 'MORTEIRISTA',      'ASEDIO'],
+    ['ENGINEER',   '=', 'SABOTEADOR',       'APOIO'],
+    ['GRUNT',      '=', 'GRANADEIRO',       'ASEDIO'],
+  ],
+  GRUNT: [
+    ['HEAVY',      '=', 'CHOQUE',           'LINA'],
+    ['HEAVY',      '-', 'PIQUEIRO',         'MURALLA'],
+    ['GRUNT',      '+', 'VANGARDA',         'LINA'],
+    ['ENGINEER',   '=', 'BATEDOR',          'PRECISION'],
+    ['SNIPER',     '=', 'FUSILEIRO',        'PRECISION'],
+    ['BOMBARDERO', '=', 'LANCEIRO',         'LINA'],
+  ],
+};
+
+/* A cor dunha doutrina polo seu nome. O rexistro garda só o nome —é o
+   que viaxa ao memorial e ao diario— así que a cor búscase aquí en vez
+   de duplicala en cada gardado. */
+function doutrinaCor(nome){
+  for(const ia of Object.keys(DOUTRINAS))
+    for(const [, , n, fam] of DOUTRINAS[ia]) if(n === nome) return DOUTRINA_COR[fam];
+  return '#cfd8cf';
+}
+
+/* A designación dunha montaxe, ou null se non ten palabra.
+   Devolve {nome, familia, cor, chasis, porte} para non ter que recalcular
+   nada quen a pinte. */
+function doutrinaDe(montaxe, cls){
+  if(!montaxe || !DOUTRINAS[cls]) return null;
+  const m = (slot) => (montaxe[slot] || cls);
+  const chasis = m('CHASIS'), pd = m('PERNA_DER'), pe = m('PERNA_ESQ');
+  /* Unha unidade enteiramente da súa clase non é ningunha doutrina: é a
+     súa clase, e ÓPTIMA xa ten palabra para iso. */
+  if(chasis === cls && pd === cls && pe === cls) return null;
+  const mc = MASA_CLS[chasis] || 1;
+  /* Pernas dispares: conta a media, que é o que aguanta o chasis. */
+  const mp = ((MASA_CLS[pd] || 1) + (MASA_CLS[pe] || 1)) / 2;
+  const porte = Math.abs(mp - mc) < 1e-6 ? '=' : (mp > mc ? '+' : '-');
+  for(const [ch, po, nome, fam] of DOUTRINAS[cls]){
+    if(ch === chasis && po === porte)
+      return {nome, familia: fam, cor: DOUTRINA_COR[fam], chasis, porte};
+  }
+  return null;
+}
+
 const PEZA_SKILL = {CABEZA:'OJO', CHASIS:'BLINDADO', NUCLEO:'PILOTO',
   BRAZO_DER:'VERDUGO', BRAZO_ESQ:'VERDUGO', PERNA_DER:'PISTONES', PERNA_ESQ:'PISTONES'};
 

@@ -708,6 +708,7 @@ async function showHangar(){
         ${u.renacido ? `<span class="tag" style="color:#ff9a3c; border-color:#ff9a3c;">${TXT('hg.renacido')}</span>` : ''}
         ${u.desdeCero ? `<span class="tag" style="color:#7fdc7f; border-color:#7fdc7f;">${TXT('hg.novo')}</span>` : ''}
         ${u.folga && u.folga.ops>0 ? `<span class="tag" style="color:#ff5340; border-color:#ff5340;">${TXT('hg.folga', {ops: u.folga.ops+' op'+(u.folga.ops>1?'s':''), por: u.folga.por})}</span>` : ''}
+        ${u.doutrina && typeof doutrinaCor === 'function' ? `<span class="tag" style="color:${doutrinaCor(u.doutrina)}; border-color:${doutrinaCor(u.doutrina)};">${u.doutrina}</span>` : ''}
         ${u.sinergia && SINERXIAS[u.sinergia] ? `<span class="tag" style="color:#ffd700; border-color:#ffd700;">✦ ${SINERXIAS[u.sinergia].label}</span>` : ''}
         ${Object.keys(u.habilidades||{}).filter(k => u.habilidades[k] && HABILIDADES[k]).map(k =>
           `<span class="tag" style="color:#b48aff; border-color:#b48aff;" title="${HABILIDADES[k].desc}">◈ ${HABILIDADES[k].label}</span>`).join('')}
@@ -1499,6 +1500,15 @@ function showMontaxe(){
       let txt = `<span style="color:#8a8a7a;">${TXT('mt.carga')}: <b>${f.carga.toFixed(2)}</b>
         · ${TXT('mt.potencia')}: <b>${f.potencia.toFixed(2)}</b></span>
         → <span style="color:${cor};">${TXT('mt.vel')} <b>${pc > 0 ? '+' : ''}${pc}%</b></span>`;
+      /* A designación tamén ANTES de pagar: é a metade da decisión. */
+      if(typeof doutrinaDe === 'function'){
+        const d = doutrinaDe(mont, clsPreview);
+        if(d){
+          const nova = !(DATA.marcas && DATA.marcas.doutrinas && DATA.marcas.doutrinas[d.nome] !== undefined);
+          txt += `<br><span style="color:${d.cor}; letter-spacing:1px;"><b>${d.nome}</b></span>`
+               + (nova ? ` <span class="small" style="color:#8a8a7a;">${TXT('dou.nunca')}</span>` : '');
+        }
+      }
       const hab = habilidadesDe(escollidas);
       const ks = Object.keys(hab).filter(k => hab[k] && HABILIDADES[k]);
       txt += ks.length
@@ -1723,6 +1733,29 @@ function entregarReconstruccion(lines){
   rec.montaxe = montaxeCrua(Object.values(R.pezas));
   if(!Object.keys(rec.montaxe).length) delete rec.montaxe;
   rec.reconstruidoOp = DATA.opCount;
+  /* A DESIGNACIÓN, e o momento no que nace. ÓPTIMA ten palabra para as
+     súas cinco; para o que sae do taller non a ten, así que a pon a
+     resistencia e o Arquivo anota cando apareceu por primeira vez. */
+  const _dou = (typeof doutrinaDe === 'function') ? doutrinaDe(rec.montaxe, rec.cls) : null;
+  if(_dou){
+    rec.doutrina = _dou.nome;
+    DATA.marcas = DATA.marcas || {};
+    DATA.marcas.doutrinas = DATA.marcas.doutrinas || {};
+    const _vistas = DATA.marcas.doutrinas;
+    if(_vistas[_dou.nome] === undefined){
+      _vistas[_dou.nome] = {op: DATA.opCount || 0, n: 1};
+      lines.push(`<div style="border:1px solid ${_dou.cor}; padding:10px 14px; margin:12px 0;">
+        <div class="small" style="color:#8a8a7a;">${TXT('dou.senPalabra')}</div>
+        <div class="small" style="color:#8a8a7a; margin-top:6px;">${TXT('dou.adoptada')}</div>
+        <div style="color:${_dou.cor}; font-size:1.3em; letter-spacing:2px;"><b>${_dou.nome}</b></div>
+        <div class="small" style="color:#6a6a5a;">${rec.cls} · ${TXT('dou.chasis')} ${_dou.chasis} · ${TXT('dou.pernas')} ${_dou.porte === '+' ? TXT('dou.pesadas') : _dou.porte === '-' ? TXT('dou.lixeiras') : TXT('dou.iguais')}</div>
+      </div>`);
+      try{ if(typeof diarioEixos === 'function') diarioEixos({apego: 1}); }catch(e){}
+    } else {
+      _vistas[_dou.nome].n = (_vistas[_dou.nome].n || 1) + 1;
+      lines.push(`<div style="margin-left:24px; color:${_dou.cor};" class="small">▣ ${TXT('dou.outra', {d: _dou.nome})}</div>`);
+    }
+  }
   if(R.sinergia) rec.sinergia = R.sinergia;
   if(R.desdeCero){
     /* (v0.28) IA en branco: non renace de ningures — conserva a confianza fixada na montaxe,

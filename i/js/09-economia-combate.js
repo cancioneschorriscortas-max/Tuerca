@@ -411,6 +411,7 @@ function mkUnit(team, cls, x, y, persisted){
        Copiábase piezasClases —que só serve para a ficha— e non esta, que
        é a que se debuxa. */
     montaxe: (persisted && persisted.montaxe) || null,
+    doutrina: (persisted && persisted.doutrina) || null,
     vinculos: (persisted && persisted.vinculos) || null,
     alcume: (persisted && persisted.alcume) || null,
     rival: (persisted && persisted.rival) || null,

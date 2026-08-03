@@ -371,6 +371,56 @@ proba('o interludio de arranque deixa escoller idioma', () => {
     'o selector de idioma ten que saír SÓ no arranque, non nos quince interludios');
 });
 
+proba('doutrinas: toda fila da táboa ten que ser alcanzable', async () => {
+  /* CATRO NACERON MORTAS e non se notaba: simplemente non saía
+     designación. HEAVY é a masa máis alta e ENGINEER a máis baixa, así
+     que un chasis HEAVY nunca pode levar pernas '+' nin un ENGINEER
+     levalas '-'. Escribir unha fila que non se pode dar é escribir unha
+     palabra que ninguén verá nunca. */
+  const S = await cargarXogo();
+  await asentar();
+  const DS = S.aval('DOUTRINAS'), M = S.aval('MASA_CLS'), dou = S.aval('doutrinaDe');
+  const clases = Object.keys(M);
+  const mortas = [];
+  for(const ia of Object.keys(DS)){
+    for(const [ch, po, nome] of DS[ia]){
+      let vale = false;
+      for(const perna of clases){
+        const mp = M[perna], mc = M[ch];
+        const porte = Math.abs(mp - mc) < 1e-6 ? '=' : (mp > mc ? '+' : '-');
+        if(porte !== po) continue;
+        const m = {CHASIS:ch, PERNA_DER:perna, PERNA_ESQ:perna,
+                   CABEZA:ia, NUCLEO:ia, BRAZO_DER:ia, BRAZO_ESQ:ia};
+        const d = dou(m, ia);
+        if(d && d.nome === nome) vale = true;
+      }
+      if(!vale) mortas.push(ia + ': ' + nome);
+    }
+  }
+  afirmar(mortas.length === 0, 'doutrinas inalcanzables: ' + mortas.join(', '));
+});
+
+proba('doutrinas: unha unidade pura non ten designación', async () => {
+  const S = await cargarXogo();
+  await asentar();
+  const dou = S.aval('doutrinaDe'), CLS = S.aval('CLS');
+  const todo = (c) => ({CHASIS:c, CABEZA:c, NUCLEO:c, BRAZO_DER:c,
+                        BRAZO_ESQ:c, PERNA_DER:c, PERNA_ESQ:c});
+  for(const c of Object.keys(CLS)){
+    afirmar(dou(todo(c), c) === null, c + ' puro non pode ter doutrina');
+  }
+  /* E o exemplo canónico do dono: sniper con chasis e pernas de HEAVY. */
+  const b = dou(Object.assign(todo('SNIPER'), {CHASIS:'HEAVY', PERNA_DER:'HEAVY', PERNA_ESQ:'HEAVY'}), 'SNIPER');
+  afirmar(b && b.nome === 'BASTIÓN', 'sniper + chasis e pernas HEAVY = BASTIÓN');
+  afirmar(b.cor === S.aval('DOUTRINA_COR').MURALLA, 'e a cor sae da familia');
+
+  /* Cada nome ten que ter cor, e doutrinaCor ten que atopalos todos. */
+  const cor = S.aval('doutrinaCor'), DS = S.aval('DOUTRINAS');
+  for(const ia of Object.keys(DS)) for(const [, , nome, fam] of DS[ia]){
+    afirmar(cor(nome) === S.aval('DOUTRINA_COR')[fam], 'cor de ' + nome);
+  }
+});
+
 proba('gardar nunca pode pisar unha partida chea cunha baleira', async () => {
   /* A REGRESIÓN MÁIS CARA DA SERIE: cada F5 borraba a campaña.
 
