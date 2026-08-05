@@ -2276,9 +2276,9 @@ function crisolEscollaMapa(){
       DATA.marcas.crisolMapa = sel;
       await saveData(DATA);
       $('bioModal').style.display = 'none';
-      /* Píntase o bioma ANTES de xerar o terreo: setBioma reconstrúe a
-         caché, e chamalo despois deixaría o mapa vello coas cores novas. */
-      try{ if(typeof setBioma === 'function') setBioma(sel); }catch(e){ console.error('[crisol]', e); }
+      /* Déixase PEDIDO, non aplicado: o arranque da batalla chama a
+         setBioma ao xerar o terreo e pisaría calquera cousa posta aquí. */
+      window._biomaPedido = sel;
       window._modoCrisol = true;
       $('btnStart').onclick();
     };

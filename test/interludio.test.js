@@ -8,7 +8,7 @@
 const path = require('path');
 const fs = require('fs');
 const { proba, afirmar } = require('./probar.js');
-const { cargarXogo, asentar } = require('./arnes.js');
+const { cargarXogo, asentar, novaBatalla } = require('./arnes.js');
 
 /* Deixa o DATA do xogo no estado que pide cada proba. Só se tocan os
    campos que miran as condicións; o resto queda como o deixou o arranque. */
@@ -369,6 +369,25 @@ proba('o interludio de arranque deixa escoller idioma', () => {
   }
   afirmar(/tramo === 'ARRANQUE'/.test(js),
     'o selector de idioma ten que saír SÓ no arranque, non nos quince interludios');
+});
+
+proba('o bioma pídese e non se impón', async () => {
+  /* O selector de mapa do Crisol amosábase e non facía nada: o arranque
+     da batalla chamaba a setBioma('VERDE') ao xerar o terreo e pisaba a
+     escolla. Só o Mundial tiña caso propio. */
+  const S = cargarXogo();
+  await asentar();
+  S.window._biomaPedido = 'NEVE';
+  novaBatalla(S);
+  afirmar(S.window._bioma === 'NEVE', 'a petición ten que respectarse');
+  afirmar(!S.window._biomaPedido, 'e consumirse, para non pegarse á seguinte');
+
+  novaBatalla(S);
+  afirmar(S.window._bioma === 'VERDE', 'sen petición, a campaña vai en VERDE');
+
+  S.window._biomaPedido = 'DESERTO';
+  novaBatalla(S);
+  afirmar(S.window._bioma === 'DESERTO', 'e vale para calquera dos tres');
 });
 
 proba('doutrinas: toda fila da táboa ten que ser alcanzable', async () => {

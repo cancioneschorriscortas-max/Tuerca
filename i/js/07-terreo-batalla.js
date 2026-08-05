@@ -675,7 +675,19 @@ function newBattle(deployed){
   game = {rngEstado: _semente};
   try{ startMusic(); }catch(e){ console.warn('[música]', e); }   /* (v0.36) xamais no camiño crítico */
   /* (v0.60) bioma da batalla: o Mundial fixa a sede; a campaña vai en VERDE */
-  if(typeof setBioma === 'function') setBioma(window._mundialArranque ? (window._mundialBioma || 'VERDE') : 'VERDE');
+  /* O BIOMA PÍDESE, NON SE IMPÓN. Aquí forzábase VERDE agás para o
+     Mundial, así que calquera outro modo que escollese mapa víao pisado
+     ao xerar o terreo: o selector do Crisol amosábase e non facía nada.
+
+     Agora quen queira un bioma déixao en `window._biomaPedido` e
+     consómese aquí, unha vez. Sen petición, VERDE: a campaña vai sempre
+     en verde e iso non cambia. */
+  if(typeof setBioma === 'function'){
+    const _pedido = window._mundialArranque ? (window._mundialBioma || 'VERDE')
+                                            : (window._biomaPedido || 'VERDE');
+    setBioma(_pedido);
+  }
+  window._biomaPedido = null;
   const _crisol = !!window._modoCrisol;
   window._modoCrisol = false;
   /* (v0.9) Escoller mapa segundo a operación */
