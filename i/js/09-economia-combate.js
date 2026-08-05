@@ -1561,21 +1561,49 @@ function tickUnits(g){
     const meus2 = g.units.filter(u => u.team === PT && !u.dead).length;
     if(meus2 === 0 && !g.prod[PT] && g._wave > 0){
       radio('▣ ÓPTIMA: ' + TXT('optima.crisolDerrota'), '#e8c060');
+      /* A marca queda gardada: nun modo sen vitoria, o rexistro É o
+         resultado. */
+      try{
+        DATA.marcas = DATA.marcas || {};
+        if((DATA.marcas.crisolRecord || 0) < g._wave){
+          DATA.marcas.crisolRecord = g._wave;
+          radio('★ ' + TXT('cri.record', {n: g._wave}), '#ffd700');
+        }
+      }catch(e){ console.error('[crisol]', e); }
       g.hq[PT].hp = 0;
     } else if(vivos2 === 0){
-      if(g._wave >= 5){
+      /* O CRISOL NON REMATA EN VITORIA. Antes pechaba na oleada 5 e
+         dábache a proba por superada; agora segue mentres che quede
+         alguén vivo, que é o que é un modo de supervivencia. A única
+         saída é a de arriba: quedar sen ninguén e sen produción.
+
+         A oleada 5 conserva a liña de ÓPTIMA, pero xa non como final:
+         a validación complétase e a máquina segue mandando xente. */
+      if(g._wave === 5 && !g._crisolAviso){
+        g._crisolAviso = true;
         radio('▣ ÓPTIMA: ' + TXT('optima.crisolVitoria'), '#e8c060');
         hqSay(TXT('hq.crisolVitoria'), 0, 'hq.crisolVitoria');
-        g.hq[ET].hp = 0;
-      } else if(g.t - g._waveClearT > 700){
+      }
+      if(g.t - g._waveClearT > 700){
         g._wave++;
         g._waveClearT = g.t;
-        const n = 2 + g._wave;
+        /* TOPE DE 12 POR OLEADA. Sen el, "2 + oleada" chega a sesenta
+           robots á vez e o que remata a partida é a taxa de fotogramas,
+           non o inimigo. A dificultade segue subindo pola vida e polas
+           clases, que non custan rendemento. */
+        const n = Math.min(12, 2 + g._wave);
         const dende = rnd() < 0.5 ? 30 : H - 30;
         const x0 = 150 + rnd() * (W - 300);
         g._greysN = g._greysN || 0;
         for(let i = 0; i < n; i++){
-          const cls = (i === 0 && g._wave >= 3) ? 'HEAVY' : (i === 1 && g._wave >= 4) ? 'SNIPER' : 'GRUNT';
+          /* Máis fondo de catálogo segundo avanza: a partir da 6 aparece
+             o bombardeiro, e da 8 en diante a metade da oleada deixa de
+             ser tropa de recheo. */
+          let cls = 'GRUNT';
+          if(i === 0 && g._wave >= 3) cls = 'HEAVY';
+          else if(i === 1 && g._wave >= 4) cls = 'SNIPER';
+          else if(i === 2 && g._wave >= 6) cls = 'BOMBARDERO';
+          else if(g._wave >= 8 && i % 2 === 1) cls = rnd() < 0.5 ? 'HEAVY' : 'SNIPER';
           const u = mkUnit(2, cls, x0 + (i - n/2) * 26, dende + (rnd()*16 - 8), null);
           g._greysN++;
           u.name = 'VAL-' + String(g._greysN).padStart(2, '0');

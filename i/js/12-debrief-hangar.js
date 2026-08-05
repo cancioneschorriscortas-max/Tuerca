@@ -2243,7 +2243,52 @@ $('btnLado').onclick=()=>{
   b.textContent = TXT(window._lado ? 'hg.faccionVermella' : 'hg.faccionAzul');
   b.style.color = b.style.borderColor = window._lado ? '#ff5340' : '#4f8aff';
 };
-$('btnCrisol').onclick=()=>{ window._modoCrisol = true; $('btnStart').onclick(); };
+/* ============================================================
+   O CRISOL — escolla de mapa antes de entrar.
+
+   O modo non remata en vitoria: dura mentres che quede alguén vivo. Se
+   vas botar aí todo o tempo que aguantes, o mínimo é escoller onde.
+
+   Os tres biomas xa existían (setBioma, en 07-terreo-batalla) e só os
+   usaba o Mundial; a campaña vai sempre en VERDE. Aquí ábrense.
+   ============================================================ */
+const CRISOL_MAPAS = ['VERDE', 'NEVE', 'DESERTO'];
+function crisolEscollaMapa(){
+  let sel = (DATA.marcas && DATA.marcas.crisolMapa) || 'VERDE';
+  const pintar = () => {
+    const rec = (DATA.marcas && DATA.marcas.crisolRecord) || 0;
+    let b = `<div class="small" style="margin-bottom:10px;">${TXT('cri.intro')}</div>`;
+    if(rec) b += `<div class="small" style="color:#ffd700; margin-bottom:10px;">★ ${TXT('cri.mellor', {n: rec})}</div>`;
+    b += `<div class="row" style="flex-wrap:wrap; gap:6px; margin-bottom:12px;">`;
+    for(const m of CRISOL_MAPAS){
+      b += `<button class="bio-btn" data-mapa="${m}"
+        style="${sel === m ? 'color:#7fdc7f; border-color:#7fdc7f;' : ''}">${TXT('mun.bioma.' + m) || m}</button>`;
+    }
+    b += `</div><div class="row">
+      <button class="bio-btn" id="criOk" style="color:#7fdc7f; border-color:#7fdc7f;">${TXT('cri.entrar')}</button>
+    </div>`;
+    $('bioBody').innerHTML = b;
+    $('bioBody').querySelectorAll('[data-mapa]').forEach(x => {
+      x.onclick = () => { sel = x.dataset.mapa; pintar(); };
+    });
+    $('criOk').onclick = async () => {
+      DATA.marcas = DATA.marcas || {};
+      DATA.marcas.crisolMapa = sel;
+      await saveData(DATA);
+      $('bioModal').style.display = 'none';
+      /* Píntase o bioma ANTES de xerar o terreo: setBioma reconstrúe a
+         caché, e chamalo despois deixaría o mapa vello coas cores novas. */
+      try{ if(typeof setBioma === 'function') setBioma(sel); }catch(e){ console.error('[crisol]', e); }
+      window._modoCrisol = true;
+      $('btnStart').onclick();
+    };
+  };
+  fondoModal('taller');
+  $('bioTitle').innerHTML = TXT('cri.titulo');
+  pintar();
+  $('bioModal').style.display = 'flex';
+}
+$('btnCrisol').onclick=()=>{ crisolEscollaMapa(); };
 $('btnStart').onclick=()=>{
   setPlayerTeam(window._lado || 0);   /* (v0.29 R1) facción escollida */
   initAudio();
