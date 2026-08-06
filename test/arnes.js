@@ -19,7 +19,7 @@ const RAIZ = path.join(__dirname, '..', 'i');
    diverxe do xogo real: manter as dúas listas en sintonía. */
 const FICHEIROS = [
   'config.js', '00-preambulo.js', '00b-i18n.js', '01-nucleo-datos.js',
-  '01b-assets.js', '02-pvp-lobby.js', '03-pvp-sync.js', '04-progresion.js',
+  '01b-assets.js', '01c-props.js', '02-pvp-lobby.js', '03-pvp-sync.js', '04-progresion.js',
   '05-mapa-camara-neboa.js', '06-audio-voces.js', '06b-voz.js',
   '07-terreo-batalla.js', '07b-plantas.js', '08-social-narrativa.js', '09-economia-combate.js',
   '10-estructuras.js', '11-retratos-ui.js', '12-debrief-hangar.js',

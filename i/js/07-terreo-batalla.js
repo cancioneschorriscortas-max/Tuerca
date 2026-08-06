@@ -619,44 +619,17 @@ function calcularMachons(grid){
   }
 }
 
-/* ============================================================
-   (v1.03) O NOME DA ZONA, PINTADO NO CHAN.
+/* (v1.03) AQUÍ HOUBO UN RÓTULO CO NOME DA ZONA PINTADO NO CHAN, e era
+   un erro. A idea viña de que as láminas traen carteis —DOCA 1, TALLER,
+   GENERADORES— e de que `placeAt()` xa usa eses nomes no Diario. Pero
+   os carteis da lámina son PLACAS PEQUENAS para colgar dun muro, e o
+   que se fixo con eles foi un letreiro enorme cruzando a sala: iso non
+   é sinalización industrial, é unha etiqueta de depuración por riba do
+   mapa.
 
-   É a peza máis rendible de todas as láminas e non precisa cortar nin
-   un píxel. Os carteis que traen —SECTOR B-7, TALLER, ALMACÉN 03,
-   GENERADORES, DOCA 1— son exactamente as etiquetas que a planta xa
-   declara en `lugares` e que `placeAt()` xa usa para que o Diario poida
-   escribir «caeu na Doca de Carga».
-
-   Ata agora ese nome existía só no texto. O xogador lía no informe que
-   alguén caeu na doca sen ter visto nunca onde estaba a doca. Píntase
-   grande no chan, en estarcido, coma nun chan industrial de verdade.
-
-   Vai na CACHÉ, non por fotograma: non se move nin cambia.
-   ============================================================ */
-function rotularZonas(ctx, grid){
-  if(typeof PLACES === 'undefined' || !PLACES) return;
-  const zonas = PLACES.filter(p => p.r >= 80 && p.label);
-  ctx.save();
-  for(const z of zonas){
-    const cx = Math.floor(z.x / TILE_SIZE), cy = Math.floor(z.y / TILE_SIZE);
-    const fila = grid[cy];
-    if(!fila || fila[cx] === undefined || fila[cx] === T.GRASS) continue;
-    /* En maiúsculas e sen artigo: no chan dunha nave non pon "a Doca de
-       Carga", pon DOCA DE CARGA. */
-    const txt = String(z.label).replace(/^(a|o|as|os|el|la|los|las)\s+/i, '').toUpperCase();
-    ctx.font = 'bold 22px Courier New';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    /* Moi apagado: é unha marca no chan, non un rótulo de interface. Se
-       compite coas unidades, estorba. */
-    ctx.fillStyle = 'rgba(0,0,0,0.30)';
-    ctx.fillText(txt, z.x, z.y + 2);
-    ctx.fillStyle = 'rgba(255,255,255,0.13)';
-    ctx.fillText(txt, z.x, z.y);
-  }
-  ctx.restore();
-}
+   A zona nótase polo MATERIAL DO CHAN, que é o que fai un edificio de
+   verdade. Se algún día hai que poñerlle nome, vai nunha placa pequena
+   pegada ao muro, ao lado da porta, e sae dos props. */
 
 /* A segunda pasada: os bloques de parede, que saen da súa propia cela. */
 function debuxarMacizoInterior(ctx, grid, x, y){
@@ -1175,7 +1148,6 @@ function buildTerrainCache(grid){
     if(typeof calcularMachons === 'function') calcularMachons(grid);
     for(let y=0; y<ROWS; y++)
       for(let x=0; x<COLS; x++) debuxarMacizoInterior(ctx, grid, x, y);
-    if(typeof rotularZonas === 'function') rotularZonas(ctx, grid);
   }
   /* (v0.53) sistema de CAMIÑOS TRILLADOS: novo mapa = desgaste a cero */
   _wear = new Float32Array(COLS * ROWS);

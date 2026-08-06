@@ -1230,6 +1230,49 @@ function draw(g){
       ctx.restore();
     }
   }
+  /* (v1.03) OBXECTOS DE INTERIOR — caixas, bidóns, paletas, consolas.
+
+     Van nas celas de ESCOMBRO, que xa marcan "aquí houbo algo" e xa
+     están postas polo xerador de plantas. Así non fai falla tocar o
+     alfabeto nin a navegación: son decoración, e o escombro xa era
+     transitable antes e séguevo sendo.
+
+     Van POR FOTOGRAMA e non na caché do terreo a propósito: os activos
+     cárganse por `new Image()` e non hai garantía de que estean listos
+     cando se constrúe a caché. Son unha vintena de celas por planta;
+     custa menos ca comprobalo. */
+  if((window._bioma || 'VERDE') === 'INTERIOR' && typeof PROPS_INTERIOR !== 'undefined'
+     && window._terrainGrid && PROPS_INTERIOR.length){
+    const gr = window._terrainGrid;
+    for(let cy = 0; cy < ROWS; cy++){
+      const fila = gr[cy];
+      if(!fila) continue;
+      for(let cx = 0; cx < COLS; cx++){
+        if(fila[cx] !== T.RUBBLE) continue;
+        /* Hash da cela: a mesma planta pon sempre o mesmo obxecto no
+           mesmo sitio, e non baila entre fotogramas. */
+        const h = ((cx * 73856093) ^ (cy * 19349663)) >>> 0;
+        if((h % 100) < 45) continue;                  /* nin todas as celas */
+        const def = PROPS_INTERIOR[h % PROPS_INTERIOR.length];
+        const img = ASSETS[def.clave];
+        if(!img) continue;
+        /* O sprite é máis alto ca a cela e sae por riba dela. Se
+           enriba hai formigón, o obxecto acaba pintado ENCIMA DO MURO,
+           que foi o que apareceu na primeira captura: unha caixa
+           flotando nunha parede. Cando o veciño de arriba é macizo,
+           báixase para que quede dentro da sala. */
+        const arribaMacizo = !gr[cy-1] || gr[cy-1][cx] === undefined || gr[cy-1][cx] === T.GRASS;
+        const subida = arribaMacizo ? Math.min(6, def.h - TILE_SIZE) : def.h - 6;
+        const ox = cx*TILE_SIZE + 8 - def.w/2 + ((h >> 8) % 5) - 2;
+        const oy = cy*TILE_SIZE + 8 - subida + ((h >> 12) % 3) - 1;
+        if(!posVisible(cx*TILE_SIZE + 8, cy*TILE_SIZE + 8)) continue;
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        ctx.fillRect(ox + 1, oy + def.h - 2, def.w - 1, 3);
+        ctx.drawImage(img, Math.round(ox), Math.round(oy));
+      }
+    }
+  }
+
   /* (v0.13) Muros */
   if(g.walls){
     /* (v1.00) MUROS QUE SE UNEN. Cada bloque pintaba liña escura nos dous

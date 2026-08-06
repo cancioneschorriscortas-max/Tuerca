@@ -482,11 +482,33 @@ actual ten cinco símbolos e queda curto.
   escribindo «caeu na Doca de Carga» sobre un mapa no que a doca non se
   vía por ningures.
 
-Medido con `tools/contraste.js` sobre a mesma planta: 13,4 antes, **14,6**
-despois. A primeira versión do chan por zona baixara a 13,2 —pintaba
-sobre a base e a reixa case enteira en escuro— e a corrección foi
-inverter a receita: **superficie clara con liña interna escura**, que é o
-que a propia ferramenta di que funciona.
+### Aviso sobre como se mide isto
+
+Houbo aquí unha táboa de contrastes (13,4 → 13,2 → 14,6) presentada como
+medida. **Non o era**, e retírase.
+
+`tools/contraste.js` está ben; o erro estaba en medir sobre **capturas de
+batalla**. Dúas capturas cos mesmos parámetros e o mesmo código dan 13,7
+e 14,7: unha dispersión de 1,0, que é maior ca calquera das diferenzas
+que se estaban lendo como mellora ou como regresión. A causa xa estaba
+documentada no propio proxecto, en `invariantes.test.js`: a simulación
+fai 65 chamadas a `Math.random()` fóra do fluxo sementado, así que nin
+fixando `--semente` sae dúas veces o mesmo cadro.
+
+**O método válido é `--pasos 0` con semente fixa**, que captura o mapa
+antes de simular:
+
+```bash
+node tools/captura.js batalla --bioma INTERIOR --planta DOCA --pasos 0 --hora 15 --semente 7
+```
+
+Dúas execucións así dan 14,5 e 14,5, IQR 35 e 35, e só o 0,40% dos
+píxeles difiren. Iso é reproducible abondo para comparar un cambio
+visual; unha captura de batalla non.
+
+Do cambio de chan por zona, entón, o que se pode afirmar é o que se ve —
+as zonas distínguense e o chan deixou de ser unha explanada— e non un
+número.
 
 | Da lámina | Serve? | Como entra |
 |---|---|---|
