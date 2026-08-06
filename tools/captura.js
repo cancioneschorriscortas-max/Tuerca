@@ -221,6 +221,12 @@ window.addEventListener('load', function(){
       });
       DATA.chatarra = 124;
       DATA.opCount = 13;
+      /* (v1.02) A APERTURA, MARCADA COMO VISTA — coma na sonda de
+         batalla, que xa o facía. Sen isto, capturar o hangar devolvía o
+         laboratorio de ÓPTIMA a pantalla completa por riba de todo: o
+         arranque cría que era unha instalación nova. Non había maneira
+         de mirar o menú, que é onde están os botóns. */
+      DATA.marcas = DATA.marcas || {}; DATA.marcas.primeiroNome = 0;
       /* Dúas unidades comparables para ver as marcas: unha normal e unha
          reensamblada con pezas alleas, coas súas habilidades cruzadas. */
       DATA.units[1].habilidades = {antimuro:true, cazapilotos:true};
@@ -339,6 +345,30 @@ const orixe = usarDist ? path.join(I, 'dist', 'tuerca.html') : path.join(I, 'ind
 if(!fs.existsSync(orixe)) throw new Error('non existe ' + orixe + (usarDist ? ' — corre antes build.py' : ''));
 const sonda = path.join(path.dirname(orixe), '_captura_tmp.html');
 let html = fs.readFileSync(orixe, 'utf8');
+
+/* (v1.02) A PARTIDA HAI QUE PLANTALA ANTES DOS SCRIPTS DO XOGO.
+
+   O resto da sonda inxéctase antes de </body>, que é despois deles, e
+   para o hangar iso chega tarde: showHangar() chama a loadData(), e
+   loadData le localStorage NO ACTO —non hai ningún await antes—, así
+   que cando a sonda escribía a partida o xogo xa decidira que era unha
+   instalación nova e xa sacara o laboratorio de ÓPTIMA a pantalla
+   completa. Non había maneira de capturar o menú.
+
+   Abonda cunha partida mínima: _lerRanura só esixe `units` e `opCount`,
+   e migrate() enche o demais. A marca `primeiroNome` é a que lle di ao
+   arranque que a apertura xa se viu. */
+const previa = (modo === 'hangar') ? `<script>
+try{ localStorage.setItem('tuerca-roster', JSON.stringify(
+  {units: [], opCount: ${op('op', '13')}, marcas: {primeiroNome: 0},
+   interludios: {vistos: ['firmware'], ultimaVoz: 'OPTIMA'}})); }catch(e){}
+</script>
+` : '';
+if(previa){
+  const primeiro = html.search(/<script\s+src="(?:js\/|voces\/)/);
+  html = primeiro >= 0 ? html.slice(0, primeiro) + previa + html.slice(primeiro)
+                       : previa + html;
+}
 html = html.replace('</body>', arranque + semente + '</body>');
 fs.writeFileSync(sonda, html, 'utf8');
 

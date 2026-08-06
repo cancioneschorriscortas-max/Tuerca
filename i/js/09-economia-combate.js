@@ -753,6 +753,33 @@ function tickAI(g){
 function orderMove(u, tx, ty){
   ty = clamp(ty, 8, H-8);
   tx = clamp(tx, 8, W-8);
+  /* (v1.02) NUN INTERIOR, RUTA DE VERDADE.
+
+     Vai aquí e non en tres sitios porque esta función é o punto único
+     polo que pasan o clic do xogador, o clic de grupo, e TODAS as ordes
+     da IA (perseguir, flanquear, cubrir un sector, retirarse). Poñelo
+     aquí é o que garante que a IA navegue exactamente igual de ben ca o
+     xogador; se se puxese só no clic, o interior sería inxogable para
+     un dos dous bandos e ninguén sabería cal.
+
+     rutaInterior devolve [] cando se ve o destino en liña recta, que é
+     o caso máis frecuente e non custa nada. */
+  if((window._bioma || 'VERDE') === 'INTERIOR' && typeof rutaInterior === 'function'){
+    /* Gárdase o destino REAL: os waypoints consómense e sen isto, se a
+       unidade queda atrancada a media ruta, non hai a onde volver
+       pedirlle camiño. */
+    u._destino = {x: tx, y: ty};
+    u._atranco = 0;
+    const r = rutaInterior(u.x, u.y, tx, ty);
+    if(r && r.length){
+      u.waypoints = r;
+      u.tx = r[0].x; u.ty = r[0].y;
+      return;
+    }
+    if(r){ u.waypoints = []; u.tx = tx; u.ty = ty; return; }
+    /* r === null: non hai camiño (destino illado). Déixase a orde
+       directa e que o esvaramento faga o que poida. */
+  }
   /* ¿Hay que cruzar el río? */
   if(crossesRiver(u.x, tx)){
     /* Heavy: obligado al puente, con waypoint dobre (entrada + salida) para asegurar paso */
@@ -1454,6 +1481,19 @@ function tickUnits(g){
       if(Math.hypot(u.x-w.x, u.y-w.y) < 14){
         u.waypoints.shift();
         if(u.waypoints.length>0){ u.tx=u.waypoints[0].x; u.ty=u.waypoints[0].y; }
+        /* (v1.02) O punto dáse por bo a 14 px, e ese metro e pico chega
+           para CORTAR A ESQUINA: a ruta calculouse desde o centro do
+           punto e a unidade sae del por outro sitio, así que o tramo
+           seguinte pode ter xa un muro polo medio. Compróbase aquí —
+           unha vez por tramo, non por fotograma— e se non está limpo,
+           recalcúlase desde onde está de verdade. */
+        if(u.waypoints.length > 0 && typeof vistaLibre === 'function'
+           && (window._bioma || 'VERDE') === 'INTERIOR'
+           && !vistaLibre(u.x, u.y, u.tx, u.ty) && u._destino){
+          const d3 = u._destino;
+          u._destino = null;
+          orderMove(u, d3.x, d3.y);
+        }
       }
       tx = u.tx; ty = u.ty;
     }
@@ -1475,15 +1515,40 @@ function tickUnits(g){
          Non é un camiño óptimo —non pretende selo—, pero segue a parede
          ata a porta, que é o que fai unha persoa nun corredor. */
       if(typeof macizoEn === 'function' && macizoEn(nx, ny)){
-        const soX = !macizoEn(nx, u.y), soY = !macizoEn(u.x, ny);
-        if(soX){ u.x = nx; }
-        else if(soY){ u.y = ny; }
-        else continue;
-        if(u.act) u.act.dist += sp;
+        const _x0 = u.x, _y0 = u.y;
+        if(!macizoEn(nx, u.y)) u.x = nx;
+        else if(!macizoEn(u.x, ny)) u.y = ny;
+        /* (v1.02) A PREGUNTA É SE AVANZOU, NON SE ESVAROU.
+
+           Isto medíase antes coma "algún eixo se puido mover", e estaba
+           mal: indo case en horizontal, `ny` é practicamente `u.y`, así
+           que o esvaramento vertical "funcionaba" desprazando cero
+           píxeles e reiniciaba o contador. A unidade vibraba contra a
+           parede indefinidamente e o contador nunca chegaba a saltar.
+           Era a metade dos casos que non chegaban a destino.
+
+           Agora mídese o desprazamento real. Se non chega a un terzo do
+           paso, iso é estar tesa, e tras medio segundo pídese ruta OUTRA
+           VEZ desde onde estea — que xa non é onde estaba cando se
+           calculou a primeira. */
+        const avance = Math.hypot(u.x - _x0, u.y - _y0);
+        if(avance < sp * 0.35){
+          u._atranco = (u._atranco || 0) + 1;
+          if(u._atranco > 24 && u._destino){
+            u._atranco = 0;
+            const d2 = u._destino;
+            u._destino = null;               /* que orderMove non recurse */
+            orderMove(u, d2.x, d2.y);
+          }
+          continue;
+        }
+        u._atranco = 0;
+        if(u.act) u.act.dist += avance;
         u._movedT = g.t;
         u.x=clamp(u.x,8,W-8); u.y=clamp(u.y,8,H-8);
         continue;
       }
+      u._atranco = 0;
       if(inWater(nx,ny)){
         if(u.heavy){
           /* Non avanzar neste frame. Os waypoints xa apuntan á ponte;

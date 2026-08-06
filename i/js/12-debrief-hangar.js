@@ -2289,6 +2289,66 @@ function crisolEscollaMapa(){
   $('bioModal').style.display = 'flex';
 }
 $('btnCrisol').onclick=()=>{ crisolEscollaMapa(); };
+
+/* ============================================================
+   (v1.02) ACCESO DIRECTO ÁS PLANTAS.
+
+   As plantas de interior só se podían ver polo selector do Crisol —e
+   alí só a XERADA, non as escritas— ou pasando por tools/captura.js.
+   Para deseñar vinte operacións enriba delas hai que poder entrar nunha
+   planta concreta e camiñala, sen agardar a que a campaña chegue.
+
+   Non é un modo novo: é a mesma batalla coa planta pedida. O
+   interruptor de sectores está porque a metade das operacións
+   deseñadas non van de capturar nada, e unha travesía cos círculos de
+   captura tirados polo mapa non se le igual.
+   ============================================================ */
+function escollaPlanta(){
+  const nomes = (typeof PLANTAS !== 'undefined') ? Object.keys(PLANTAS) : [];
+  if(!nomes.length){ radio('Non hai plantas cargadas.', '#ff5340'); return; }
+  let sel = (DATA.marcas && DATA.marcas.plantaProba) || nomes[0];
+  if(nomes.indexOf(sel) < 0) sel = nomes[0];
+  let senSec = !!(DATA.marcas && DATA.marcas.plantaSenSec);
+  const pintar = () => {
+    let b = `<div class="small" style="margin-bottom:10px;">${TXT('int.intro')}</div>`;
+    b += `<div class="row" style="flex-wrap:wrap; gap:6px; margin-bottom:10px;">`;
+    for(const n of nomes){
+      const p = PLANTAS[n];
+      b += `<button class="bio-btn" data-planta="${n}"
+        style="${sel === n ? 'color:#7fdc7f; border-color:#7fdc7f;' : ''}">${n}
+        <span class="small" style="opacity:.65;"> ${p.cols}×${p.filas}</span></button>`;
+    }
+    b += `</div>`;
+    b += `<label class="small" style="display:block; margin-bottom:12px; cursor:pointer;">
+      <input type="checkbox" id="intSenSec" ${senSec ? 'checked' : ''}> ${TXT('int.senSec')}</label>`;
+    b += `<div class="row"><button class="bio-btn" id="intOk"
+      style="color:#7fdc7f; border-color:#7fdc7f;">${TXT('int.entrar')}</button></div>`;
+    $('bioBody').innerHTML = b;
+    $('bioBody').querySelectorAll('[data-planta]').forEach(x => {
+      x.onclick = () => { sel = x.dataset.planta; pintar(); };
+    });
+    $('intSenSec').onchange = (e) => { senSec = e.target.checked; };
+    $('intOk').onclick = async () => {
+      DATA.marcas = DATA.marcas || {};
+      DATA.marcas.plantaProba = sel;
+      DATA.marcas.plantaSenSec = senSec;
+      await saveData(DATA);
+      $('bioModal').style.display = 'none';
+      /* Déixase PEDIDO, non aplicado: newBattle consómeo ao xerar o
+         terreo e pisaría calquera cousa posta aquí antes. */
+      window._biomaPedido = 'INTERIOR';
+      window._plantaPedida = sel;
+      window._senSectores = senSec;
+      $('btnStart').onclick();
+    };
+  };
+  fondoModal('taller');
+  $('bioTitle').innerHTML = TXT('int.titulo');
+  pintar();
+  $('bioModal').style.display = 'flex';
+}
+if($('btnInteriores')) $('btnInteriores').onclick = () => { escollaPlanta(); };
+
 $('btnStart').onclick=()=>{
   setPlayerTeam(window._lado || 0);   /* (v0.29 R1) facción escollida */
   initAudio();

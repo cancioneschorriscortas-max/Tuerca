@@ -240,6 +240,74 @@ proba('o formigón non se derruba; o tabique si', async () => {
   afirmar(g.walls.every((w) => w.tabique), 'todo muro dun interior ten que ser un tabique');
 });
 
+proba('se mandas unha unidade a un sitio, chega', async () => {
+  /* A PROBA QUE FALTABA, e sen ela todo o demais non valía nada: pódese
+     ter unha planta perfecta, os HQ ben postos e ninguén dentro dun
+     muro, e que o interior siga sendo inxogable porque as unidades non
+     se moven por el.
+
+     Medido antes de arranxalo: chegaba a destino o 23% na NAVE e o 3%
+     en XERADORES. O resto quedaba pegado a unha parede ata o final da
+     operación. As tres causas foron: non había ruta ningunha (só un
+     esvaramento por eixos), a corda tirábase mal e daba puntos aos que
+     non se podía ir en liña recta, e o contador de "estou tesa"
+     reiniciábase cun esvaramento de cero píxeles.
+
+     Vai polo camiño do XOGADOR e da IA á vez, que é o mesmo: orderMove. */
+  const S = cargarXogo();
+  await asentar();
+  const T = S.aval('T');
+
+  for (const nome of ['NAVE', 'XERADORES']) {
+    const S2 = cargarXogo();
+    await asentar();
+    S2.window._biomaPedido = 'INTERIOR';
+    S2.window._plantaPedida = nome;
+    const g = novaBatalla(S2, { op: 0, semente: 7 });
+    const gr = S2.aval('TERRAIN_GRID');
+    const COLS = S2.aval('COLS'), ROWS = S2.aval('ROWS');
+    const orderMove = S2.aval('orderMove'), simStep = S2.aval('simStep');
+
+    const chan = [];
+    for (let y = 1; y < ROWS - 1; y++) for (let x = 1; x < COLS - 1; x++) {
+      const t = gr[y][x];
+      if (t === T.ROAD || t === T.RUBBLE || t === T.BRIDGE) chan.push({ x, y });
+    }
+    /* Só unha unidade e nada máis vivo: aquí mídese navegación. Unha
+       unidade detida a disparar tamén está quieta, e sen illar isto a
+       medida di o que un queira. */
+    const u = g.units.find((x) => x.team === 0);
+    g.units.length = 0; g.units.push(u);
+    g.vehicles.length = 0; g.sectors.length = 0;
+    g.aiTimer = 1e9; g.prod = [null, null];
+    u.hp = 99999; u.max = 99999;
+
+    let chegou = 0, total = 0;
+    for (let i = 0; i < 14; i++) {
+      const a = chan[(i * 977) % chan.length], b = chan[(i * 311 + 53) % chan.length];
+      if (Math.hypot(a.x - b.x, a.y - b.y) < 12) continue;
+      total++;
+      u.x = a.x * 16 + 8; u.y = a.y * 16 + 8;
+      u.waypoints = []; u._destino = null; u.dead = false;
+      const tx = b.x * 16 + 8, ty = b.y * 16 + 8;
+      orderMove(u, tx, ty);
+      let quieto = 0, ux = u.x, uy = u.y;
+      for (let k = 0; k < 3600; k++) {
+        if (g.units.length > 1) g.units.length = 1;
+        simStep(g);
+        if (Math.hypot(u.x - tx, u.y - ty) < 20) { chegou++; break; }
+        if (Math.hypot(u.x - ux, u.y - uy) < 0.2) quieto++; else quieto = 0;
+        ux = u.x; uy = u.y;
+        if (quieto > 400) break;
+      }
+    }
+    afirmar(total >= 8, `${nome}: a mostra quedou curta (${total})`);
+    afirmar(chegou / total >= 0.9,
+      `${nome}: só chegou a destino ${chegou} de ${total} (${Math.round(chegou / total * 100)}%). ` +
+      'Un interior polo que non se pode andar non é un escenario.');
+  }
+});
+
 proba('rebentar un tabique abre o paso de verdade', async () => {
   /* O formigón e os tabiques van na CACHÉ do terreo, que se pinta unha
      soa vez. Se ao derrubar un tabique só se quitase o obxecto de

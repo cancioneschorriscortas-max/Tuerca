@@ -1,626 +1,344 @@
 # TUERCA — as vinte operacións
-## Deseño xogable do modo campaña · v1
+## Deseño xogable do modo campaña · v2
 
 Este documento non repite a narrativa. `TUERCA_documento_narrativo_v1.md`
 di **de que trata** cada momento; isto di **que fai o xogador**, **con que
-se dispara** e **que se oe**. Onde os dous discrepen, manda o narrativo:
-aquí só se decide a forma xogable.
-
-Escríbese despois de arranxar os interiores, e iso non é un detalle: ata
-esta versión unha planta escrita ocupaba un cuarto do mapa, o HQ inimigo
-caía dentro do formigón e o escuadrón atravesaba o edificio a tiros en vez
-de percorrelo. Deseñar operacións sobre aquilo tería sido deseñar sobre
-area.
+se dispara** e **que se oe**. Onde os dous discrepen, manda o narrativo.
 
 ---
 
-## 1 · O que o motor sabe facer hoxe
+## 0 · O que cambiou desde a v1, e por que
 
-Todo o que segue úsase abaixo. Nada do que segue está por inventar.
+A v1 tiña vinte operacións e **trece delas gañábanse polo mesmo**: máis
+sectores ca o rival, ou tirarlle a base. Iso non é unha campaña. É a
+escaramuza do modo libre repetida trece veces con outro texto por riba, e
+o texto non salva unha estrutura que non cambia.
 
-| Peza | Onde vive | Que dá |
+O aviso foi do dono e é o correcto: nunha campaña de RTS non tes que
+derrotar sempre unha segunda base. Liberas tropas atrapadas que despois
+te axudan a avanzar. Reparas material abandonado e pasa a loitar contigo.
+Sacas a alguén de alí. **A segunda base é un accesorio do modo
+escaramuza, non da campaña.**
+
+Isto encaixa co que TUERCA xa é: o filtro do proxecto di que unha
+mecánica só entra se axuda a lembrar unha unidade despois de varias
+partidas. Un HQ derrubado non se lembra. Unha unidade que liberaches na
+operación 7 e che segue viva na 19, si.
+
+**Na v2 hai enemigo con base en tres operacións de vinte.** A primeira,
+para ensinar o que é. A oitava, porque VOLT ten unha. E a décimo oitava,
+porque é a única estrutura da campaña que se derruba de verdade.
+
+---
+
+## 1 · Que é unha operación sen segunda base
+
+Isto é o que hai que ter claro antes de tocar código, porque cambia o
+ritmo enteiro.
+
+**O inimigo deixa de ser un rival e pasa a ser unha GARNICIÓN.** Non
+produce, non se reforza soa, non ten cola. Está a que está: repartida
+polas salas, e cada unha que cae xa non volve. Iso ten tres
+consecuencias que hai que querer:
+
+- **A operación baixa de intensidade segundo avanza**, ao revés que unha
+  escaramuza. É correcto: as operacións da campaña son entradas, non
+  batallas campais.
+- **Non se pode gañar por atrición**, porque non hai produción que
+  afogar. Gáñase facendo a cousa que pide a operación.
+- **O fracaso xa non é "perdeu a base"**. É quedar sen ninguén, ou perder
+  o que viñeches buscar. E iso *pode ser peor*, que é o que se quere.
+
+**O reforzo pasa a estar SCRIPTADO.** En vez dunha IA que produce, hai
+gatillos: ao abrir a porta do fondo saen tres; aos catro minutos chega
+unha patrulla pola doca. Iso é o que fai que unha planta escrita se poida
+deseñar. Cunha IA que fabrica, a mesma planta xógase igual sempre; con
+reforzos postos, a planta ten guión.
+
+### O que hai que tocar no motor, e é acoutado
+
+`checkVictory` (10-estructuras.js:546) hoxe é literalmente
+`if(g.hq[ET].hp<=0) vitoria; else if(g.hq[PT].hp<=0) derrota;`. **Sen HQ
+inimigo, unha operación non remata nunca.** Non é un detalle: é o único
+cambio de verdade que pide todo este deseño.
+
+```js
+/* en tickEnd, antes do de sempre */
+if(g.obxectivo){
+  const r = g.obxectivo.avaliar(g);       /* 'victory' | 'defeat' | null */
+  if(r){ g.over = true; g.result = r; return; }
+  return;                                  /* NON caer no do HQ */
+}
+```
+
+Con iso, e con `g.hq[ET]` posto fóra do mapa ou con `hp` infinito nas
+operacións sen base, todo o demais do motor segue igual. A IA de
+produción (`g.prod[ET]`) apágase poñéndoa a `null`, que é o que xa fai o
+Crisol.
+
+---
+
+## 2 · Vocabulario
+
+### Obxectivos
+
+Sete, e a columna da dereita é o que importa: cantas veces aparece.
+
+| Obxectivo | Como se gaña | Veces |
 |---|---|---|
-| Planta de interior | `PLANTAS`, `mapaDaPlanta()` | Escenario recoñecible, co seu tamaño e os seus fondeadeiros |
-| Sectores | `SECTORS`, `window._senSectores` | Captura, ou ningunha captura |
-| HQ | `g.hq`, escudo de subministro | Destrución condicionada a controlar máis sectores |
-| Tabique | `=` na planta, `damageWall`, `abrirTabique` | Muro que **si** se abre, e ábrese de verdade |
-| Formigón | `macizoEn()` | Estrutura. Non se derruba. Obriga a usar as portas |
-| Lugares con nome | `PLACES`, `placeAt()` | «caeu na Doca de Carga», non «en campo aberto» |
-| Misións secundarias | `addSubquest`, `tickSubquests` | Panel lateral, obxectivo con progreso, cámara ao premer |
-| Voz do HQ | `hqSay(texto, atraso, clave)` | Liña de radio de ÓPTIMA, con voz |
-| Radio | `radio(texto, cor, pos)` | Liña de calquera, cor libre, e sinala no mapa |
-| Interludios | `INTERLUDIOS`, `interludioQuizais()` | Pantalla completa entre operacións, dúas voces |
-| Briefing | `showBriefing()` | Antes da batalla, cos veteranos que van |
-| Confianza / folga | `04-progresion.js` | Consecuencias persistentes entre operacións |
-| Desmantelar vivo | `desmantelarVivo()` | O D-77, coa distinción doazón/requisa |
-| Crisol | `modo: 'crisol'` | Oleadas |
+| `RESCATE` | Reactivar N unidades inertes; pasan ao teu control | 4 |
+| `REPARACIÓN` | Poñer en pé material caído; loita contigo o resto da operación | 3 |
+| `EXTRACCIÓN` | Levar N unidades ou pezas ao punto de saída | 4 |
+| `ESCOLTA` | Que alguén que non combate chegue vivo a un sitio | 2 |
+| `SABOTAXE` | Tirar N estruturas concretas (non unha base) | 3 |
+| `DEFENSA` | Aguantar N segundos | 3 |
+| `BASE` | Tirar o HQ inimigo | **3** |
+| `OLEADAS` | Sobrevivir 5 oleadas (Crisol) | 1 |
 
-### O que hai que engadir, e é pouco
+**RESCATE e REPARACIÓN son a mesma peza con dúas caras**, e é a peza que
+pediches:
 
-Un só ficheiro novo, `22-operacions.js`, con esta forma. É a única peza de
-maquinaria que pide este deseño:
+- **RESCATE**: unha unidade `team: 2`, `inerte: true`, non se move e non
+  dispara. Un ENGINEER a menos de 20 px durante 3 segundos actívaa e
+  pasa a `team: PT`. Desde ese momento é unha unidade túa de verdade:
+  ten nome, entra no roster ao rematar, e pode morrer.
+- **REPARACIÓN**: o mesmo, pero sae con 30% de vida e habilidades
+  reducidas. Curala é o que a fai útil.
+
+Ningunha das dúas é un sistema novo: `mkUnit`, o cambio de `team` e o
+radio de reparación do ENGINEER (`engHealStats`) xa existen. O que hai
+que engadir é a bandeira `inerte` e o pulso de activación.
+
+**Por que isto é TUERCA e non un adorno**: unha unidade rescatada na
+operación 7 pode chegar viva á 20. Non é unha recompensa, é un nome
+máis. E cando morre, morre nun sitio con nome (`placeAt`) e entra no
+Diario. Un HQ derrubado non fai nada diso.
+
+### Gatillos
+
+Predicados avaliados unha vez por paso; cada un dispara unha soa vez agás
+que diga `sempre`.
+
+`aoEmpezar` · `tras:N` · `unidadeEn:LUGAR` · `salaAberta:ID` ·
+`tabiqueAberto:N` · `rescatados:N` · `reparados:N` · `extraidos:N` ·
+`baixaPropia:N` · `baixaInimiga:N` · `sabotado:N` · `escoltaEn:LUGAR` ·
+`vidaDe:ID<:%` · `sectorTomado:ID` · `hqInimigo<:%`
+
+Accións:
+
+`dicir:VOZ:clave` (HQ · TUERCA · VOLT · SUPERVISOR · CANTINA) ·
+`aparecer:BANDO:N:LUGAR` · `marcar:TIPO` · `rematar:vitoria|derrota` ·
+`interludio:ID` · `camara:LUGAR` · `abrir:TABIQUE`
+
+### Ficheiro
 
 ```js
 const OPERACIONS = [{
   n: 3, acto: 'I', id: 'aprender-a-volver',
-  planta: 'DOCA',            /* window._plantaPedida */
-  sectores: false,           /* window._senSectores */
-  obxectivo: 'EXTRACCION',   /* ver a táboa de abaixo */
-  presenta: 'ENGINEER',      /* clase que entra aquí por primeira vez */
-  entrada: [ {voz:'OPTIMA', txt:'op3.entrada.1'} ],
+  planta: 'DOCA', sectores: false, baseInimiga: false,
+  obxectivo: {tipo: 'REPARACION', n: 2},
+  presenta: 'ENGINEER',
+  garnicion: [{cls:'GRUNT', n:4, onde:'ALMACENS'}, {cls:'HEAVY', n:1, onde:'DOCA'}],
   gatillos: [
-    { cando: 'aoEmpezar',            facer: ['dicir:HQ:op3.aviso'] },
-    { cando: 'baixaPropia:1',        facer: ['marcar:RECUPERACION', 'dicir:TUERCA:op3.caeu'] },
-    { cando: 'extraidos:1',          facer: ['dicir:HQ:op3.primeiro'] },
-    { cando: 'tras:240',             facer: ['aparecer:GRIS:2:DOCA'] },
+    { cando:'aoEmpezar',   facer:['dicir:HQ:op3.entrada'] },
+    { cando:'reparados:1', facer:['dicir:TUERCA:op3.primeiro'] },
+    { cando:'tras:210',    facer:['aparecer:GRIS:3:PEIRAO', 'dicir:HQ:op3.grises'] },
   ],
-  vitoria: 'extraidos >= 2',
   derrota: 'ningunha unidade viva',
 }];
 ```
-
-**Gatillos** — predicados que se avalían unha vez por paso, e cada un
-dispara **unha soa vez** agás que diga `sempre`:
-
-`aoEmpezar` · `tras:N` (segundos) · `sectorTomado:ID` · `sectoresTomados:N`
-· `baixaPropia:N` · `baixaInimiga:N` · `unidadeEn:LUGAR` ·
-`tabiqueAberto:N` · `hqInimigo<:%` · `hqPropio<:%` · `extraidos:N` ·
-`vidaDe:ID<:%` · `radarPropio` · `sqCumprida:TIPO`
-
-**Accións**:
-
-`dicir:VOZ:clave` (VOZ = HQ | TUERCA | VOLT | SUPERVISOR | CANTINA) ·
-`aparecer:BANDO:N:LUGAR` · `marcar:TIPO` (crea subquest) · `abrir:TABIQUE`
-· `rematar:vitoria|derrota` · `interludio:ID` · `camara:LUGAR`
-
-**Obxectivos** — cinco, e só un é novo:
-
-| Obxectivo | Como se gaña | Novo? |
-|---|---|---|
-| `CAPTURA` | Máis sectores ca o rival ao pechar | non |
-| `HQ` | Tirar o HQ inimigo (co escudo de subministro) | non |
-| `DEFENSA` | Aguantar N segundos co HQ propio en pé | non |
-| `OLEADAS` | Sobrevivir N oleadas | non (Crisol) |
-| `EXTRACCION` | Levar N unidades/pezas ao punto de saída | **si** |
-
-`EXTRACCION` é o único sistema novo, e é o que o dono xa dixo que era o
-único que pagaba a pena. Implementación mínima: un `PLACE` marcado como
-saída, e unha unidade propia que entre nel con material a bordo cóntase e
-retírase do mapa. Reaproveita `placeAt()` enteiro.
-
-**O que NON entra**: sixilo. É un sistema completo para unha soa escena, e
-xa se avisou. A operación 15 do narrativo resólvese aquí doutra maneira.
-
----
-
-## 2 · O escenario
-
-Seis plantas xeradas (`node tools/planta.js --listar`). Ningunha se
-escribe a man e todas pasan as mesmas comprobacións: chan conectado, nada
-de pasos dunha cela, fondeadeiros reais.
-
-| Planta | Medida | Le como | Operacións |
-|---|---|---|---|
-| `NAVE` | 60×34 | Nave principal, talleres, anexo pechado | 1, 2, 6, 12 |
-| `DOCA` | 60×34 | Doca de carga, peirao, almacéns | 3, 4, 9, 14 |
-| `XERADORES` | 60×34 | Sala de xeradores, galería de cables | 7, 11, 16 |
-| `ARQUIVO` | 60×34 | Depósito, corredor frío, salas de consulta | 5, 13, 19 |
-| `GALERIA` | 40×50 | **Alta e estreita.** Escaleira e palcos | 8, 10, 15 |
-| `COMPLEXO` | 80×45 | A localización nova. Patio cuberto e oficinas | 17, 18, 20 |
-
-`GALERIA` é vertical a propósito: nunha planta alta e estreita non hai
-flanqueo longo, hai **alturas**. É a «torre» da operación do SNIPER sen
-inventar unha mecánica de torre.
-
-Repetir planta non é repetir operación. A mesma nave con `_senSectores`,
-outra entrada e outro obxectivo é outro sitio. Iso é o que permite oito
-zonas e unha soa localización nova, que é o que estaba decidido.
 
 ---
 
 ## 3 · A táboa
 
-`†` = introduce clase. `‡` = acto de hangar, non operación.
+`†` introduce clase · `‡` acto de hangar, non operación · **B** leva base inimiga
 
-| # | Acto | Título | Planta | Obxectivo | Sec. | Clase |
-|---|---|---|---|---|---|---|
-| 1 | I | Primeiro día | NAVE | CAPTURA (2 sec.) | si | GRUNT † |
-| 2 | I | Reciclaxe rutineira | NAVE | HQ | si | |
-| 3 | I | Aprender a volver | DOCA | EXTRACCIÓN | non | ENGINEER † |
-| 4 | I | Unha páxina máis | DOCA | CAPTURA | si | |
-| ‡ | I | *O formulario D-77* | *hangar* | — | — | |
-| 5 | I | O que quedou dentro | ARQUIVO | EXTRACCIÓN | non | |
-| 6 | I | O taller ten un nome | NAVE | DEFENSA | non | |
-| 7 | II | Os que teñen nome | XERADORES | CAPTURA | si | |
-| 8 | II | VOLT | GALERIA | HQ | si | HEAVY † |
-| 9 | II | Os Grises | DOCA | DEFENSA | non | |
-| 10 | II | A galería alta | GALERIA | CAPTURA | si | SNIPER † |
-| 11 | II | O espectáculo | XERADORES | HQ | si | |
-| 12 | II | Superioridade industrial | NAVE | CAPTURA | si | |
-| 13 | II | Quen escribe o caderno | ARQUIVO | EXTRACCIÓN | non | |
-| 14 | II | O muro | DOCA | HQ + brecha | si | |
-| 15 | II | O que VOLT lembra | GALERIA | DEFENSA | non | |
-| 16 | III | Corte de subministro | XERADORES | HQ | si | |
-| 17 | III | Chegar ao Complexo | COMPLEXO | CAPTURA | si | |
-| 18 | III | A obra pública | COMPLEXO | HQ + brecha | si | BOMBARDERO † |
-| 19 | III | O Crisol | ARQUIVO | OLEADAS (5) | non | |
-| 20 | III | O último combate | COMPLEXO | EXTRACCIÓN | non | |
-| — | — | **Montaxe final** | *montaxe* | — | — | |
+| # | Acto | Título | Planta | Obxectivo | Clase |
+|---|---|---|---|---|---|
+| 1 | I | Primeiro día | NAVE | **B** BASE (pequena, guiada) | GRUNT † |
+| 2 | I | Reciclaxe rutineira | NAVE | SABOTAXE (3 prensas) | |
+| 3 | I | Aprender a volver | DOCA | REPARACIÓN (2) | ENGINEER † |
+| 4 | I | Unha páxina máis | DOCA | RESCATE (3) | |
+| ‡ | I | *O formulario D-77* | *hangar* | — | |
+| 5 | I | O que quedou dentro | ARQUIVO | EXTRACCIÓN (3 expedientes) | |
+| 6 | I | O taller ten un nome | NAVE | ESCOLTA (o da cantina) | |
+| 7 | II | Os que teñen nome | XERADORES | RESCATE (4) | |
+| 8 | II | VOLT | GALERIA | **B** BASE | HEAVY † |
+| 9 | II | Os Grises | DOCA | DEFENSA (240 s) | |
+| 10 | II | A galería alta | GALERIA | SABOTAXE (2 postos altos) | SNIPER † |
+| 11 | II | O espectáculo | XERADORES | — *(Mundial, á parte)* | |
+| 12 | II | Superioridade industrial | NAVE | REPARACIÓN (3) | |
+| 13 | II | Quen escribe o caderno | ARQUIVO | EXTRACCIÓN (o caderno) | |
+| 14 | II | O muro | DOCA | RESCATE tras brecha (2) | |
+| 15 | II | O que VOLT lembra | GALERIA | DEFENSA (o memorial) | |
+| 16 | III | Corte de subministro | XERADORES | SABOTAXE (4 xeradores) | |
+| 17 | III | Chegar ao Complexo | COMPLEXO | ESCOLTA + RESCATE (3) | |
+| 18 | III | A obra pública | COMPLEXO | **B** BASE + brecha | BOMBARDERO † |
+| 19 | III | O Crisol | ARQUIVO | OLEADAS (5) | |
+| 20 | III | O último combate | COMPLEXO | EXTRACCIÓN (nomes) | |
+| — | — | **Montaxe final** | *montaxe* | — | |
 
-Contas: catro operacións no acto I, once no II, cinco no III, máis o acto
-de hangar e o peche. **Aviso**: o narrativo di «operacións 16–20» na
-cabeceira do acto III pero numera as súas seccións 14–17. Aquí resólvese
-como acto III = 16–20, que é o que di a cabeceira e o que casa cos vinte.
+Tres bases en vinte, e cada unha xustifica a súa: a 1 ensina o que é unha
+base para que a súa ausencia despois signifique algo, a 8 é a de VOLT
+—que é o espello do xogador e por iso ten unha coma el—, e a 18 é a única
+estrutura que a campaña derruba de verdade.
 
----
-
-## 4 · Operación a operación
-
-O texto vai en galego e listo para meter en `00b-i18n.js` coas claves que
-se indican. As liñas de ÓPTIMA son **corteses sempre**; iso non é un ton,
-é a regra.
+**Sen sectores en catorce das vinte.** Círculos de captura nunha misión
+de rescate son ruído: o xogador le que hai algo que capturar e non o hai.
 
 ---
 
-### 1 · Primeiro día `NAVE` · CAPTURA · GRUNT
+## 4 · As operacións que cambian de forma
 
-**Lóxica.** Dous sectores, un escuadrón de tres, sen tabiques marcados no
-panel. É a operación máis curta da campaña e non se pode perder por
-tempo: só se perde quedando sen ninguén. O que se ensina é mover e
-capturar, nada máis.
+Só se detallan aquí as que non son evidentes desde a táboa. As demais
+seguen como na v1 en texto e diálogo; o que cambia é o obxectivo.
 
-**Por que é entretida.** Porque non trata do combate. Antes de saír, o
-supervisor di a única norma que se explica en voz alta en todo o xogo, e
-o xogador vai poder incumprila cinco minutos despois.
+### 2 · Reciclaxe rutineira — `SABOTAXE`
 
-**Entrada** — no taller, non na batalla:
+Tres prensas de reciclaxe na nave. Hai que paralas. Non hai rival: hai
+seis operarios armados e unha instalación funcionando con normalidade.
 
-> **SUPERVISOR** · `op1.norma`
-> «Non lles poñas nomes. Fai que o traballo sexa máis difícil, para eles
-> e para ti.»
->
-> «Non che vou dicir por que. Se cho digo agora, non o entendes. Se
-> esperas, xa non fai falla que cho diga.»
-
-**Gatillos.**
+**Por que funciona.** A operación 1 rematou tirando unha base e sentiu
+como un xogo. Esta remata parando unha máquina, e a máquina segue quente.
 
 | Cando | Que pasa |
 |---|---|
-| `aoEmpezar` | **HQ** `op1.inicio`: «Operación de rutina. Dous puntos de control. Grazas por utilizar ÓPTIMA INDUSTRIES.» |
-| `sectorTomado:A` | **HQ** `op1.sectorA`: «Punto asegurado. Rendemento dentro do previsto.» |
-| `baixaPropia:1` | *silencio.* Ninguén di nada. É a primeira vez e é o que máis pesa |
-| `sectoresTomados:2` | `rematar:vitoria` |
+| `sabotado:1` | **HQ** `op2.rendemento`: «Liña un detida. Rexístrase perda de rendemento.» |
+| `sabotado:3` | **HQ** `op2.reciclaxe`: *«Grazas por utilizar ÓPTIMA INDUSTRIES. A súa unidade será reciclada ao finalizar a avaliación.»* — a mensaxe automática de sempre, agora dentro do sitio onde se fai |
 
-**Saída.** Ao volver, o caderno enriba da banca. Unha páxina en branco.
-`bautizoObrigatorio()` pero **sen explicar para que serve**: só o cursor.
-Escribir aí é o que marca `marcas.primeiroNome` e o que dispara o
-interludio `primernombre`.
+### 3 · Aprender a volver — `REPARACIÓN`
 
----
+Dous chasis propios de operacións anteriores, tirados na doca ao 15% de
+vida. O ENGINEER ponos en pé e loitan contigo o resto da operación.
 
-### 2 · Reciclaxe rutineira `NAVE` · HQ
+**Isto é a clase feita misión**, e é onde se ensina a regra que despois
+sostén media campaña: **reconstruír non é fabricar; é impedir que
+desapareza.**
 
-**Lóxica.** A mesma nave, agora enteira: hai que tirar o HQ inimigo, e o
-escudo de subministro obriga a controlar máis sectores ca el. É a
-primeira vez que a captura serve para algo e non é o obxectivo.
+Regra que non se explica en ningures e se descobre no taller: se o
+reparado compartira operación cunha unidade viva, herda unha habilidade
+dela.
 
-**Por que é entretida.** Gáñase, e a recompensa é a mensaxe automática.
+### 4 · Unha páxina máis — `RESCATE`
 
-**Gatillos.**
+Tres unidades inertes nun almacén pechado. A porta está tapiada: hai un
+tabique, e abrilo é a operación. Non hai combate ata que se abre.
 
-| Cando | Que pasa |
-|---|---|
-| `aoEmpezar` | **HQ** `op2.escudo`: «HQ inimigo baixo escudo de subministro. Só cae se controla máis sectores ca el.» |
-| `hqInimigo<:50` | **HQ** `op2.medio`: «Integridade estrutural inimiga ao cincuenta por cento.» |
-| `baixaInimiga:3` | **VOLT** *(primeira vez que se oe, sen presentarse)* `op2.volt`: «Anotado.» |
-
-**Saída — o momento da operación.** Ao rematar, antes do informe:
-
-> **ÓPTIMA** · `op2.reciclaxe`
-> «Grazas por utilizar ÓPTIMA INDUSTRIES.
-> A súa unidade será reciclada ao finalizar a avaliación.»
-
-Vai **idéntica** para todas as unidades, incluída a que o xogador acaba
-de bautizar. Non se subliña. Non hai réplica. O informe ábrese despois,
-coma sempre.
-
----
-
-### 3 · Aprender a volver `DOCA` · EXTRACCIÓN · ENGINEER
-
-**Lóxica.** Sen sectores (`_senSectores`). Hai dúas unidades propias
-caídas de antes tiradas na doca e hai que sacalas polo peirao. O ENGINEER
-entra aquí porque sen reconstrución non se pode seguir, e iso é unha
-regra, non un consello: as caídas non se levantan soas.
-
-**Por que é entretida.** Cambia o verbo. Todo o que se aprendeu era
-tomar; agora hai que **traer**, e traer é máis lento, e o mapa non
-colabora.
-
-**Gatillos.**
+**Por que é entretida.** É a primeira vez que o mapa é o problema e non a
+xente. E ao abrir, o que hai dentro non ataca: está agardando.
 
 | Cando | Que pasa |
 |---|---|
-| `aoEmpezar` | **HQ** `op3.entrada`: «Recuperación de material. Dous chasis. Punto de saída no peirao.» |
-| `aoEmpezar` | **TUERCA** `op3.tuerca`: «Non son dous chasis.» |
-| `extraidos:1` | **HQ** `op3.un`: «Unidade recuperada. As pezas conservan rastros; iso non afecta ao rendemento.» |
-| `tras:180` | `aparecer:GRIS:2:DOCA` — chegan os primeiros Grises, sen presentación |
-| `extraidos:2` | `rematar:vitoria` |
+| `tabiqueAberto:1` | **TUERCA** `op4.dentro`: «Levan aquí desde antes de que eu chegase.» |
+| `rescatados:1` | *silencio*, e o nome aparece na radio como se sempre fose teu |
+| `rescatados:3` | `rematar:vitoria` |
 
-**Regra que se descobre xogando.** Se se extrae unha unidade que
-compartira operación cunha viva, a reconstruída herda unha habilidade
-dela. Non se di en ningures. Vese no taller.
+**Saída.** No caderno, coa letra doutra man: *«Hoxe esquecín algo. Non sei
+o que era.»*
 
----
+### 6 · O taller ten un nome — `ESCOLTA`
 
-### 4 · Unha páxina máis `DOCA` · CAPTURA
+O da cantina ten que chegar á nave. Non combate, non se defende, e móvese
+máis lento ca todos. Se cae, a operación **non se perde**: gáñase igual e
+non volve aparecer nunca máis, e ninguén o menciona.
 
-**Lóxica.** Operación normal, de transición. Curta.
+**Isto é a brúxula do proxecto feita regra.** O xogo non che castiga por
+perdelo. Simplemente deixa de estar.
 
-**Por que existe.** Porque o acto I precisa un respiro entre a
-extracción e o D-77, e porque a páxina do caderno ten que aparecer nun
-sitio onde non pase nada máis.
+### 7 · Os que teñen nome — `RESCATE`
 
-**Saída.** No hangar, no caderno, coa letra doutra man:
+Catro unidades inertes repartidas polos cadros dos xeradores, en catro
+salas distintas. Non se poden facer as catro polo mesmo camiño: hai que
+partir o escuadrón, e partir o escuadrón é a primeira decisión difícil da
+campaña.
 
-> `op4.pagina`
-> «Hoxe esquecín algo. Non sei o que era.»
+### 10 · A galería alta — `SABOTAXE`
 
-Nada máis. Sen botón de resposta, sen menú.
+Dous postos elevados nos palcos que baten a escaleira enteira. Sen SNIPER
+hai que subir por ela; con SNIPER, non. O obxectivo son eles, non a xente
+que os leva.
 
----
+### 12 · Superioridade industrial — `REPARACIÓN`
 
-### ‡ · O formulario D-77 — acto de hangar
+Tres unidades **inimigas** caídas. Repáraas e loitan contigo.
 
-**Non é unha operación**, e xa se avisou de que non o era. É unha
-pantalla de hangar entre a 4 e a 5.
-
-Chega unha orde: falta unha peza para completar un chasis e a única
-compatible está nunha unidade **viva** do roster. `desmantelarVivo()`.
-
-- Con confianza alta → **DOAZÓN**. Hai despedida, e a unidade di algo.
-- Con confianza baixa → **REQUISA**. Non hai despedida. Hai formulario.
-
-> **ÓPTIMA** · `d77.selado`
-> «Formulario D-77 (desmantelamento non consentido) selado sen
-> incidencias. É un pracer traballar con profesionais.»
-
-O xogador cúbreo coa súa man. É a primeira vez que fai o que a mensaxe
-da operación 2 lle prometía a el.
-
----
-
-### 5 · O que quedou dentro `ARQUIVO` · EXTRACCIÓN
-
-**Lóxica.** Primeira visita ao Arquivo, sen saber aínda o que é. Hai que
-sacar expedientes, non unidades: tres puntos de recollida repartidos, un
-punto de saída. Sen sectores.
-
-**Por que é entretida.** Porque o corredor frío do Arquivo é longo e
-estreito e o xogador xa aprendeu que o formigón non se derruba: hai que
-usar as portas, e as portas están onde están.
+**A operación que máis incomoda de toda a campaña.** ÓPTIMA felicítate
+por rendemento mentres o fas, e ten razón: é máis eficiente. O xogador
+está a facer exactamente o que critica.
 
 | Cando | Que pasa |
 |---|---|
-| `unidadeEn:DEPOSITO` | **TUERCA** `op5.deposito`: «Isto non é un almacén. Está ordenado por nomes.» |
-| `extraidos:3` | `rematar:vitoria` |
+| `reparados:1` | **HQ** `op12.material`: «Material reasignado. Excelente aproveitamento.» |
+| `reparados:3` | **TUERCA** `op12.tuerca`: «Non lles preguntaches se querían.» |
+
+### 14 · O muro — `RESCATE` tras brecha
+
+O tabique con restos aliados incrustados. Ao abrilo non hai pezas: hai
+dúas unidades inertes que levan aí dentro desde que se fixo o muro.
+
+> **TUERCA** `op14.obra`: «Non foi unha atrocidade. Foi obra pública.
+> Alguén precisaba material.»
+
+### 15 · O que VOLT lembra — `DEFENSA`
+
+VOLT non ataca o teu HQ: ataca o **memorial**. Un punto que non dá
+recursos, non dá territorio e non dá puntuación. Só ten nomes dentro.
+
+Se cae, a operación **non se perde**. O que se perde son os nomes, e vese
+no Diario da partida seguinte.
+
+### 17 · Chegar ao Complexo — `ESCOLTA` + `RESCATE`
+
+Hai que meter un ENGINEER ata o fondo das oficinas e sacar tres. O
+ENGINEER é o que activa, así que se cae, a operación segue pero xa non se
+pode rescatar a ninguén máis. **Perder unha unidade deixa de ser unha
+baixa e pasa a ser unha porta que se pecha.**
+
+### 20 · O último combate — `EXTRACCIÓN`
+
+Sen base, sen sectores, sen vitoria total. Cada unidade que sae polo
+punto de extracción conta; as que quedan dentro non volven. O marcador
+non di «vitoria»: di cantos saíron.
 
 ---
 
-### 6 · O taller ten un nome `NAVE` · DEFENSA · peche do acto I
+## 5 · O que aínda non está probado, e hai que probalo antes de escribir vinte guións
 
-**Lóxica.** Aguantar 240 segundos na nave co HQ en pé. Sen sectores: non
-hai nada que tomar, só que non caia.
+Isto é honesto, non cauteloso. As plantas están medidas e a navegación
+tamén (chégase a destino no 97–100% dos casos, medido; antes era o
+3–39%). O que **non** está probado é isto:
 
-**Por que é entretida.** Porque é a primeira vez que o xogador non
-decide onde vai a operación, e porque no medio da defensa chega alguén
-que non serve para nada.
+1. **Canto dura unha operación sen produción inimiga.** Se a garnición é
+   fixa, o ritmo dependeo de canta hai e de onde. Hai que xogar unha e
+   cronometrala antes de escribir as vinte.
+2. **Se catro unidades inertes en catro salas obriga a partir o
+   escuadrón ou só a dar catro voltas.** Se é o segundo, aburre.
+3. **Se un escuadrón de tres chega a facer unha travesía de 80×45** sen
+   que se faga longo. O COMPLEXO pode ser grande de máis.
+4. **Se `ESCOLTA` funciona sen ordes de formación.** Unha unidade lenta
+   que segue ao grupo pode quedar atrás por deseño ou por accidente, e
+   desde fóra vense igual.
 
-**O da cantina.** Unha unidade máis do roster, sen liña de combate útil.
-Repara radios que xa funcionan. *(Designación proposta: `T-07`. O
-narrativo non lle pon nome e quizais deba seguir sen el.)*
+**Recomendación**: prototipar a operación 4 (RESCATE tras brecha) antes
+que ningunha outra. É a máis curta que usa a peza nova, e se esa non
+funciona, non funciona ningunha das once que dependen dela.
 
-| Cando | Que pasa |
-|---|---|
-| `tras:120` | `aparecer:ALIADO:1:NAVE` — chega el. Non dispara |
-| `tras:150` | **CANTINA** `op6.cunca`: *(sen texto. Rompe unha cunca. Colle outra do estante. Segue coa radio.)* Só o son |
-| `tras:240` | `rematar:vitoria` |
-
-**Saída.** Cando chega o seguinte veterano ao hangar, o da cantina xa
-sabe o seu nome antes de que se presente. Non se explica. Ninguén o
-comenta.
-
----
-
-### 7 · Os que teñen nome `XERADORES` · CAPTURA · abre o acto II
-
-**Lóxica.** Operación normal, e o cambio está fóra dela: a partir de
-aquí o hangar amosa cantina, memorial e taller, e as unidades teñen
-manías visibles (un bebe sempre da mesma taza, outro non se senta).
-
-| Cando | Que pasa |
-|---|---|
-| `baixaPropia:1` | **TUERCA** `op7.cadeira`: «Unha cadeira queda baleira. Ninguén comenta nada.» |
-
-O da cantina garda a taza el mesmo, sen que llo pidan. No hangar, non na
-batalla.
+O botón **INTERIORES (probar planta)** do hangar está aí para iso: entra
+nunha planta concreta, con ou sen sectores, sen agardar á campaña.
 
 ---
 
-### 8 · VOLT `GALERIA` · HQ · HEAVY
-
-**Lóxica.** VOLT en persoa, nunha planta alta e estreita onde non se
-pode rodear. Combate sostido que ningunha unidade lixeira aguanta: o
-HEAVY entra aquí porque é a única maneira de non perder metade do
-escuadrón na escaleira.
-
-**Por que é entretida.** É a primeira vez que o inimigo razoa coma o
-xogador. VOLT **lembra**: as súas liñas citan nomes de unidades propias
-mortas en operacións anteriores (`killedNames`, que xa existe no sistema
-de recorrentes).
-
-| Cando | Que pasa |
-|---|---|
-| `aoEmpezar` | **VOLT** `op8.saudo`: «Lévoos contados. Os teus e os meus. É máis eficiente.» |
-| `baixaPropia:1` | **VOLT** `op8.anota`: «{nome}. Anotado.» *(nome real da unidade caída)* |
-| `hqInimigo<:30` | **VOLT** `op8.espello`: «Ti tamén desmontas. A diferenza é que eu levo o rexistro ao día.» |
-
-VOLT non morre nesta operación. Retírase.
-
----
-
-### 9 · Os Grises `DOCA` · DEFENSA
-
-**Lóxica.** Sen bando vermello. Os Grises atacan e retíranse cargando
-material — teu e do inimigo, indistintamente. Non se gaña matándoos:
-gáñase aguantando ata que se van.
-
-**Por que é entretida.** Porque cambia a pregunta. Non é «quen gaña», é
-«canto che levaron».
-
-| Cando | Que pasa |
-|---|---|
-| `aoEmpezar` | **HQ** `hq.grises` *(clave xa existente)*: «Sinais non identificadas. Múltiples. Orixe: administración central.» |
-| `baixaInimiga:1` | **TUERCA** `op9.albaran`: «Cando cae un Gris non hai obituario. Hai un albarán.» |
-
----
-
-### 10 · A galería alta `GALERIA` · CAPTURA · SNIPER
-
-**Lóxica.** Un sector nos palcos, en alto, que domina a escaleira. Sen
-SNIPER hai que subir por ela e cústache dous. Con SNIPER, non.
-
-**Por que é entretida.** É a primeira operación que se resolve escollendo
-**antes** de saír, no hangar, e non durante.
-
----
-
-### 11 · O espectáculo `XERADORES` · HQ
-
-**Lóxica.** O Mundial dentro da campaña. Retransmisión, comentarista,
-marcador. Mecanicamente é unha operación normal; o que cambia é a capa
-de son e o feito de que as pezas gañadas veñen do torneo.
-
-**Aviso mantido do traspaso**: o ton do Mundial dentro da campaña hai que
-**probalo antes de comprometelo**. Se rompe o rexistro, o Mundial queda
-fóra do mapa territorial, opcional, como xa estaba decidido.
-
----
-
-### 12 · Superioridade industrial `NAVE` · CAPTURA
-
-**Lóxica.** Operación grande e sen truco. Existe para que ÓPTIMA poida
-expoñer o seu argumento completo cando o xogador vai gañando.
-
-**Saída** — interludio, non batalla:
-
-> **ÓPTIMA** · `op12.argumento`
-> «Non hai vinganza en catro xeracións. Non hai viúvas. Non hai
-> represalias. Non discutimos que funcione.
->
-> Discútese o prezo. Nós tamén o discutimos, e resolvémolo. É a nosa
-> función.»
-
-Sen vilán. O argumento ten que ser difícil de rebater ou non funciona.
-
----
-
-### 13 · Quen escribe o caderno `ARQUIVO` · EXTRACCIÓN
-
-**Lóxica.** Sacar diarios do Arquivo antes de que os reciclen. Un dos
-que se recolle é o caderno.
-
-**Saída.** Recoñécese o padrón: certas letras máis presionadas cando a
-páxina fala de perdas, erros riscados e corrixidos. **Non se revela quen
-é.**
-
-> `op13.liña`
-> «Non quero que desaparezan dúas veces.»
-
----
-
-### 14 · O muro `DOCA` · HQ + brecha
-
-**Lóxica.** O tabique deixa de ser un atallo e pasa a ser o obxectivo. Un
-muro da doca ten restos aliados incrustados no formigón. Reaproveita a
-subquest `MURO_RESTOS`, que xa existe, pero aquí está **posta**, non é
-aleatoria.
-
-**Por que é entretida.** Porque a resposta á pregunta obvia é peor ca
-calquera atrocidade:
-
-| Cando | Que pasa |
-|---|---|
-| `tabiqueAberto:1` | **TUERCA** `op14.obra`: «Non foi unha atrocidade. Foi obra pública. Alguén precisaba material.» |
-
----
-
-### 15 · O que VOLT lembra `GALERIA` · DEFENSA
-
-**Esta é a operación 15 reescrita.** O narrativo pedía aquí sixilo, que é
-un sistema enteiro para unha soa escena. Substitúese sen perder o que a
-escena tiña que demostrar.
-
-**Lóxica.** VOLT non ataca o teu HQ: ataca o **memorial**. Hai que
-defender un punto que non dá recursos, non dá territorio e non dá
-puntuación. Só ten nomes dentro.
-
-**Por que é entretida.** Porque o xogo levaba quince operacións
-ensinando a avaliar obxectivos por rendemento, e este non ten ningún. A
-decisión de defendelo é o argumento enteiro do xogo, tomado coas mans.
-
-| Cando | Que pasa |
-|---|---|
-| `aoEmpezar` | **HQ** `op15.optima`: «Obxectivo sen valor táctico asignado. Recoméndase repregar.» |
-| `aoEmpezar` | **VOLT** `op15.volt`: «Eu tamén lembro. Por iso sei onde doe.» |
-| `tras:300` | `rematar:vitoria` |
-
-Se cae o memorial, a operación **non se perde**: séguese e gáñase igual.
-O que se perde son os nomes, e vese no Diario da partida seguinte.
-
----
-
-### 16 · Corte de subministro `XERADORES` · HQ · abre o acto III
-
-**Lóxica.** Tirar a alimentación do Complexo. Operación técnica, dura,
-sen ninguén falando por riba. É o único momento do acto III que se
-parece a un RTS normal, e está aí para que os catro seguintes non o
-parezan.
-
----
-
-### 17 · Chegar ao Complexo `COMPLEXO` · CAPTURA
-
-**Lóxica.** Primeira entrada na única localización nova. Grande, seis
-sectores, cinco tabiques. Non se gaña rápido.
-
-| Cando | Que pasa |
-|---|---|
-| `aoEmpezar` | **HQ** `op17.benvida`: «Benvidos ao Complexo Central. Rógase circular polos corredores sinalizados.» |
-
----
-
-### 18 · A obra pública `COMPLEXO` · HQ + brecha · BOMBARDERO
-
-**Lóxica.** Unha estrutura que só cede con potencia de fogo alta, e o
-BOMBARDERO ignora a cobertura: usalo custa baixas propias probables. A
-clase máis destrutiva chega ao final a propósito, cando a historia xa
-fala do prezo de todo isto.
-
-| Cando | Que pasa |
-|---|---|
-| `aoEmpezar` | **TUERCA** `op18.prezo`: «Isto ábrese. A pregunta non é se se pode.» |
-
----
-
-### 19 · O Crisol `ARQUIVO` · OLEADAS (5)
-
-**Lóxica.** Cinco oleadas, non infinitas: ese é o **contrato da
-campaña**. O Crisol do modo libre segue sendo infinito e non se toca.
-
-**Por que é entretida — e por que é cruel.** O que se proba non son as
-unidades. Próbase se un roster con memoria acumulada rende mellor ou peor
-có limpo. O xogador xera os datos que xustificarán a súa propia
-eliminación, e o informe final dállos con cortesía.
-
-| Cando | Que pasa |
-|---|---|
-| `aoEmpezar` | **HQ** `op19.ensaio`: «Ensaio comparativo. Grupo de control: unidades sen historial. Grupo experimental: o seu.» |
-| oleada 5 limpa | **HQ** `op19.grazas`: «Datos suficientes. Grazas pola súa colaboración.» |
-
----
-
-### 20 · O último combate `COMPLEXO` · EXTRACCIÓN
-
-**Lóxica.** ÓPTIMA atopou o Arquivo. Sen sectores, sen HQ que tirar. Hai
-que **evacuar nomes**: cada unidade que sae polo punto de extracción
-conta, e as que quedan dentro non volven.
-
-**Gáñase ou pérdese de verdade.** Non hai vitoria total: hai unha conta.
-O marcador non di «vitoria», di cantos saíron.
-
-| Cando | Que pasa |
-|---|---|
-| `tras:60` | **HQ** `op20.peche`: «Peche de instalación en curso. Rógase abandonar o edificio con orde.» |
-| `extraidos:1` | *silencio* |
-| `hqPropio<:25` | **TUERCA** `op20.non`: «Non contes territorio. Conta nomes.» |
-| tempo esgotado | `rematar` — co número que sexa |
-
-**Saída.** Un só expediente sae do Protocolo e chega a publicarse. Un
-accidente burocrático, non unha vitoria moral. ÓPTIMA segue existindo. O
-Protocolo segue vixente.
-
-Pero xa non é certo dicir que ninguén o sabía.
-
----
-
-## 5 · A montaxe final
-
-Non é unha operación e non leva gatillos. É `showMontaxe()`, que xa
-existe, coa mesma interface de MONTAXE DESDE CERO que o xogador leva
-vinte operacións usando.
-
-O que cambia é o que di cada oco. Antes: *«Perna compatible.»* Agora:
-*«Perna · FERRALLA · 2090.08.14.»* A pantalla non cambiou; o que o
-xogador ve nela, si.
-
-Mentres monta, o Arquivo prepara a páxina en silencio, unha ou dúas
-palabras por peza. Ao colocar a última, e só entón, `REXISTRO PECHADO` e
-a páxina completa de golpe. O robot abre os ollos, mira ao Diario, e
-aparece o cursor:
-
-```
-Nome:
-```
-
-Que é `bautizoObrigatorio()`, que xa está feito. Corte a negro.
-
-**A clave estrutural**: aquí é onde a campaña desemboca no modo libre. A
-primeira misión do modo libre é a última da campaña. Isto resolve as tres
-contradicións aparentes que xa estaban identificadas e non se repiten
-aquí.
-
----
-
-## 6 · Cadencia dos interludios
-
-Os interludios xa existen e xa se disparan por estado, non por contador.
-Este é o encaixe coas vinte operacións, para comprobar que non quedan
-ocos longos nin dous seguidos:
-
-| Tramo | Operacións | Interludios que caen aí |
-|---|---|---|
-| ARRANQUE | antes da 1 | `firmware` |
-| MAQUINA | 1–6 | `optima`, `veteranos`, `restos`, `chatarra`, `radar` |
-| NOME | tras bautizar | `primernombre` |
-| MAQUINA | 7–12 | `taller`, `regreso`, `principios`, `estratexia`, `arquiveiros` |
-| XENTE | 13–19 | `entrega`, `descanso` |
-| EPILOGO | tras a 20 | `pradera` |
-
-`ultimatransmision` dispárase na primeira derrota, caia onde caia. Se o
-xogador non perde nunca, non o ve, e está ben.
-
-**Punto a vixiar**: `entrega` esixe `opCount >= 15` **e** tres caídos
-propios. Nunha partida limpa non sae, e é o interludio que explica o
-caderno. Ou se baixa o limiar de caídos a dous, ou se acepta que hai
-partidas nas que o caderno non se explica nunca — que tampouco é un
-problema, se se acepta a conciencia.
-
----
-
-## 7 · O que queda sen decidir
+## 6 · Sen decidir
 
 1. ~~Contraste macizo/chan.~~ **Decidido**: masa escura, chan lexible
-   (`MACIZO_CLARO = false`). O interruptor queda por se hai que
-   comparar outra vez.
-2. **Se a campaña e o libre son unha partida ou dous gardados.** Afecta
-   á operación 20 e á montaxe final, non a ningunha outra.
+   (`MACIZO_CLARO = false`).
+2. **Se a campaña e o libre son unha partida ou dous gardados.**
 3. **Como se empalma o banco do primeiro día cos caídos da campaña.**
-   Segue sendo a peza máis rendible de todas: `bancoPrimeiroDia()` xera
-   hoxe 35 pezas anónimas.
-4. **O da cantina leva designación ou non.** Aquí propúxose `T-07`. Que
-   non a leve é máis fiel ao narrativo; que a leve permite que apareza no
-   Diario, e o Diario é o protagonista.
-5. **O ton do Mundial na operación 11.** Probar antes de comprometer.
-6. **Se as pezas dos caídos poden reaparecer nun robot inimigo.** O
-   narrativo dío; o sistema de recorrentes xa podería facelo.
+   `bancoPrimeiroDia()` xera hoxe 35 pezas anónimas. Segue sendo a peza
+   máis rendible de todas.
+4. **Se as unidades rescatadas contan como veteranas para o cálculo do
+   rival.** Se contan, rescatar penalízate; se non contan, rescatar é
+   gratis. Probablemente teñan que contar a metade.
+5. **O da cantina leva designación ou non.**
+6. **O ton do Mundial na operación 11.**

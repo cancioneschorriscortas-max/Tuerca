@@ -139,11 +139,17 @@ function buildInteriorMap(){
     for(let y=Math.max(1,y0); y<Math.min(ROWS-1,y0+h); y++)
       for(let x=Math.max(1,x0); x<Math.min(COLS-1,x0+w); x++) grid[y][x] = chan;
   };
-  /* Corredor en L entre dous centros, sempre de dúas teselas de ancho:
-     cunha soa non pasa unha unidade e o mapa vólvese un labirinto. */
+  /* Corredor en L entre dous centros.
+
+     (v1.02) TRES teselas, non dúas. Con dúas, o mapa urbano do Crisol
+     era inxogable: as unidades quedaban contra as paredes e non
+     pasaban. Dúas celas son 32 px para un corpo de catorce e dous que
+     se crucen non caben; en canto un se detén a disparar, tapa o
+     corredor para todos os de detrás. Tres é o mínimo polo que pasa un
+     escuadrón, e é o mesmo que usa a espiña das plantas escritas. */
   const corredor = (ax, ay, bx, by) => {
-    for(let x=Math.min(ax,bx); x<=Math.max(ax,bx); x++) cuarto(x, ay, 1, 2, T.ROAD);
-    for(let y=Math.min(ay,by); y<=Math.max(ay,by); y++) cuarto(bx, y, 2, 1, T.ROAD);
+    for(let x=Math.min(ax,bx); x<=Math.max(ax,bx); x++) cuarto(x, ay, 1, 3, T.ROAD);
+    for(let y=Math.min(ay,by); y<=Math.max(ay,by); y++) cuarto(bx, y, 3, 1, T.ROAD);
   };
 
   /* Unha nave central grande e catro dependencias arredor. Non é
@@ -1078,6 +1084,151 @@ function nudgeSpawn(g, team, x, y){
 }
 
 /* ============================================================
+   (v1.02) RUTA POR DENTRO DUN EDIFICIO.
+
+   POR QUE EXISTE. TUERCA nunca tivo pathfinding e nunca lle fixo falla:
+   nun campo aberto con catro muros, "vai recto e se topas algo,
+   derrúbao" é unha regra suficiente. Nun interior non o é. Medíuse:
+   mandando unha unidade dun punto de chan a outro, chegaba o 23% das
+   veces na NAVE e o 3% en XERADORES. O resto quedaba pegada a unha
+   parede empurrando de fronte ata que remataba a operación.
+
+   O esvaramento por eixos que había antes disto non arranxa iso —non é
+   navegación, é un parche para non atravesar o muro—, e por iso está
+   aquí embaixo só como último recurso.
+
+   COMO. Busca en anchura sobre a grella de teselas, que para 60x34 son
+   dúas mil celas e non custa nada. Oito direccións, sen cortar esquinas
+   (para pasar en diagonal teñen que estar libres as dúas ortogonais, se
+   non a unidade racha o pico do muro). Despois tírase da corda: só
+   queda un punto onde faga falla virar de verdade, así que `waypoints`
+   segue sendo curto e o movemento non se ve a chanzos.
+
+   Entra por orderMove, que é o punto único polo que pasan o clic do
+   xogador E todas as ordes da IA. As dúas navegan igual de ben ou igual
+   de mal, que é como ten que ser.
+   ============================================================ */
+
+/* ¿Vese un punto desde outro sen parede polo medio? Móstrase cada 4 px:
+   media tesela, que abonda para non colar unha esquina. */
+function vistaLibre(x0, y0, x1, y1){
+  const dx = x1 - x0, dy = y1 - y0;
+  /* Cada 2 px, non cada 4: a 4 colábase o pico dunha esquina e a corda
+     quedaba tirada a través dun muro. */
+  const n = Math.max(2, Math.ceil(Math.hypot(dx, dy) / 2));
+  for(let i = 1; i < n; i++){
+    if(macizoEn(x0 + dx*i/n, y0 + dy*i/n)) return false;
+  }
+  return true;
+}
+
+function rutaInterior(x0, y0, x1, y1, atravesarTabiques){
+  if((window._bioma || 'VERDE') !== 'INTERIOR') return null;
+  const grid = window._terrainGrid;
+  if(!grid) return null;
+  /* Se se ve o destino, non hai nada que calcular: é o caso máis
+     frecuente con moito (combate en sala) e sairía carísimo facer unha
+     busca por cada tiro. */
+  if(!macizoEn(x1, y1) && vistaLibre(x0, y0, x1, y1)) return [];
+
+  const ax = Math.floor(x0/TILE_SIZE), ay = Math.floor(y0/TILE_SIZE);
+  let bx = Math.floor(x1/TILE_SIZE), by = Math.floor(y1/TILE_SIZE);
+  /* O TABIQUE NON É CORREDOR. Trazar por riba del era mandar o escuadrón
+     de fronte contra un muro para que o picase, cando case sempre hai
+     unha porta a dez celas. Un tabique é unha OPCIÓN —abrir un atallo—,
+     e as opcións tómanse, non se impoñen.
+
+     Se non hai ningunha ruta sen tabiques, téntase outra vez
+     permitíndoos: nese caso picar é a única saída e entón si. */
+  const libre = (x, y) => {
+    if(x < 0 || y < 0 || x >= COLS || y >= ROWS) return false;
+    const f = grid[y];
+    if(!f || f[x] === undefined || f[x] === T.GRASS) return false;
+    return atravesarTabiques || f[x] !== T.DIRT;
+  };
+  /* Destino dentro dun muro (clic nunha parede, ou un inimigo que
+     acabou nela): tírase á cela libre máis próxima en vez de non facer
+     nada, que para o xogador é o botón non respondendo. */
+  if(!libre(bx, by)){
+    let mellor = null, dd = Infinity;
+    for(let ry = -6; ry <= 6; ry++) for(let rx = -6; rx <= 6; rx++){
+      if(!libre(bx+rx, by+ry)) continue;
+      const d = rx*rx + ry*ry;
+      if(d < dd){ dd = d; mellor = {x: bx+rx, y: by+ry}; }
+    }
+    if(!mellor) return null;
+    bx = mellor.x; by = mellor.y;
+  }
+  if(!libre(ax, ay)) return null;          /* xa está dentro do muro: que o resolva saírDoMacizo */
+  if(ax === bx && ay === by) return [];
+
+  const N = COLS * ROWS;
+  const dende = new Int32Array(N).fill(-1);
+  const inicio = ay*COLS + ax, fin = by*COLS + bx;
+  dende[inicio] = inicio;
+  const cola = new Int32Array(N);
+  let cabeza = 0, rabo = 0;
+  cola[rabo++] = inicio;
+  let atopado = false;
+  const DIRS = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+  while(cabeza < rabo){
+    const c = cola[cabeza++];
+    if(c === fin){ atopado = true; break; }
+    const cx = c % COLS, cy = (c / COLS) | 0;
+    for(const [dx, dy] of DIRS){
+      const nx = cx + dx, ny = cy + dy;
+      if(!libre(nx, ny)) continue;
+      /* Sen cortar esquinas: en diagonal, as dúas ortogonais libres. */
+      if(dx && dy && (!libre(cx+dx, cy) || !libre(cx, cy+dy))) continue;
+      const k = ny*COLS + nx;
+      if(dende[k] !== -1) continue;
+      dende[k] = c;
+      cola[rabo++] = k;
+    }
+  }
+  if(!atopado){
+    /* Sen camiño rodeando: quizais o hai picando un tabique. */
+    return atravesarTabiques ? null : rutaInterior(x0, y0, x1, y1, true);
+  }
+
+  const celas = [];
+  for(let c = fin; c !== inicio; c = dende[c]) celas.push(c);
+  celas.reverse();
+
+  /* TIRAR DA CORDA. Sen isto a ruta é unha escaleira de teselas e a
+     unidade vese virar cada dezaseis píxeles.
+
+     A PRIMEIRA VERSIÓN DISTO ESTABA MAL e deixaba unidades tesas: ao
+     non ver unha cela gardaba a ANTERIOR e seguía co bucle sen volver
+     probar a que fallara desde a áncora nova, e no primeiro paso
+     (i = 0) gardaba a propia cela que non se vía. Resultado: un punto
+     de ruta ao que non se podía ir en liña recta, e a unidade
+     empurrando contra un muro ata o final da operación.
+
+     Agora vai por tramos: avánzase mentres se vexa, gárdase o ÚLTIMO
+     que se vía, e áncorase alí. */
+  const px = (c) => (c % COLS) * TILE_SIZE + TILE_SIZE/2;
+  const py = (c) => (((c / COLS) | 0)) * TILE_SIZE + TILE_SIZE/2;
+  const saida = [];
+  let ax2 = x0, ay2 = y0, i = 0;
+  while(i < celas.length){
+    let j = i;
+    while(j < celas.length && vistaLibre(ax2, ay2, px(celas[j]), py(celas[j]))) j++;
+    if(j >= celas.length) break;               /* xa se ve o final */
+    const k = Math.max(i, j - 1);              /* o último visible */
+    saida.push({x: px(celas[k]), y: py(celas[k])});
+    ax2 = px(celas[k]); ay2 = py(celas[k]);
+    i = (k === i) ? i + 1 : k;                 /* nunca quedar no mesmo sitio */
+  }
+  /* O punto final é o pedido de verdade e non o centro da última cela:
+     se non, un clic dentro dunha sala grande levaría sempre ao mesmo
+     sitio. Só se o destino real se ve desde a última áncora. */
+  const finVisible = !macizoEn(x1, y1) && vistaLibre(ax2, ay2, x1, y1);
+  saida.push(finVisible ? {x: x1, y: y1} : {x: px(fin), y: py(fin)});
+  return saida;
+}
+
+/* ============================================================
    (v1.01) NON NACER DENTRO DUNHA PAREDE.
 
    Unha unidade que nace no formigón xa non sae: non hai ningunha forza
@@ -1223,6 +1374,10 @@ function newBattle(deployed){
      caben. Reaxustalas aquí sería movelas dun sitio bo a outro peor.
      No Crisol, en cambio, a planta é aleatoria e non declara nada. */
   if(window._bioma === 'INTERIOR' && !_planta) axustarEstruturasAPlanta(TERRAIN_GRID);
+  /* (v1.02) DUN SÓ USO, coma o bioma e a planta. Quedaba posto para
+     sempre, e desde que hai un botón que o activa iso significaría que
+     unha proba de travesía deixaba a campaña enteira sen sectores. */
+  window._senSectores = false;
   window._terrainGrid = TERRAIN_GRID;   /* macizoEn() consúltao en cada paso */
   TERRAIN_CACHE = buildTerrainCache(TERRAIN_GRID);
 
