@@ -447,7 +447,66 @@ nunha planta concreta, con ou sen sectores, sen agardar á campaña.
 
 ---
 
-## 6 · Sen decidir
+## 6 · O alfabeto que falta
+
+Da lámina de pezas de interior (muros, portas, escaleiras, compuertas,
+ventilacións, elevadores, pisos, barandas, tuberías, detalles).
+
+**Primeiro a conta que decide todo o demais.** O xogo debuxa a 16 px por
+cela. Na lámina unha porta mide uns 130 px e unha baldosa uns 110: son
+reducións de 4× a 7×. O rebaixado de chapa, as fisuras e as cabezas de
+parafuso non chegan. **O valor da lámina non son os píxeles: é o
+vocabulario.** O alfabeto actual ten cinco símbolos e queda curto.
+
+| Da lámina | Serve? | Como entra |
+|---|---|---|
+| Columnas / pilares | **Si** | Xa feito: as masas macizas pequenas píntanse con chapitel e base, non como parede |
+| Compuertas / persianas | **Si** | Símbolo novo `▯`: porta **pechada**. Non se pasa ata que alguén a abre. É a porta da misión de rescate, e xa hai gatillo (`salaAberta:ID`) |
+| Barandas / valados | **Si** | Símbolo novo `-`: para o movemento, **non** para o tiro, e dá cobertura. É o único engadido de xogabilidade real que hai na lámina |
+| Detalles (caixas, bidóns, consolas, xeradores) | **Si** | Símbolo novo `o`: obxecto dunha cela. Cobertura, e sobre todo **corpo** para os obxectivos de SABOTAXE — hoxe «3 prensas» e «4 xeradores» son abstraccións sen nada no mapa |
+| Ventilacións / reixas | Cosmético | Detalle sobre a cara do muro. Barato e non cambia nada |
+| Tuberías / condutos | Cosmético | Idem, no chan e ao longo dos muros |
+| Pisos industriais (7) | **A medias** | A 16 px son sete grises. O que si funciona é **un material por zona** —nave, corredor, doca— porque fai lexibles as zonas que `placeAt()` xa nomea |
+| Remates de muro | Non fai falla | O autotiling xa resolve os remates mirando os veciños |
+| **Escaleiras / elevadores** | **Non** | TUERCA é un só plano: non hai altura nin andares. Un elevador pode ser un **sitio** (o punto de extracción da operación 20), nunca unha mecánica. É a trampa máis grande da lámina |
+
+### Alfabeto proposto
+
+```
+#  macizo        estrutura. Non se pasa, non se derruba
+.  chan
+,  chan de chapa material distinto, para distinguir zonas
+:  escombro      chan sucio (xa non se pinta con relevo)
++  porta         aberta, transitable
+▯  compuerta     PECHADA. Ábrese por gatillo ou por un ENGINEER
+=  tabique       muro destruíble
+-  baranda       para o movemento, non o tiro, dá cobertura
+o  obxecto       caixa, bidón, consola. Cobertura e branco de SABOTAXE
+```
+
+De cinco a nove. Cada un ten que pasar polas mesmas comprobacións do
+xerador (chan conectado, nada de pasos dunha cela) e polo mesmo sitio na
+navegación: `macizoEn()` para `#`, `-`, `o` e `▯`, e `rutaInterior`
+rodéaos igual que rodea o formigón.
+
+### Sobre cortar a lámina de verdade
+
+`tools/recortar.js` existe exactamente para isto: colle unha lámina sobre
+croma verde, detecta as pezas conexas e escríbeas con transparencia. É o
+mesmo camiño que xa seguiron `lamina_GRUNT.png` e compañía.
+
+Se a lámina entra en `art/`, o que ten sentido cortar son **os obxectos**
+—caixas, bidóns, consolas, xeradores, ventilacións— a 16 ou 24 px, que
+son os que teñen silueta e sobreviven á redución.
+
+Os **muros e os pisos quedan procedurais**. A 16 px unha textura
+fotográfica reducida perde contra a xeometría que xa hai, e ademais os
+muros teñen que seguir a luz da escena e responder ao autotiling: un
+sprite fixo non fai nin unha cousa nin a outra.
+
+---
+
+## 7 · Sen decidir
 
 1. ~~Contraste macizo/chan.~~ **Decidido**: masa escura, chan lexible
    (`MACIZO_CLARO = false`).

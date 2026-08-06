@@ -497,9 +497,13 @@ function tileAt(grid, x, y){
 const MACIZO_CLARO = false;
 const MACIZO_INTERIOR = MACIZO_CLARO
   ? {tapa:'#d8d5c8', lateral:'#8a887c', canto:'#f0eee4', rego:'#6a685e',
-     bordo:'#10160a', sombra:'rgba(0,0,0,0.28)'}
+     bordo:'#10160a', sombra:'rgba(0,0,0,0.28)', chapitel:'#ffffff'}
   : {tapa:'#23231f', lateral:'#141412', canto:'#3a3a33', rego:'#101010',
-     bordo:'#050605', sombra:'rgba(0,0,0,0.45)'};
+     bordo:'#050605', sombra:'rgba(0,0,0,0.45)',
+     /* O chapitel dun machón vai máis alto ca o canto normal: unha peza
+        exenta no medio dunha nave ten que verse, e o canto de parede
+        (#3a3a33) contra a masa (#23231f) son vinte e tres niveis. */
+     chapitel:'#6a6a5e'};
 
 /* O TABIQUE ten que verse DISTINTO, e non é un capricho: é a única
    maneira de que o xogador saiba onde pode abrir. Ao principio deixouse
@@ -515,12 +519,71 @@ const TABIQUE_INTERIOR = MACIZO_CLARO
   : {tapa:'#7a4826', lateral:'#4a2a14', canto:'#a86a3c', rego:'#2a180c',
      bordo:'#0a0604', sombra:'rgba(0,0,0,0.45)'};
 
+/* ============================================================
+   (v1.03) O QUE É MURO E O QUE É COLUMNA.
+
+   Os machóns que o xerador pon dentro da nave son bloques macizos de
+   3x2 ou 5x3, e debuxábanse exactamente igual ca unha parede. Desde
+   arriba iso non se le como "unha columna que hai que rodear": lese
+   como un cacho de muro que quedou solto, e o xogador non sabe se é
+   estrutura ou se é un erro do mapa.
+
+   A regra é a masa: percórrense as rexións macizas unha vez ao construír
+   a caché, e a que sexa pequena nas dúas dimensións é un MACHÓN. Píntase
+   con chapitel e base —un remate claro arriba, sombra máis longa
+   abaixo— en vez de con regos de parede.
+
+   As paredes do edificio son masas longas e non entran nunca.
+   ============================================================ */
+let _machons = null;   /* Set de índices de cela que forman machóns */
+
+function calcularMachons(grid){
+  _machons = new Set();
+  if(!grid || !grid.length) return;
+  const filas = grid.length, cols = grid[0].length;
+  const visto = new Uint8Array(filas * cols);
+  const solido = (x, y) => {
+    const f = grid[y];
+    return !!f && f[x] !== undefined && f[x] === T.GRASS;
+  };
+  for(let y = 0; y < filas; y++){
+    for(let x = 0; x < cols; x++){
+      const k0 = y*cols + x;
+      if(visto[k0] || !solido(x, y)) continue;
+      /* Rexión conexa de formigón. */
+      const rexion = [];
+      const pila = [k0];
+      visto[k0] = 1;
+      let x0 = x, x1 = x, y0 = y, y1 = y;
+      while(pila.length){
+        const k = pila.pop();
+        const cx = k % cols, cy = (k / cols) | 0;
+        rexion.push(k);
+        if(cx < x0) x0 = cx; if(cx > x1) x1 = cx;
+        if(cy < y0) y0 = cy; if(cy > y1) y1 = cy;
+        for(const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+          const nx = cx + dx, ny = cy + dy;
+          if(!solido(nx, ny)) continue;
+          const nk = ny*cols + nx;
+          if(visto[nk]) continue;
+          visto[nk] = 1; pila.push(nk);
+        }
+      }
+      /* Pequena nas DÚAS dimensións: iso é un machón. As paredes son
+         longas nunha das dúas e non pasan por aquí. */
+      if((x1 - x0) <= 6 && (y1 - y0) <= 6 && rexion.length <= 30)
+        for(const k of rexion) _machons.add(k);
+    }
+  }
+}
+
 /* A segunda pasada: os bloques de parede, que saen da súa propia cela. */
 function debuxarMacizoInterior(ctx, grid, x, y){
   const aqui = grid[y][x];
   if(aqui !== T.GRASS && aqui !== T.DIRT) return;
   const px = x * TILE_SIZE, py = y * TILE_SIZE;
   const m = aqui === T.DIRT ? TABIQUE_INTERIOR : MACIZO_INTERIOR;
+  const machon = aqui === T.GRASS && _machons && _machons.has(y * grid[0].length + x);
   /* Veciño "igual", non "sólido": así o bordo escuro debúxase tamén
      entre formigón e tabique, e o tabique queda perfilado dentro do
      muro en vez de fundirse con el. */
@@ -536,17 +599,38 @@ function debuxarMacizoInterior(ctx, grid, x, y){
   const rnd2 = (n) => { const s = Math.sin(sx + n * 7) * 10000; return s - Math.floor(s); };
 
   /* A sombra só cae onde remata o muro: se hai máis formigón debaixo,
-     aí non hai chan que sombrear. */
-  if(!vS) R(px, py + TILE_SIZE, TILE_SIZE + 1, 3, m.sombra);
+     aí non hai chan que sombrear. Un machón proxecta MÁIS: é unha peza
+     exenta e ten que despegarse do chan. */
+  if(!vS) R(px, py + TILE_SIZE, TILE_SIZE + 1, machon ? 5 : 3, m.sombra);
   R(px, py + 6, TILE_SIZE, 10, m.lateral);          /* cara vertical */
   R(px, py - 1, TILE_SIZE, 8, m.tapa);              /* cara superior */
   /* O canto de luz é o BORDO SUPERIOR. Con formigón enriba non hai
      canto: é parede continua. */
   if(!vN) R(px, py - 1, TILE_SIZE, 1, m.canto);
-  /* Regos dentro da cela: dan textura sen marcar as xuntas do mosaico. */
-  R(px + 5, py - 1, 1, 17, m.rego);
-  R(px + 11, py - 1, 1, 17, m.rego);
-  if(rnd2(30) > 0.88) R(px + 2 + Math.floor(rnd2(31)*8), py + 2 + Math.floor(rnd2(32)*10), 3 + Math.floor(rnd2(33)*4), 1, m.rego);
+
+  if(machon){
+    /* CHAPITEL E BASE. Unha columna non ten regos verticais de parede:
+       ten un remate arriba e un rodapé abaixo, e é iso o que a fai
+       lerse como peza exenta desde arriba. */
+    const cha = m.chapitel || m.canto;
+    if(!vN){
+      R(px, py - 2, TILE_SIZE, 2, cha);
+      R(px, py, TILE_SIZE, 1, m.bordo);
+    }
+    if(!vS){
+      R(px, py + TILE_SIZE - 4, TILE_SIZE, 3, cha);
+      R(px, py + TILE_SIZE - 1, TILE_SIZE, 1, m.bordo);
+    }
+    if(!vO) R(px, py - 1, 2, 17, cha);
+    if(!vE) R(px + TILE_SIZE - 2, py - 1, 2, 17, cha);
+    /* Un remache ocasional. Sen isto o chapitel queda plano. */
+    if(rnd2(40) > 0.55) R(px + 3 + Math.floor(rnd2(41)*9), py + 4, 2, 2, cha);
+  } else {
+    /* Regos dentro da cela: dan textura sen marcar as xuntas do mosaico. */
+    R(px + 5, py - 1, 1, 17, m.rego);
+    R(px + 11, py - 1, 1, 17, m.rego);
+    if(rnd2(30) > 0.88) R(px + 2 + Math.floor(rnd2(31)*8), py + 2 + Math.floor(rnd2(32)*10), 3 + Math.floor(rnd2(33)*4), 1, m.rego);
+  }
   /* Bordo escuro SÓ nas caras que dan ao baleiro: nos catro lados era o
      que costuraba o edificio en caixas de dezaseis píxeles. */
   if(!vO) R(px, py - 1, 1, 17, m.bordo);
@@ -624,6 +708,22 @@ function drawTile(ctx, grid, x, y){
      sombra só onde remata, canto de luz só se non hai bloque enriba,
      bordo escuro só nas caras que dan ao baleiro—, porque as dúas
      cousas son a mesma cousa vista polo xogador. */
+  /* (v1.03) O ESCOMBRO DUN INTERIOR É CHAN, E TEN QUE PARECELO.
+     TILE_HEIGHT dálle altura 2 —a mesma ca o formigón—, así que o
+     autotiling debuxáballe cara lateral e sombra: nunha captura víase
+     como un bloque marrón que había que rodear, e é chan transitable.
+     Aquí píntase plano, sucio e sen relevo. */
+  if(here === T.RUBBLE && (window._bioma || 'VERDE') === 'INTERIOR'){
+    const chan = TILE_PALETTES[T.ROAD];
+    R(px, py, TILE_SIZE, TILE_SIZE, chan.base);
+    for(let i = 0; i < 5; i++){
+      const gx = px + Math.floor(rnd2(120+i)*13), gy = py + Math.floor(rnd2(126+i)*13);
+      R(gx, gy, 2 + Math.floor(rnd2(132+i)*3), 2, i % 2 ? p.dark : p.side);
+    }
+    if(rnd2(140) > 0.5) R(px + Math.floor(rnd2(141)*10), py + Math.floor(rnd2(142)*12), 4, 1, p.base);
+    return;
+  }
+
   if((here === T.GRASS || here === T.DIRT) && (window._bioma || 'VERDE') === 'INTERIOR'){
     /* Aquí só se deixa a base. O bloque enteiro píntase nunha SEGUNDA
        PASADA (debuxarMacizoInterior), porque sae da súa cela: proxecta
@@ -937,6 +1037,9 @@ function buildTerrainCache(grid){
      o chan porque un bloque proxecta sombra na cela de abaixo e sobe o
      canto á de arriba; nunha soa pasada, a cela seguinte borrábao. */
   if((window._bioma || 'VERDE') === 'INTERIOR' && typeof debuxarMacizoInterior === 'function'){
+    /* Quen é parede e quen é machón decídese UNHA vez por mapa, non por
+       cela: fai falla ver a rexión enteira para sabelo. */
+    if(typeof calcularMachons === 'function') calcularMachons(grid);
     for(let y=0; y<ROWS; y++)
       for(let x=0; x<COLS; x++) debuxarMacizoInterior(ctx, grid, x, y);
   }
