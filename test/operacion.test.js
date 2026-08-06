@@ -156,6 +156,41 @@ proba('unha operación de extracción cóntaas ao saír, e o que sae non morre',
   afirmar(g.result === 'victory', `resultado ${g.result}`);
 });
 
+proba('a orde de traballo di a mecánica sen dicir a mecánica', async () => {
+  /* A pantalla de antes de entrar non pode ser un panel que poña
+     "OBXECTIVO: RESCATE — erguer 3": iso é a mecánica espida e ademais
+     non a di ninguén, porque ninguén fala así dentro do mundo. Ten que
+     ser unha orde de traballo de ÓPTIMA.
+
+     O que se esixe aquí é que, dita como a diría a empresa, siga
+     levando TODO o que fai falla para xogar: que hai que facer, cantos,
+     e que clase se precisa. */
+  const S = cargarXogo();
+  await asentar();
+  S.aval('opOrdeDeTraballo')({
+    id: 'proba', planta: 'NAVE',
+    obxectivo: { tipo: 'RESCATE', n: 3 },
+  }, () => {});
+
+  /* A caixa créase con createElement e péndurase do body, e no arnés o
+     body non garda fillos: pídese á propia función, que a cachea. */
+  const html = String(S.aval('opCaixaOrde')().innerHTML || '');
+  afirmar(html.length > 100, 'a orde de traballo non se debuxou');
+
+  /* Leva o que fai falla para xogar… */
+  afirmar(/\b3\b/.test(html), 'a orde ten que dicir cantos son');
+  afirmar(html.includes('ENGINEER'), 'a orde ten que dicir que clase fai falla');
+  /* …e non leva a mecánica espida. */
+  afirmar(!/OBXECTIVO\s*:/i.test(html), 'iso é un panel de misión, non unha orde');
+  afirmar(!html.includes('RESCATE'), 'o nome interno do obxectivo non pode saír na pantalla');
+  /* E ten as dúas voces: a da empresa e a da marxe. */
+  afirmar(/ORDE DE TRABALLO|ORDEN DE TRABAJO|WORK ORDER/.test(html),
+    'ten que lerse como un formulario de ÓPTIMA');
+  afirmar(html.includes('Non son tres chasis') || html.includes('No son tres chasis')
+       || html.includes('not three chassis'),
+    'falta a nota da marxe: sen a segunda voz é un parte de traballo, non unha escena');
+});
+
 proba('un diálogo de operación para a simulación', async () => {
   /* Se unha liña importa non pode pasar por riba dun tiroteo. O bucle
      de xogo consulta esta bandeira; aquí compróbase que se pon e que se

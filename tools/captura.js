@@ -208,13 +208,15 @@ const CONSELLO = ten('consello');
 const PANTALLA = op('pantalla', null);
 const DATOS = op('datos', null);
 const INTERLUDIO = op('interludio', null);
-const semente = (modo === 'hangar' && (ten('sementar') || FICHA || MONTAXE || CONSELLO || PANTALLA || INTERLUDIO)) ? `
+const ORDE = op('orde', null);
+const semente = (modo === 'hangar' && (ten('sementar') || FICHA || MONTAXE || CONSELLO || PANTALLA || INTERLUDIO || ORDE)) ? `
 <script>
 var MONTAXE = ${MONTAXE};
 var CONSELLO = ${CONSELLO};
 var PANTALLA = ${PANTALLA ? JSON.stringify(PANTALLA) : 'null'};
 var DATOS = ${DATOS ? JSON.stringify(DATOS) : 'null'};
 var INTERLUDIO = ${INTERLUDIO ? JSON.stringify(INTERLUDIO) : 'null'};
+var ORDE = ${ORDE ? JSON.stringify(ORDE) : 'null'};
 var FICHA = ${FICHA ? JSON.stringify(FICHA) : 'null'};
 window.addEventListener('load', function(){
   setTimeout(function(){
@@ -239,6 +241,18 @@ window.addEventListener('load', function(){
          arranque cría que era unha instalación nova. Non había maneira
          de mirar o menú, que é onde están os botóns. */
       DATA.marcas = DATA.marcas || {}; DATA.marcas.primeiroNome = 0;
+      /* --orde TIPO: a orde de traballo de antes de entrar. É unha
+         pantalla á que non se chega sen xogar, así que sen isto non hai
+         maneira de revisar como quedou o ton. */
+      if(typeof ORDE !== 'undefined' && ORDE){
+        setTimeout(function(){
+          opOrdeDeTraballo({id: 'captura-' + ORDE, planta: 'NAVE',
+            obxectivo: ORDE === 'RESCATE'    ? {tipo:'RESCATE', n:3}
+                     : ORDE === 'EXTRACCION' ? {tipo:'EXTRACCION', n:2}
+                     : ORDE === 'DEFENSA'    ? {tipo:'DEFENSA', ata:240*60}
+                     : {tipo:'SABOTAXE', n:3, onde:'NAVE'}}, function(){});
+        }, 250);
+      }
       /* Dúas unidades comparables para ver as marcas: unha normal e unha
          reensamblada con pezas alleas, coas súas habilidades cruzadas. */
       DATA.units[1].habilidades = {antimuro:true, cazapilotos:true};

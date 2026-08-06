@@ -424,10 +424,142 @@ function opDialogo(liñas, remate){
   seguinte();
 }
 
+/* ============================================================
+   A ORDE DE TRABALLO — a pantalla de antes de entrar.
+
+   POR QUE NON É UN PANEL DE OBXECTIVOS. Unha pantalla que diga
+   "OBXECTIVO: RESCATE — erguer 3 unidades" é a mecánica espida, e
+   ademais non a di ninguén: ninguén fala así dentro do mundo. ÓPTIMA
+   comunícase en formularios corteses e numerados, e ese é o disfrace
+   que a mecánica precisa.
+
+   Todo o que o xogador ten que saber para xogar está aquí, pero dito
+   como o diría a empresa:
+
+     · o que hai que facer     → o parágrafo da orde
+     · a clase que fai falla   → "REQUISITO DE DOTACIÓN"
+     · onde                    → "INSTALACIÓN"
+
+   E debaixo, na marxe, unha liña escrita a man que di o mesmo desde o
+   outro lado. As dúas voces do proxecto na mesma folla: iso é o que
+   converte un panel de misión nunha escena.
+
+   O TEXTO NON SE INVENTA AQUÍ. Cada operación trae o seu; se non o
+   trae, sae un por defecto a partir do tipo de obxectivo para que
+   ningunha quede sen orde.
+   ============================================================ */
+function opOrdePorDefecto(op){
+  const o = op.obxectivo || {};
+  const n = o.n || 0;
+  const base = {
+    RESCATE: {
+      clase: TXT('op.cl.rescate'),
+      corpo: TXT('op.or.rescate', {n}),
+      requisito: 'ENGINEER',
+      nota: TXT('op.no.rescate'),
+    },
+    REPARACION: {
+      clase: TXT('op.cl.reparacion'),
+      corpo: TXT('op.or.reparacion', {n}),
+      requisito: 'ENGINEER',
+      nota: TXT('op.no.reparacion'),
+    },
+    EXTRACCION: {
+      clase: TXT('op.cl.extraccion'),
+      corpo: TXT('op.or.extraccion', {n}),
+      requisito: null,
+      nota: TXT('op.no.extraccion'),
+    },
+    SABOTAXE: {
+      clase: TXT('op.cl.sabotaxe'),
+      corpo: TXT('op.or.sabotaxe', {n}),
+      requisito: null,
+      nota: TXT('op.no.sabotaxe'),
+    },
+    DEFENSA: {
+      clase: TXT('op.cl.defensa'),
+      corpo: TXT('op.or.defensa', {m: Math.round((o.ata || 3600) / 60)}),
+      requisito: null,
+      nota: TXT('op.no.defensa'),
+    },
+  }[o.tipo];
+  return base || {clase: '—', corpo: '', requisito: null, nota: null};
+}
+
+/* Referencia do expediente. Non é aleatoria: sae do id da operación, así
+   que a mesma operación leva sempre o mesmo número e o xogador pode
+   recoñecelo se volve aparecer nun informe. */
+function opReferencia(op){
+  let h = 0;
+  for(const c of String(op.id || 'op')) h = ((h << 5) - h + c.charCodeAt(0)) >>> 0;
+  return 'T-' + (1000 + (h % 8999)) + '/' + 'ABCDEFGH'[h % 8];
+}
+
+let _opOrde = null;
+function opCaixaOrde(){
+  if(_opOrde) return _opOrde;
+  _opOrde = document.createElement('div');
+  _opOrde.id = 'opOrde';
+  _opOrde.style.cssText = 'position:fixed; inset:0; z-index:70; display:none;' +
+    'background:rgba(4,5,7,0.94); align-items:center; justify-content:center; font-family:Courier New;';
+  document.body.appendChild(_opOrde);
+  return _opOrde;
+}
+
+function opOrdeDeTraballo(op, remate){
+  const cx = opCaixaOrde();
+  const d = Object.assign(opOrdePorDefecto(op), op.orde || {});
+  const planta = (typeof PLANTAS !== 'undefined' && PLANTAS[op.planta]) ? PLANTAS[op.planta] : null;
+  /* Sen artigo: un campo de formulario leva o NOME, non a frase. En
+     radio dise "caeu na Nave Principal"; nun impreso pon "Nave
+     Principal", e a diferenza nótase. */
+  const senArtigo = (t) => String(t || '').replace(/^(a|o|as|os|el|la|los|las|the)\s+/i, '');
+  const lugar = senArtigo(planta && planta.lugares && planta.lugares[0]
+    ? planta.lugares[0].label : (op.planta || ''));
+  const fila = (k, v) => v ? `<div style="display:flex; gap:14px; margin:3px 0;">
+      <span style="color:#6a6a60; min-width:170px;">${k}</span>
+      <span style="color:#d8d5c8;">${v}</span></div>` : '';
+
+  cx.innerHTML = `
+   <div style="max-width:720px; width:88%; border:1px solid #6a5a2a; background:rgba(12,12,10,0.96); padding:26px 30px;">
+     <div style="color:#8a7a40; font-size:10px; letter-spacing:3px;">${TXT('op.or.cabeceira')}</div>
+     <div style="display:flex; justify-content:space-between; align-items:baseline; border-bottom:1px solid #3a3428; padding-bottom:10px; margin-bottom:14px;">
+       <span style="color:#e8c060; font-size:17px; letter-spacing:2px;">${TXT('op.or.titulo')}</span>
+       <span style="color:#8a7a40; font-size:12px;">${opReferencia(op)}</span>
+     </div>
+     ${fila(TXT('op.or.instalacion'), lugar)}
+     ${fila(TXT('op.or.clasificacion'), d.clase)}
+     ${fila(TXT('op.or.dotacion'), d.dotacion || TXT('op.or.dotacionLibre'))}
+     <div style="color:#d8d5c8; font-size:15px; line-height:1.65; margin:18px 0 14px; padding-left:14px; border-left:2px solid #3a3428;">
+       ${String(d.corpo || '').split('\n').filter(l => l.trim()).map(l => `<p style="margin:0 0 8px;">${l.trim()}</p>`).join('')}
+     </div>
+     ${d.requisito ? fila(TXT('op.or.requisito'), d.requisito) : ''}
+     <div style="color:#6a6a60; font-size:12px; margin-top:12px;">${TXT('op.or.peche')}</div>
+     ${d.nota ? `<div style="margin-top:20px; padding-top:14px; border-top:1px dashed #3a3428;
+        color:#7fdc7f; font-size:14px; font-style:italic;">${d.nota}</div>` : ''}
+     <div class="row" style="margin-top:24px; justify-content:flex-end;">
+       <button id="opOrdeOk" class="bio-btn" style="color:#e8c060; border-color:#e8c060;">${TXT('op.or.aceptar')}</button>
+     </div>
+   </div>`;
+  cx.style.display = 'flex';
+
+  const pechar = () => {
+    cx.style.display = 'none';
+    document.removeEventListener('keydown', tecla);
+    if(remate) remate();
+  };
+  const tecla = (e) => { if(e.key === 'Enter' || e.key === ' ' || e.key === 'Escape'){ e.preventDefault(); pechar(); } };
+  document.addEventListener('keydown', tecla);
+  const b = cx.querySelector('#opOrdeOk');
+  if(b) b.onclick = pechar;
+  try{ if(typeof sfx === 'function') sfx('radio_open'); }catch(e){}
+}
+
 /* Limpeza ao saír da batalla: sen isto, unha operación abortada deixaba
    a caixa aberta e o xogo pausado no hangar. */
 function opLimpar(){
   OP = null;
   window._opPausa = false;
   if(_opCaixa) _opCaixa.style.display = 'none';
+  if(_opOrde) _opOrde.style.display = 'none';
 }

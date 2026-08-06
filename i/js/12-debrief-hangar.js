@@ -2322,8 +2322,7 @@ function escollaPlanta(){
       garnicion: [{cls: 'GRUNT', n: 3, onde: 'DEPENDENCIAS'}, {cls: 'HEAVY', n: 1, onde: 'NAVE'}],
       inertes: [{cls: 'GRUNT', n: 3, onde: 'DEPENDENCIAS'}],
       entrada: [
-        {voz: 'HQ', txt: 'Recuperación de material. Tres chasis inmobilizados nas dependencias. Grazas por utilizar ÓPTIMA INDUSTRIES.'},
-        {voz: 'TUERCA', txt: 'Non son tres chasis. Achega un ENGINEER e mantelo aí tres segundos.'},
+        {voz: 'TUERCA', txt: 'Xa estamos dentro. Achega un ENGINEER e mantelo ao lado tres segundos; non fai falla máis.'},
       ],
       gatillos: [
         {cando: 'rescatados:1', facer: [{dicir: 'TUERCA', txt: 'Levaba aquí desde antes de que eu chegase.'}]},
@@ -2337,7 +2336,6 @@ function escollaPlanta(){
       saida: 'ESPINA',
       garnicion: [{cls: 'GRUNT', n: 4, onde: 'NAVE'}],
       entrada: [
-        {voz: 'HQ', txt: 'Peche de instalación en curso. Rógase abandonar o edificio con orde.'},
         {voz: 'TUERCA', txt: 'Dous fóra polo corredor central. Os que queden dentro non volven.'},
       ],
       gatillos: [
@@ -2441,6 +2439,11 @@ $('btnStart').onclick=()=>{
     }
   }
   DATA.pendingUpgraded = [];  /* consumido nesta op */
+  /* (v1.04) A ORDE DE TRABALLO vai por DIANTE do briefing do escuadrón,
+     e a orde importa: primeiro chega o papel de ÓPTIMA —o que hai que
+     facer e con que— e despois ves quen vai contigo. Ao revés, a lista
+     de veteranos non significa nada porque aínda non sabes a onde van. */
+  const _arrancarOp = () => {
   /* (v0.11) Pasar polo briefing antes da batalla se hai veteranos seleccionados */
   showBriefing(deployed, () => {
     $('hangar').style.display='none';
@@ -2457,6 +2460,14 @@ $('btnStart').onclick=()=>{
     updateSidePanel(game);
     requestAnimationFrame(loop);
   });
+  };
+  /* Se hai operación, primeiro a orde de traballo; se non, todo segue
+     exactamente coma antes e nin se entera. */
+  if(window._operacion && typeof opOrdeDeTraballo === 'function'){
+    opOrdeDeTraballo(window._operacion, _arrancarOp);
+  } else {
+    _arrancarOp();
+  }
 };
 /* (v0.11) Botón seguinte do briefing + tecla espazo/enter */
 $('brNext').onclick = advanceBriefing;
