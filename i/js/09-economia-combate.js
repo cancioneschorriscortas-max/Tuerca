@@ -52,27 +52,33 @@ function buildWallsFromMap(){
   }
   return out;
 }
-/* (v1.00) MUROS DUNHA PLANTA DE INTERIOR.
+/* (v1.01) MUROS DUNHA PLANTA DE INTERIOR — SÓ OS QUE SE PODEN ABRIR.
 
-   Nun interior o mapa non trae muros escritos: os muros SON a planta. O
-   que se xera aquí é a CORTIZA — só os bloques macizos que tocan chan.
-   Encher os 1.236 bloques daría mil e pico obxectos de colisión para
-   nada: o interior dun muro non o toca ninguén.
+   Ata v1.00 aquí xerábase a CORTIZA do formigón: todos os bloques
+   macizos que tocan chan, 419 na NAVE. Parecía un aforro fronte aos
+   1.236 bloques, e traía tres problemas á vez:
 
-   Saen coa mesma forma que buildWallsFromMap para que todo o que xa
-   existe —cobertura, dano do BOMBARDERO, o pathing— funcione sen
-   enterarse de que isto é outra cousa. */
+   · O FORMIGÓN ERA DESTRUÍBLE. E aquí non hai pathfinding: unha unidade
+     cun muro diante párase e dispáralle ata tiralo (o `_blockingWall`
+     de máis abaixo). Así que o escuadrón non rodeaba o edificio,
+     perforábao. Medido nunha corrida de proba: aos 4000 pasos, 7 de 13
+     unidades vivas estaban DENTRO do formigón.
+   · A cortiza é só a pel: unha vez dentro da masa xa non había
+     colisión ningunha e camiñaban por onde quixesen.
+   · inWall percorre a lista enteira, por unidade e por paso.
+
+   Agora o formigón non é unha lista de obxectos: é a grella, e
+   pregúntaselle con macizoEn() en O(1). Non se derruba, porque é a
+   estrutura do edificio. Esta lista queda para o que SI se abre —o
+   TABIQUE—, que se pinta noutro material precisamente para que se vexa
+   cal é cal. */
 function buildInteriorWalls(grid){
   if(!grid || !grid.length) return [];
   const out = [];
-  const solido = (x, y) => !grid[y] || grid[y][x] === undefined || grid[y][x] === T.GRASS;
   for(let y = 0; y < grid.length; y++){
     for(let x = 0; x < grid[y].length; x++){
-      if(grid[y][x] !== T.GRASS) continue;
-      /* Só se ten chan ao lado. O bordo do mapa conta como macizo para
-         que a parede exterior non se converta nunha cortiza inútil. */
-      if(solido(x-1,y) && solido(x+1,y) && solido(x,y-1) && solido(x,y+1)) continue;
-      out.push({x: x*TILE_SIZE + 8, y: y*TILE_SIZE + 8,
+      if(grid[y][x] !== T.DIRT) continue;
+      out.push({x: x*TILE_SIZE + 8, y: y*TILE_SIZE + 8, tabique: true,
                 hp: WALL_HP, max: WALL_HP, destroyed: false});
     }
   }
@@ -89,6 +95,10 @@ function enCobertura(alvo, tirador, g){
   const d = Math.hypot(dx, dy) || 1;
   const px = alvo.x + (dx/d)*14, py = alvo.y + (dy/d)*14;
   if(inWall(g, px, py)) return true;
+  /* (v1.01) Nun interior o parapeto normal non é un tabique: é a
+     esquina do formigón. Sen isto, cubrirse detrás dun machón non
+     contaba e a cobertura só existía onde había tabique. */
+  if(typeof macizoEn === 'function' && macizoEn(px, py)) return true;
   /* (v0.26) parapetado no bordo dun cráter */
   if(g.craters){
     for(const cr of g.craters){
@@ -113,6 +123,10 @@ function damageWall(g, w, dmg){
   if(w.hp <= 0){
     w.destroyed = true;
     sfxT('wall_break', 200); addShake(g, 1.8);
+    /* (v1.01) Nun interior o tabique tamén está pintado na caché do
+       terreo: sen abrilo alí, quitábase a colisión e quedaba a parede
+       debuxada. Un paso invisible é peor ca non ter paso. */
+    if(w.tabique && typeof abrirTabique === 'function') abrirTabique(w);
     dropScrap(g, w.x, w.y, 3);
     if(!g._wallMsgT || g.t - g._wallMsgT > 120){
       radio(TXT('r.muroDerribado'), '#c8a86a', {x:w.x, y:w.y});
@@ -526,9 +540,16 @@ function tickProd(g){
       } else if(p.cls === 'TANQUE'){
         /* (v0.14) TANQUE: sae xa pilotado por un GRUNT novo con nome */
         const pilot = mkUnit(t, 'GRUNT', sx, sy, null);
+        /* (v1.01) O TANQUE sae 30 px ao lado do piloto, e ese despraza-
+           mento non pasaba por ningunha comprobación. Como despois se
+           fai `pilot.x = tank.x`, o piloto ía onde fose o tanque: nunha
+           planta de interior iso metía unha unidade viva no formigón
+           aínda tendo o spawn do piloto ben resolto. */
+        const _tp = (typeof saírDoMacizo === 'function')
+          ? saírDoMacizo(sx + (t===0?30:-30), sy) : {x: sx + (t===0?30:-30), y: sy};
         const tank = {
           id:'TANK_'+(g._tankN=(g._tankN||0)+1)+'_'+t, tipo:'TANQUE',
-          x:sx + (t===0?30:-30), y:sy, tx:sx + (t===0?30:-30), ty:sy,
+          x:_tp.x, y:_tp.y, tx:_tp.x, ty:_tp.y,
           hp:TANK_DEF.hp, max:TANK_DEF.hp, dmg:TANK_DEF.dmg, rng:TANK_DEF.rng,
           spd:TANK_DEF.spd, fireRate:TANK_DEF.fireRate, cool:0,
           angle:(t===0?0:Math.PI), team:t, occupant:pilot,
@@ -1444,6 +1465,25 @@ function tickUnits(g){
       const bw = inWall(g, nx, ny);
       if(bw){ u._blockingWall = bw; continue; }
       u._blockingWall = null;
+      /* (v1.01) FORMIGÓN NO CAMIÑO: non se derruba e non hai pathfinding,
+         así que hai que ESVARAR. Próbase mover só nun eixo e despois só
+         no outro; se ningún dos dous vale, é unha esquina e quédase.
+
+         Sen isto, un escuadrón mandado ao outro lado do edificio
+         quedaba pegado á parede empurrando de fronte para sempre, que é
+         o que fai que un interior sen navegación non se poida xogar.
+         Non é un camiño óptimo —non pretende selo—, pero segue a parede
+         ata a porta, que é o que fai unha persoa nun corredor. */
+      if(typeof macizoEn === 'function' && macizoEn(nx, ny)){
+        const soX = !macizoEn(nx, u.y), soY = !macizoEn(u.x, ny);
+        if(soX){ u.x = nx; }
+        else if(soY){ u.y = ny; }
+        else continue;
+        if(u.act) u.act.dist += sp;
+        u._movedT = g.t;
+        u.x=clamp(u.x,8,W-8); u.y=clamp(u.y,8,H-8);
+        continue;
+      }
       if(inWater(nx,ny)){
         if(u.heavy){
           /* Non avanzar neste frame. Os waypoints xa apuntan á ponte;
@@ -1631,7 +1671,10 @@ function tickUnits(g){
           else if(i === 1 && g._wave >= 4) cls = 'SNIPER';
           else if(i === 2 && g._wave >= 6) cls = 'BOMBARDERO';
           else if(g._wave >= 8 && i % 2 === 1) cls = rnd() < 0.5 ? 'HEAVY' : 'SNIPER';
-          const u = mkUnit(2, cls, x0 + (i - n/2) * 26, dende + (rnd()*16 - 8), null);
+          /* (v1.01) Mesmo caso ca en spawnGreys: o bordo do mapa nunha
+             planta de interior é a cortiza, non o campo. */
+          const _s = saírDoMacizo(x0 + (i - n/2) * 26, dende + (rnd()*16 - 8));
+          const u = mkUnit(2, cls, _s.x, _s.y, null);
           g._greysN++;
           u.name = 'VAL-' + String(g._greysN).padStart(2, '0');
           const f = 1 + 0.07 * g._wave;

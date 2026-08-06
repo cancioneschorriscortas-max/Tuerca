@@ -201,6 +201,12 @@ function tickVehicles(g){
         const ny = v.y + (dy/dst) * v.spd;
         const vbw = inWall(g, nx, ny);
         if(vbw){ v._blockingWall = vbw; }
+        /* (v1.01) O formigón dun interior tamén para os vehículos. Sen
+           isto o tanque atravesaba o edificio, e como O PILOTO VAI
+           DENTRO (v.occupant.x = v.x) arrastraba unha unidade viva ao
+           medio da masa maciza. Era a última fuga que quedaba e só saía
+           nas partidas que chegaban a producir un tanque. */
+        else if(typeof macizoEn === 'function' && macizoEn(nx, ny)){ v.tx = v.x; v.ty = v.y; }
         else if(!inWater(nx, ny)){
           v._blockingWall = null;
           v.x = nx; v.y = ny;
@@ -290,6 +296,7 @@ function tickVehicles(g){
         const ny = v.y + Math.sin(v.angle) * v.spd;
         const vbw2 = inWall(g, nx, ny);
         if(vbw2){ v._blockingWall = vbw2; }
+        else if(typeof macizoEn === 'function' && macizoEn(nx, ny)){ v.tx = v.x; v.ty = v.y; }
         else if(!inWater(nx, ny)){
           v._blockingWall = null;
           v.x = nx; v.y = ny;
@@ -1248,30 +1255,41 @@ function draw(g){
       const dmg = 1 - w.hp / w.max;
       const vN = veciño(w,0,-1), vS = veciño(w,0,1), vE = veciño(w,1,0), vO = veciño(w,-1,0);
       /* (v0.55) MURO BRANCO con altura de bloque (pedido de Agarfal) */
+      /* (v1.01) …agás nun interior, onde as cores saen da paleta do
+         TABIQUE. Estaban fixas aquí, e como este sprite se debuxa por
+         riba do terreo, era el quen decidía a cor real do tabique: coa
+         masa clara resultaba tabique pálido sobre muro pálido, que é
+         exactamente o que non pode pasar —o xogador ten que ver de
+         lonxe o que pode abrir—. Agora as dúas capas din o mesmo. */
+      const _int = (window._bioma || 'VERDE') === 'INTERIOR'
+        && typeof TABIQUE_INTERIOR !== 'undefined';
+      const _c = _int ? TABIQUE_INTERIOR
+        : {tapa:'#d8d5c8', lateral:'#8a887c', canto:'#f0eee4',
+           rego:'#6a685e', bordo:'#10160a', sombra:'rgba(0,0,0,0.28)'};
       /* A sombra só cae onde remata o muro: se hai outro debaixo, aí non
          hai chan que sombrear. */
       if(!vS){
-        ctx.fillStyle = 'rgba(0,0,0,0.28)';
+        ctx.fillStyle = _c.sombra;
         ctx.fillRect(w.x-8, w.y+8, 17, 3);
       }
-      ctx.fillStyle = '#8a887c';
+      ctx.fillStyle = _c.lateral;
       ctx.fillRect(w.x-8, w.y-2, 16, 10);
-      ctx.fillStyle = '#d8d5c8';
+      ctx.fillStyle = _c.tapa;
       ctx.fillRect(w.x-8, w.y-9, 16, 8);
       /* A liña de luz é o CANTO SUPERIOR. Con outro muro enriba non hai
          canto: é parede continua. */
       if(!vN){
-        ctx.fillStyle = '#f0eee4';
+        ctx.fillStyle = _c.canto;
         ctx.fillRect(w.x-8, w.y-9, 16, 1);
       }
       /* Os regos interiores danlle textura e non marcan xunturas: quedan
          sempre, e son o que impide que un muro longo sexa unha mancha. */
-      ctx.fillStyle = '#6a685e';
+      ctx.fillStyle = _c.rego;
       ctx.fillRect(w.x-3, w.y-9, 1, 17);
       ctx.fillRect(w.x+3, w.y-9, 1, 17);
       /* E o bordo escuro SÓ nas caras que dan ao baleiro. Isto é todo o
          arranxo: era a liña que costuraba o edificio en caixas. */
-      ctx.fillStyle = '#10160a';
+      ctx.fillStyle = _c.bordo;
       if(!vO) ctx.fillRect(w.x-8, w.y-9, 1, 17);
       if(!vE) ctx.fillRect(w.x+7, w.y-9, 1, 17);
       if(dmg > 0.3){ ctx.fillStyle = '#5a584e'; ctx.fillRect(w.x-4, w.y-7, 2, 12); ctx.fillRect(w.x-5, w.y-3, 4, 2); }

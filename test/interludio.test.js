@@ -411,28 +411,11 @@ proba('unha operación pode non levar sectores, e non corrompe o mapa', async ()
   afirmar(g2.sectors.length > 0, 'a operación seguinte ten que recuperar os seus sectores');
 });
 
-proba('toda planta escrita mide 60x34', async () => {
-  /* UNHA FILA DUNHA CELA DE MÁIS DESPRAZA todos os muros verticais desa
-     fila, e a planta deixa de aliñar. Pasou co primeiro plano que se
-     probou: 34 filas correctas e trinta e dúas cun carácter de máis.
-     Por iso as plantas se xeran e non se escriben a man, e por iso isto
-     se comproba antes de que ninguén entre nelas. */
-  const S = cargarXogo();
-  await asentar();
-  const P = S.aval('PLANTAS');
-  const nomes = Object.keys(P);
-  afirmar(nomes.length > 0, 'ten que haber polo menos unha planta');
-  for(const nome of nomes){
-    const p = P[nome];
-    afirmar(p.length === 34, nome + ' ten ' + p.length + ' filas, esperábanse 34');
-    for(let i = 0; i < p.length; i++){
-      afirmar(p[i].length === 60,
-        nome + ' fila ' + (i+1) + ' mide ' + p[i].length + ', esperábanse 60');
-      afirmar(/^[#.+]+$/.test(p[i]),
-        nome + ' fila ' + (i+1) + ' ten caracteres que non son # . ou +');
-    }
-  }
-});
+/* A proba "toda planta escrita mide 60x34" vivía aquí. Está agora en
+   test/planta.test.js, e creceu. Aquela miraba a táboa de cadeas e nada
+   máis, e daba verde mentres a planta ocupaba un cuarto do mapa, o HQ
+   inimigo estaba metido no formigón e medio escuadrón atravesaba o
+   edificio: comprobar a FORMA do dato non é comprobar que se xoga. */
 
 proba('o bioma pídese e non se impón', async () => {
   /* O selector de mapa do Crisol amosábase e non facía nada: o arranque

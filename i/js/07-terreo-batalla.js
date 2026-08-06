@@ -150,15 +150,27 @@ function buildInteriorMap(){
      aleatorio de todo: unha planta industrial ten unha nave e anexos, e
      un montón de salas iguais non se le como unha instalación. */
   const cx = Math.floor(COLS/2), cy = Math.floor(ROWS/2);
-  const naveW = Math.floor(COLS*0.34), naveH = Math.floor(ROWS*0.42);
+  const naveW = Math.floor(COLS*0.42), naveH = Math.floor(ROWS*0.50);
   cuarto(cx - Math.floor(naveW/2), cy - Math.floor(naveH/2), naveW, naveH, T.ROAD);
 
+  /* (v1.01) AS SALAS ESCALAN CO MAPA. Estaban fixas en 12x8 e 13x8, o
+     que nun mapa de 132x68 —o que dá genMap()— deixaba catro cuartiños
+     nas esquinas dunha lousa de formigón: o 77% do mapa era macizo.
+     Non se notaba mentres o macizo se pintaba como terreo plano; desde
+     que se debuxa como parede, vese que é unha lousa. */
+  const sw = Math.max(12, Math.floor(COLS * 0.20));
+  const sh = Math.max(8,  Math.floor(ROWS * 0.24));
   const salas = [
-    [3, 3, 12, 8], [COLS-16, 3, 13, 8],
-    [3, ROWS-11, 12, 8], [COLS-16, ROWS-11, 13, 8],
+    [3, 3, sw, sh], [COLS-3-sw, 3, sw, sh],
+    [3, ROWS-3-sh, sw, sh], [COLS-3-sw, ROWS-3-sh, sw, sh],
   ];
   for(const [x0,y0,w,h] of salas){
-    cuarto(x0, y0, w, h, T.DIRT);
+    /* (v1.01) RUBBLE, xa non DIRT. Desde que T.DIRT significa TABIQUE
+       —muro destruíble— nun interior, deixar as dependencias en DIRT
+       convertía o CHAN das catro salas en 348 muros: o Crisol quedaba
+       con catro bloques de ladrillo onde tiña catro salas. Chan sucio é
+       RUBBLE; DIRT xa non é un chan. */
+    cuarto(x0, y0, w, h, T.RUBBLE);
     corredor(x0 + Math.floor(w/2), y0 + Math.floor(h/2), cx, cy);
   }
 
@@ -178,73 +190,129 @@ function buildInteriorMap(){
 }
 
 /* ============================================================
-   (v1.00) PLANTAS ESCRITAS — o interior da campaña non se xera.
+   (v1.01) PLANTAS ESCRITAS — o interior da campaña non se xera.
 
-   O xerador de plantas (buildInteriorMap) vale para o Crisol, onde o
-   que se quere é variedade. A campaña quere o contrario: unha
-   instalación recoñecible, coa mesma nave e a mesma doca cada vez que
-   se volve a ela. Iso é autoría, e escríbese.
+   O xerador (buildInteriorMap) vale para o Crisol, onde o que se quere
+   é variedade. A campaña quere o contrario: unha instalación
+   recoñecible, coa mesma nave e a mesma doca cada vez que se volve a
+   ela. Iso é autoría. As plantas están en 07b-plantas.js, que o
+   escribe `node tools/planta.js --todas --escribir`.
 
-     #  bloque macizo      .  chan transitable      +  porta
+     #  macizo    .  chan    +  porta    =  tabique    :  escombro
 
-   As medidas non se escriben a man: xéranse (docs/Campaña) e
-   compróbase que toda planta é de 60x34 antes de entrar. Unha fila
-   dunha cela de máis desprazaría todos os muros verticais desa fila.
+   A PLANTA MANDA SOBRE O MAPA, e isto é o arranxo dun fallo que
+   invalidaba todo o de arriba. applyMap recalcula COLS/ROWS co tamaño
+   do mapa da operación: 60x34 na primeira, 80x45 na segunda e 120x80
+   da terceira en diante. plantaAGrid percorría COLS x ROWS e o que
+   sobraba quedaba en T.GRASS, así que a partir da operación 3 a planta
+   ocupaba un cuarto do mapa e o outro 85% era un bloque de formigón
+   macizo. A proba que esixía 60x34 arrancaba sempre en op 0 e non o
+   vía nunca.
+
+   Agora unha operación de interior TRAE O SEU MAPA: mapaDaPlanta()
+   fabrica a definición co tamaño da planta e cos fondeadeiros que a
+   propia planta declara, e applyMap xa non ten nada que adiviñar.
    ============================================================ */
-const PLANTAS = {
-  NAVE: [
-    '############################################################',
-    '############################################################',
-    '##..........##..........##..........##........##..........##',
-    '##..........##..........##..........##........##..........##',
-    '##..........##..........##..........##........##..........##',
-    '##..........##..........##..........##........##..........##',
-    '##..........##..........##..........##........##..........##',
-    '##..........##..........##..........##........##..........##',
-    '##..........##..........##..........##........#+..........##',
-    '##..........##..........##..........##........##..........##',
-    '######.###########.###########.##########.######..........##',
-    '######+###########+###########+##########+######..........##',
-    '##............................................##..........##',
-    '##............................................##..........##',
-    '##............................................##..........##',
-    '##............................................##..........##',
-    '##............................................#+..........##',
-    '##............................................##..........##',
-    '##............................................##..........##',
-    '##............................................##..........##',
-    '##............................................##..........##',
-    '##............................................##..........##',
-    '##.............................................+..........##',
-    '#######.############........#########.########.#..........##',
-    '#######+############........#########+#########+..........##',
-    '##............##............##................##..........##',
-    '##............##............##................##..........##',
-    '##............##............##................##..........##',
-    '##............##............##................##..........##',
-    '##............##...........+##................##..........##',
-    '##............##..............................##..........##',
-    '##............##..............................##..........##',
-    '#########################......#############################',
-    '############################################################',
-  ],
-};
-
 function plantaAGrid(nome){
-  const p = PLANTAS[nome];
+  const p = (typeof PLANTAS !== 'undefined') && PLANTAS[nome];
   if(!p) return null;
   const grid = [];
   for(let y = 0; y < ROWS; y++){
     grid[y] = [];
-    const fila = p[y] || '';
+    const fila = p.grid[y] || '';
     for(let x = 0; x < COLS; x++){
       const c = fila[x];
       /* A porta píntase como reixa metálica: un oco sen marcar non se le
-         como paso, lese como que faltou un muro. */
-      grid[y][x] = c === '.' ? T.ROAD : c === '+' ? T.BRIDGE : T.GRASS;
+         como paso, lese como que faltou un muro. O tabique vai en DIRT
+         —outro material— porque o xogador ten que poder distinguir de
+         lonxe o que pode abrir do que non. */
+      grid[y][x] = c === '.' ? T.ROAD
+                 : c === ':' ? T.RUBBLE
+                 : c === '+' ? T.BRIDGE
+                 : c === '=' ? T.DIRT
+                 : T.GRASS;
     }
   }
   return grid;
+}
+
+/* ¿É maciza esta cela? O formigón do edificio non é unha lista de
+   obxectos: é a grella. Preguntarllo á grella é O(1) e non depende de
+   cantos muros haxa, que é o que permite ter un edificio enteiro. */
+function macizoEn(x, y){
+  if((window._bioma || 'VERDE') !== 'INTERIOR') return false;
+  const g = window._terrainGrid;
+  if(!g) return false;
+  const fila = g[Math.floor(y / TILE_SIZE)];
+  if(!fila) return true;                 /* fóra do mapa: coma se fose muro */
+  const t = fila[Math.floor(x / TILE_SIZE)];
+  return t === undefined || t === T.GRASS;
+}
+
+/* ============================================================
+   (v1.01) O MAPA DUNHA PLANTA.
+
+   Devolve unha definición de mapa coa mesma forma que MAP1/MAP2: o
+   resto do xogo non se entera de que isto é outra cousa.
+
+   Tres decisións que non son obvias:
+
+   · O RÍO PÓÑESE FÓRA. inWater() é `x > RIVER.x1 && x < RIVER.x2`, e
+     un río nunha nave industrial non ten sentido ningún. Cun intervalo
+     baleiro, inWater é falso en todo o mapa e non hai que tocalo.
+   · SEN TORRETAS NIN JEEPS. Un jeep nun corredor de tres celas non
+     manobra, e unha torreta fixa nun interior é un tapón.
+   · OS LUGARES TEÑEN NOME. placeAt() é o que permite que o Diario
+     diga "caeu na Doca de Carga" en vez de "en campo aberto", e esa é
+     media razón de ser da campaña.
+   ============================================================ */
+function mapaDaPlanta(nome){
+  const p = (typeof PLANTAS !== 'undefined') && PLANTAS[nome];
+  if(!p) return null;
+  const S = TILE_SIZE;
+  const cen = (c) => ({x: c.x * S + S/2, y: c.y * S + S/2});
+
+  const hq = (p.hq || []).map((h, i) => {
+    const c = cen(h);
+    /* x,y dun HQ é a ESQUINA superior esquerda dun rectángulo de 74x84.
+       O fondeadeiro é o CENTRO, así que hai que restar a metade. Non
+       facelo era o fallo que metía o HQ inimigo dentro do formigón —e
+       en MAP1 chegaba a saírse do mapa polo bordo. */
+    return {team: i, x: Math.round(c.x - 37), y: Math.round(c.y - 42), w: 74, h: 84};
+  });
+
+  /* Unha operación pode non levar sectores. Que unha misión de
+     extracción teña círculos de captura tirados polo mapa é ruído: o
+     xogador le que hai que capturalos e non hai que capturar nada. */
+  const sectores = window._senSectores ? [] : (p.sectores || []).map(s => {
+    const c = cen(s);
+    return {id: s.id, x: c.x, y: c.y, r: 54, place: 'SECTOR_' + s.id};
+  });
+
+  const lugares = (p.lugares || []).map(l => {
+    const c = cen(l);
+    return {id: l.id, x: c.x, y: c.y, r: l.r * S, label: l.label};
+  });
+  for(const s of sectores) lugares.push({id: s.place, x: s.x, y: s.y, r: 65, label: 'o Sector ' + s.id});
+  if(hq[0]) lugares.push({id:'HQ_AZUL',     x: hq[0].x + 37, y: hq[0].y + 42, r: 90, label:'el HQ Azul'});
+  if(hq[1]) lugares.push({id:'HQ_ROJO',     x: hq[1].x + 37, y: hq[1].y + 42, r: 90, label:'el HQ Rojo'});
+
+  const W2 = p.cols * S, H2 = p.filas * S;
+  /* O radar vai no centro da espiña, que é o sitio máis transitado. */
+  const esp = lugares.find(l => l.id === 'ESPINA') || {x: W2/2, y: H2/2};
+  return {
+    NAME: nome,
+    W: W2, H: H2,
+    RIVER: {x1: -2, x2: -1},                      /* intervalo baleiro: inWater sempre falso */
+    BRIDGE: {y1: -2, y2: -1},
+    BRIDGE_CENTER: {x: Math.round(esp.x), y: Math.round(esp.y)},
+    RADAR_DOME: {x: Math.round(esp.x) - 24, y: Math.round(esp.y) - 18, w: 48, h: 36, capRadius: 42},
+    PLACES: lugares,
+    SECTORS: sectores,
+    HQ: hq,
+    TURRETS: [],
+    JEEPS: [],
+  };
 }
 
 /* ============================================================
@@ -295,15 +363,25 @@ function axustarEstruturasAPlanta(grid){
   const py = (o) => o.y * TILE_SIZE + TILE_SIZE/2;
   const lonxe = (a, b) => Math.hypot(a.x-b.x, a.y-b.y);
 
-  /* Os HQ, aos dous extremos: o par de ocos máis separado que haxa. */
+  /* Os HQ, aos dous extremos: o par de ocos máis separado que haxa.
+
+     (v1.01) O OCO É O CENTRO; x,y DUN HQ É A ESQUINA. Aquí asignábase o
+     centro directamente á esquina, e como o HQ mide 74x84 saía medio
+     rectángulo cara abaixo e cara á dereita: o HQ inimigo aparecía
+     metido no formigón, e en MAP1 chegaba a saírse do mapa (esquina en
+     888,472 nun mapa de 960x540 = 962x556). A proba de entón miraba a
+     esquina superior esquerda, que era xustamente a única boa. */
   if(typeof HQ !== 'undefined' && HQ && HQ.length >= 2){
     let mellor = [ocos[0], ocos[ocos.length-1]], d = lonxe(mellor[0], mellor[1]);
     for(const a of ocos) for(const b of ocos){
       const dd = lonxe(a, b);
       if(dd > d){ d = dd; mellor = [a, b]; }
     }
-    HQ[0].x = px(mellor[0]); HQ[0].y = py(mellor[0]);
-    HQ[1].x = px(mellor[1]); HQ[1].y = py(mellor[1]);
+    for(let i = 0; i < 2; i++){
+      const h = HQ[i], c = mellor[i];
+      h.x = clamp(Math.round(px(c) - h.w/2), 0, W - h.w);
+      h.y = clamp(Math.round(py(c) - h.h/2), 0, H - h.h);
+    }
   }
 
   if(typeof SECTORS === 'undefined' || !SECTORS) return;
@@ -392,6 +470,119 @@ function tileAt(grid, x, y){
    propia y sus vecinas (relleno base), después dibuja el tipo propio
    recortado por los vecinos con rango menor. Para suavizar los bordes,
    usamos pequeñas curvas/dentados en lugar de líneas rectas. */
+/* ============================================================
+   (v1.01) O FORMIGÓN DUN INTERIOR.
+
+   CONTRASTE — DECIDIDO: masa escura, chan lexible.
+
+   Compareáronse as dúas na mesma planta. Coa masa clara o plano lese
+   dun golpe de vista, pero os muros pasan a ser o máis brillante da
+   pantalla e as unidades pérdense contra eles. Coa masa escura o chan é
+   a superficie que se le, as unidades e os sectores destacan, e o
+   tabique de ladrillo distínguese mellor do formigón. É a escollida.
+
+   `MACIZO_CLARO = true` volve á outra. O interruptor queda porque a
+   comparación custa unha liña e unha captura, non porque siga aberto.
+
+   O que NUNCA foi opcional é que se distingan: coa paleta do bioma soa,
+   o formigón (#3f3f3a) e o chan (#43464a) están a catro niveis un do
+   outro e o mapa era unha mancha.
+   ============================================================ */
+const MACIZO_CLARO = false;
+const MACIZO_INTERIOR = MACIZO_CLARO
+  ? {tapa:'#d8d5c8', lateral:'#8a887c', canto:'#f0eee4', rego:'#6a685e',
+     bordo:'#10160a', sombra:'rgba(0,0,0,0.28)'}
+  : {tapa:'#23231f', lateral:'#141412', canto:'#3a3a33', rego:'#101010',
+     bordo:'#050605', sombra:'rgba(0,0,0,0.45)'};
+
+/* O TABIQUE ten que verse DISTINTO, e non é un capricho: é a única
+   maneira de que o xogador saiba onde pode abrir. Ao principio deixouse
+   coa paleta de terreo (DIRT) e o resultado foi que non se distinguía
+   nada dentro dun muro claro. Vai co mesmo volume có formigón —é
+   parede— e con outro material: ladrillo oxidado. */
+const TABIQUE_INTERIOR = MACIZO_CLARO
+  ? {tapa:'#9a6a44', lateral:'#63412a', canto:'#c08a5c', rego:'#4a3020',
+     bordo:'#1a0e06', sombra:'rgba(0,0,0,0.28)'}
+  /* Sobre masa case negra, un ladrillo escuro non se ve. Este sobe ata
+     onde se le sen deixar de ser óxido: contra o formigón (#23231f)
+     hai corenta niveis de diferenza e a cor é doutra familia. */
+  : {tapa:'#7a4826', lateral:'#4a2a14', canto:'#a86a3c', rego:'#2a180c',
+     bordo:'#0a0604', sombra:'rgba(0,0,0,0.45)'};
+
+/* A segunda pasada: os bloques de parede, que saen da súa propia cela. */
+function debuxarMacizoInterior(ctx, grid, x, y){
+  const aqui = grid[y][x];
+  if(aqui !== T.GRASS && aqui !== T.DIRT) return;
+  const px = x * TILE_SIZE, py = y * TILE_SIZE;
+  const m = aqui === T.DIRT ? TABIQUE_INTERIOR : MACIZO_INTERIOR;
+  /* Veciño "igual", non "sólido": así o bordo escuro debúxase tamén
+     entre formigón e tabique, e o tabique queda perfilado dentro do
+     muro en vez de fundirse con el. */
+  const macizo = (a, b) => {
+    const f = grid[b];
+    if(!f) return aqui === T.GRASS;        /* fóra do mapa: o formigón segue */
+    return f[a] === aqui;
+  };
+  const vN = macizo(x, y-1), vS = macizo(x, y+1);
+  const vE = macizo(x+1, y), vO = macizo(x-1, y);
+  const R = (a,b,w,h,c) => { ctx.fillStyle = c; ctx.fillRect(a,b,w,h); };
+  const sx = (x * 977 + y * 311) | 0;
+  const rnd2 = (n) => { const s = Math.sin(sx + n * 7) * 10000; return s - Math.floor(s); };
+
+  /* A sombra só cae onde remata o muro: se hai máis formigón debaixo,
+     aí non hai chan que sombrear. */
+  if(!vS) R(px, py + TILE_SIZE, TILE_SIZE + 1, 3, m.sombra);
+  R(px, py + 6, TILE_SIZE, 10, m.lateral);          /* cara vertical */
+  R(px, py - 1, TILE_SIZE, 8, m.tapa);              /* cara superior */
+  /* O canto de luz é o BORDO SUPERIOR. Con formigón enriba non hai
+     canto: é parede continua. */
+  if(!vN) R(px, py - 1, TILE_SIZE, 1, m.canto);
+  /* Regos dentro da cela: dan textura sen marcar as xuntas do mosaico. */
+  R(px + 5, py - 1, 1, 17, m.rego);
+  R(px + 11, py - 1, 1, 17, m.rego);
+  if(rnd2(30) > 0.88) R(px + 2 + Math.floor(rnd2(31)*8), py + 2 + Math.floor(rnd2(32)*10), 3 + Math.floor(rnd2(33)*4), 1, m.rego);
+  /* Bordo escuro SÓ nas caras que dan ao baleiro: nos catro lados era o
+     que costuraba o edificio en caixas de dezaseis píxeles. */
+  if(!vO) R(px, py - 1, 1, 17, m.bordo);
+  if(!vE) R(px + TILE_SIZE - 1, py - 1, 1, 17, m.bordo);
+}
+
+/* ============================================================
+   (v1.01) UN TABIQUE DERRUBADO TEN QUE DEIXAR UN OCO.
+
+   O formigón e os tabiques viven na CACHÉ do terreo, que se pinta unha
+   soa vez. Sen isto, rebentar un tabique quitaba o obxecto de colisión
+   —pasábase por el— pero a parede seguía debuxada: un paso invisible,
+   que é peor ca non ter o paso.
+
+   Repíntase a cela e as oito de arredor, porque un bloque proxecta
+   sombra e canto nas veciñas e quedarían con marcas dun muro que xa non
+   está. Non se reconstrúe a caché enteira: son dous mil e pico teselas
+   por un burato de dous.
+   ============================================================ */
+function abrirTabique(w){
+  if((window._bioma || 'VERDE') !== 'INTERIOR') return;
+  const grid = window._terrainGrid;
+  if(!grid || typeof _wearCtx === 'undefined' || !_wearCtx) return;
+  const cx = Math.floor(w.x / TILE_SIZE), cy = Math.floor(w.y / TILE_SIZE);
+  if(!grid[cy] || grid[cy][cx] !== T.DIRT) return;
+  grid[cy][cx] = T.RUBBLE;                 /* o que queda dun tabique é cascallo */
+  const ctx = _wearCtx;
+  for(let dy = -1; dy <= 1; dy++){
+    for(let dx = -1; dx <= 1; dx++){
+      const x = cx + dx, y = cy + dy;
+      if(!grid[y] || grid[y][x] === undefined) continue;
+      ctx.clearRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
+      drawTile(ctx, grid, x, y);
+    }
+  }
+  for(let dy = -1; dy <= 1; dy++)
+    for(let dx = -1; dx <= 1; dx++){
+      const x = cx + dx, y = cy + dy;
+      if(grid[y] && grid[y][x] !== undefined) debuxarMacizoInterior(ctx, grid, x, y);
+    }
+}
+
 function drawTile(ctx, grid, x, y){
   const px = x * TILE_SIZE;
   const py = y * TILE_SIZE;
@@ -408,6 +599,34 @@ function drawTile(ctx, grid, x, y){
     const sh = Math.max(2, (h/3)|0);
     R(cx2, cy2, w, h-sh, top); R(cx2, cy2+h-sh, w, sh, side); R(cx2, cy2, w, 1, light);
   };
+
+  /* (v1.01) O MACIZO DUN INTERIOR NON É TERREO: É PAREDE.
+
+     Ata agora as paredes vían do obxecto muro (drawWalls, en
+     10-estructuras) porque a cortiza enteira do formigón estaba na
+     lista. Ao deixar esa lista só cos tabiques —que é o que fai
+     xogable un interior— o edificio desapareceu da vista: o macizo
+     quedaba pintado como terreo plano, e o formigón (#3f3f3a) e o chan
+     (#43464a) están a catro niveis un do outro. O mapa era unha
+     mancha.
+
+     Agora píntase aquí, na capa de terreo, que é onde debía estar
+     desde o principio: o formigón NON cambia en toda a batalla, así
+     que entra na caché e non custa nada por fotograma.
+
+     A xeometría é a mesma que a do muro destruíble —altura de bloque,
+     sombra só onde remata, canto de luz só se non hai bloque enriba,
+     bordo escuro só nas caras que dan ao baleiro—, porque as dúas
+     cousas son a mesma cousa vista polo xogador. */
+  if((here === T.GRASS || here === T.DIRT) && (window._bioma || 'VERDE') === 'INTERIOR'){
+    /* Aquí só se deixa a base. O bloque enteiro píntase nunha SEGUNDA
+       PASADA (debuxarMacizoInterior), porque sae da súa cela: proxecta
+       sombra na de abaixo e o canto sobe á de arriba, e nunha soa
+       pasada a cela seguinte borraríao ao debuxarse despois. É a mesma
+       razón pola que os muros sempre foron unha capa á parte. */
+    R(px, py, TILE_SIZE, TILE_SIZE, (here === T.DIRT ? TABIQUE_INTERIOR : MACIZO_INTERIOR).tapa);
+    return;
+  }
 
   if(here === T.WATER){
     R(px, py, TILE_SIZE, TILE_SIZE, rnd2(1) < 0.6 ? p.base : p.top2);
@@ -534,10 +753,28 @@ function drawTile(ctx, grid, x, y){
     if((window._bioma || 'VERDE') !== 'INTERIOR' && rnd2(80) > (TERREO_DETALLE ? 0.75 : 0.86)){
       cube(px+Math.floor(rnd2(81)*9)+2, py+Math.floor(rnd2(82)*8)+2, 5, 5, p.accent, p.side, '#9ec868');
     }
-    /* BAIXO CUBERTA NON MEDRA NADA. Sen isto o formigón enchíase de
-       mato e a nave parecía un descampado: a capa de detalle non sabía
-       que existía un bioma sen ceo. */
-    if((window._bioma || 'VERDE') !== 'INTERIOR' && rnd2(90) > 0.94){   /* vexetación grande por bioma */
+    /* BAIXO CUBERTA NON MEDRA NADA.
+
+       (v1.01) A GARDA TIÑA QUE SER A CABECEIRA DA CADEA, e non estaba.
+       Aquí embaixo colga un `else if ... else if ...` con flores, herba
+       alta ('#688a3a' literal), árbore morta e pneumáticos. Ao ser
+       INTERIOR esta condición era falsa, así que a cadea ENTRABA, e a
+       nave saía con mato pintado por riba do formigón. Eran as "motas
+       verdes" que quedaban por localizar: non eran unha capa perdida,
+       era esta mesma cadea entrando pola porta de atrás.
+
+       Agora o interior ten a súa propia rama e non chega á vexetación
+       nunca, faga o dado o que faga. */
+    if((window._bioma || 'VERDE') === 'INTERIOR'){
+      /* Formigón: xuntas e manchas de aceite. Todo sae da paleta do
+         bioma —nada de cores literais— para que siga a luz da escena. */
+      if(rnd2(90) > 0.88){
+        const mx = px + Math.floor(rnd2(91)*8)+2, my = py + Math.floor(rnd2(92)*8)+3;
+        R(mx, my, 5 + Math.floor(rnd2(93)*4), 2, p.dark);
+      }
+      if(rnd2(95) > 0.93) R(px+1, py + Math.floor(rnd2(96)*12)+2, TILE_SIZE-2, 1, p.side);
+    }
+    else if(rnd2(90) > 0.94){   /* vexetación grande por bioma */
       const _b = window._bioma || 'VERDE';
       const tx = px+2, ty = py+1;
       if(_b === 'DESERTO'){
@@ -690,6 +927,13 @@ function buildTerrainCache(grid){
       drawTile(ctx, grid, x, y);
     }
   }
+  /* (v1.01) SEGUNDA PASADA: o formigón do interior. Vai despois de todo
+     o chan porque un bloque proxecta sombra na cela de abaixo e sobe o
+     canto á de arriba; nunha soa pasada, a cela seguinte borrábao. */
+  if((window._bioma || 'VERDE') === 'INTERIOR' && typeof debuxarMacizoInterior === 'function'){
+    for(let y=0; y<ROWS; y++)
+      for(let x=0; x<COLS; x++) debuxarMacizoInterior(ctx, grid, x, y);
+  }
   /* (v0.53) sistema de CAMIÑOS TRILLADOS: novo mapa = desgaste a cero */
   _wear = new Float32Array(COLS * ROWS);
   _wearStage = new Uint8Array(COLS * ROWS);
@@ -829,7 +1073,33 @@ function nudgeSpawn(g, team, x, y){
       if(hq && y > hq.y + hq.h + 130){ y = hq.y - 44; x += facing * 22; }   /* nova columna cara á fronte */
     }
   }
-  return {x: Math.round(x), y: Math.round(y)};
+  const s = saírDoMacizo(x, y);
+  return {x: Math.round(s.x), y: Math.round(s.y)};
+}
+
+/* ============================================================
+   (v1.01) NON NACER DENTRO DUNHA PAREDE.
+
+   Unha unidade que nace no formigón xa non sae: non hai ningunha forza
+   que a empurre fóra, e queda camiñando pola masa maciza toda a
+   operación. Isto busca a cela libre máis próxima e non fai nada fóra
+   dun interior.
+
+   Fai falla en tres sitios e non nun: nudgeSpawn, e as dúas oleadas de
+   GRISES —que nacen a trinta píxeles do bordo do mapa, o que nun
+   exterior é o campo e nunha planta é DENTRO da cortiza exterior—.
+   ============================================================ */
+function saírDoMacizo(x, y){
+  if(typeof macizoEn !== 'function' || !macizoEn(x, y)) return {x, y};
+  let mellor = null, dd = Infinity;
+  for(let ry = -10; ry <= 10; ry++) for(let rx = -10; rx <= 10; rx++){
+    const cx2 = x + rx*TILE_SIZE, cy2 = y + ry*TILE_SIZE;
+    if(cx2 < 8 || cy2 < 8 || cx2 > W-8 || cy2 > H-8) continue;
+    if(macizoEn(cx2, cy2)) continue;
+    const d2 = rx*rx + ry*ry;
+    if(d2 < dd){ dd = d2; mellor = {x: cx2, y: cy2}; }
+  }
+  return mellor || {x, y};
 }
 /* ============================================================
    A HORA DO MUNDO.
@@ -925,7 +1195,15 @@ function newBattle(deployed){
   /* (v0.9) Escoller mapa segundo a operación */
   /* (v0.39) PvP: batalla 1 en MAP1 (simétrico coñecido); revanchas con mapa
      procedural SEMENTADO (o host publica o seed, os dous xeran o mesmo). */
-  const mapDef = window._mundialArranque
+  /* (v1.01) UNHA OPERACIÓN DE INTERIOR TRAE O SEU MAPA. Vai por diante
+     de todo o demais: se se deixase que escollese o mapa da operación,
+     applyMap poñería COLS/ROWS ao tamaño dese mapa e a planta escrita
+     —que mide o que mide— ocuparía só un anaco del. */
+  const _planta = window._plantaPedida && (typeof mapaDaPlanta === 'function')
+    ? mapaDaPlanta(window._plantaPedida) : null;
+  const mapDef = _planta
+    ? _planta
+    : window._mundialArranque
     ? genMap()                                   /* (v0.61) Mundial: sempre procedural (campos grandes) */
     : window._pvpArranque
     ? (window._pvpMapaSeed ? genMap(window._pvpMapaSeed) : MAP1)
@@ -940,8 +1218,12 @@ function newBattle(deployed){
   TERRAIN_GRID  = (window._plantaPedida && plantaAGrid(window._plantaPedida))
     || ((window._bioma === 'INTERIOR') ? buildInteriorMap() : buildDefaultMap());
   window._plantaPedida = null;
-  /* Só nos interiores: fóra, as coordenadas do mapa son as boas. */
-  if(window._bioma === 'INTERIOR') axustarEstruturasAPlanta(TERRAIN_GRID);
+  /* Nunha planta escrita as estruturas xa veñen no sitio: os
+     fondeadeiros son parte da planta e o xerador xa comprobou que
+     caben. Reaxustalas aquí sería movelas dun sitio bo a outro peor.
+     No Crisol, en cambio, a planta é aleatoria e non declara nada. */
+  if(window._bioma === 'INTERIOR' && !_planta) axustarEstruturasAPlanta(TERRAIN_GRID);
+  window._terrainGrid = TERRAIN_GRID;   /* macizoEn() consúltao en cada paso */
   TERRAIN_CACHE = buildTerrainCache(TERRAIN_GRID);
 
   const g = {
@@ -1013,8 +1295,14 @@ function newBattle(deployed){
   } else if(DATA.opCount === 0){
     const _edx = ET===1 ? (d)=>HQ[1].x - d : (d)=>HQ[0].x + HQ[0].w + d;
     if(!window._mundialArranque){   /* (v0.60) o rival do Mundial é o XI da doutrina, sen extras */
-    g.units.push(mkUnit(ET,'GRUNT',    _edx(35), HQ[ET].y - 28, null));
-    g.units.push(mkUnit(ET,'ENGINEER', _edx(40), HQ[ET].y + HQ[ET].h + 40, null));
+    /* (v1.01) Por nudgeSpawn coma todos os demais. Estes dous eran o
+       único despregamento que non pasaba por el, e nun interior iso
+       significaba nacer dentro dun muro: unha unidade que nace no
+       formigón xa non sae, porque non hai nada que a empurre fóra. */
+    { const _s = nudgeSpawn(g, ET, _edx(35), HQ[ET].y - 28);
+      g.units.push(mkUnit(ET,'GRUNT', _s.x, _s.y, null)); }
+    { const _s = nudgeSpawn(g, ET, _edx(40), HQ[ET].y + HQ[ET].h + 40);
+      g.units.push(mkUnit(ET,'ENGINEER', _s.x, _s.y, null)); }
     }
   } else if(window._mundialArranque){
     /* (v0.61.4) MUNDIAL con opCount>0: NADA aquí — o rival é SÓ o XI da
@@ -1104,9 +1392,15 @@ function newBattle(deployed){
         }
         vetCount++;
       }
-      const sx = 820 - (i%2)*20;
-      const sy = 170 + i * 36;
-      g.units.push(mkUnit(ET, cls, sx, sy, persistedEnemy));
+      /* (v1.01) Estas coordenadas eran fixas —820, 170+i*36— e viñan da
+         xeometría de MAP1. Nun mapa procedural de 1920x1152 xa deixaban
+         o despregamento inimigo a media travesía do seu HQ, e nunha
+         planta de interior podían deixalo dentro do formigón. Agora
+         saen do HQ inimigo real e pasan por nudgeSpawn coma todo o
+         demais. */
+      const _s = nudgeSpawn(g, ET, ET===1 ? HQ[1].x - 30 : HQ[0].x + HQ[0].w + 30,
+                            HQ[ET].y - 28 + i * 36);
+      g.units.push(mkUnit(ET, cls, _s.x, _s.y, persistedEnemy));
     });
 
     if(playerVeterans > 0){

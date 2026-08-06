@@ -379,7 +379,10 @@ function spawnGreys(g){
   g._greysN = g._greysN || 0;
   for(let i = 0; i < n; i++){
     const cls = (i === 0 && n >= 5) ? 'HEAVY' : 'GRUNT';
-    const u = mkUnit(2, cls, x0 + (i - n/2) * 26 + rnd()*10, y0 + (rnd()*16-8), null);
+    /* (v1.01) Trinta píxeles do bordo é campo aberto nun exterior e
+       DENTRO da cortiza nunha planta de interior. Búscase oco libre. */
+    const _s = saírDoMacizo(x0 + (i - n/2) * 26 + rnd()*10, y0 + (rnd()*16-8));
+    const u = mkUnit(2, cls, _s.x, _s.y, null);
     g._greysN++;
     u.name = 'REQ-' + String(g._greysN).padStart(2, '0');
     u.hp = Math.round(u.hp * 1.15); u.max = u.hp;   /* material corporativo: algo mellor */
