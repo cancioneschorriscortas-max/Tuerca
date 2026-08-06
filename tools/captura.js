@@ -84,6 +84,18 @@ window.addEventListener('load', function(){
         });
       }
       DATA.opCount = 2;   /* mapa procedural, o máis representativo */
+      /* O guión do primeiro día tapaba a captura enteira: sen partida
+         gardada, o arranque cría que era unha instalación nova e sacaba
+         o laboratorio de ÓPTIMA por riba de todo. */
+      DATA.marcas = DATA.marcas || {}; DATA.marcas.primeiroNome = 0;
+      var _int = document.getElementById('interludio');
+      if(_int) _int.style.display = 'none';
+      var _bio = document.getElementById('bioModal');
+      if(_bio) _bio.style.display = 'none';
+      /* --bioma / --planta: para revisar interiores. Ponse ANTES de
+         newBattle porque o terreo xérase alí e a petición consómese. */
+      ${op('bioma', null) ? `window._biomaPedido = '${op('bioma','')}';` : ''}
+      ${op('planta', null) ? `window._plantaPedida = '${op('planta','')}';` : ''}
       ${op('semente', null) != null ? `window._semente = ${Number(op('semente', 0)) >>> 0};` : ''}
       document.getElementById('hangar').style.display = 'none';
       document.getElementById('battle').style.display = 'block';

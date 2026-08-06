@@ -452,10 +452,15 @@ function drawTile(ctx, grid, x, y){
        dos tres e o menos elegante, pero é o que mete masa clara —accent
        está 55 niveis por riba da base— nun chan onde case todo estaba
        no mesmo valor. */
-    if(rnd2(80) > (TERREO_DETALLE ? 0.75 : 0.86)){
+    /* O verde é literal: '#9ec868' é herba, non unha cor da paleta. Nun
+       interior iso convertía o formigón nun descampado. */
+    if((window._bioma || 'VERDE') !== 'INTERIOR' && rnd2(80) > (TERREO_DETALLE ? 0.75 : 0.86)){
       cube(px+Math.floor(rnd2(81)*9)+2, py+Math.floor(rnd2(82)*8)+2, 5, 5, p.accent, p.side, '#9ec868');
     }
-    if(rnd2(90) > 0.94){   /* vexetación grande por bioma */
+    /* BAIXO CUBERTA NON MEDRA NADA. Sen isto o formigón enchíase de
+       mato e a nave parecía un descampado: a capa de detalle non sabía
+       que existía un bioma sen ceo. */
+    if((window._bioma || 'VERDE') !== 'INTERIOR' && rnd2(90) > 0.94){   /* vexetación grande por bioma */
       const _b = window._bioma || 'VERDE';
       const tx = px+2, ty = py+1;
       if(_b === 'DESERTO'){

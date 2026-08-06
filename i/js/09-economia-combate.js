@@ -52,6 +52,33 @@ function buildWallsFromMap(){
   }
   return out;
 }
+/* (v1.00) MUROS DUNHA PLANTA DE INTERIOR.
+
+   Nun interior o mapa non trae muros escritos: os muros SON a planta. O
+   que se xera aquí é a CORTIZA — só os bloques macizos que tocan chan.
+   Encher os 1.236 bloques daría mil e pico obxectos de colisión para
+   nada: o interior dun muro non o toca ninguén.
+
+   Saen coa mesma forma que buildWallsFromMap para que todo o que xa
+   existe —cobertura, dano do BOMBARDERO, o pathing— funcione sen
+   enterarse de que isto é outra cousa. */
+function buildInteriorWalls(grid){
+  if(!grid || !grid.length) return [];
+  const out = [];
+  const solido = (x, y) => !grid[y] || grid[y][x] === undefined || grid[y][x] === T.GRASS;
+  for(let y = 0; y < grid.length; y++){
+    for(let x = 0; x < grid[y].length; x++){
+      if(grid[y][x] !== T.GRASS) continue;
+      /* Só se ten chan ao lado. O bordo do mapa conta como macizo para
+         que a parede exterior non se converta nunha cortiza inútil. */
+      if(solido(x-1,y) && solido(x+1,y) && solido(x,y-1) && solido(x,y+1)) continue;
+      out.push({x: x*TILE_SIZE + 8, y: y*TILE_SIZE + 8,
+                hp: WALL_HP, max: WALL_HP, destroyed: false});
+    }
+  }
+  return out;
+}
+
 /* ============================================================
    COBERTURA (v0.22) — parapeto real: un muro entre ti e o tirador
    = -25% de dano. O BOMBARDERO ignóraa (explosivos).
