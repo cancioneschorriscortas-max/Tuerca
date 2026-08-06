@@ -25,9 +25,18 @@ mecánica só entra se axuda a lembrar unha unidade despois de varias
 partidas. Un HQ derrubado non se lembra. Unha unidade que liberaches na
 operación 7 e che segue viva na 19, si.
 
-**Na v2 hai enemigo con base en tres operacións de vinte.** A primeira,
-para ensinar o que é. A oitava, porque VOLT ten unha. E a décimo oitava,
-porque é a única estrutura da campaña que se derruba de verdade.
+**Na campaña non hai ningunha base inimiga. Cero de vinte.**
+
+A v2 aínda deixaba tres, con tres xustificacións narrativas —«a primeira
+ensina o que é unha base», «VOLT ten unha porque é o espello»—. Iso non é
+deseño: é conservar a escaramuza e buscarlle desculpa despois. Ningunha
+das tres resistía a pregunta de que aportaba que non aportase outro
+obxectivo, así que fóra as tres.
+
+O HQ inimigo é a condición de vitoria **do modo libre**. A campaña son
+entradas en instalacións de ÓPTIMA, e nunha instalación non hai nada que
+«derrubar para gañar»: hai algo que sacar, alguén que erguer, ou algo que
+parar.
 
 ---
 
@@ -55,26 +64,53 @@ unha patrulla pola doca. Iso é o que fai que unha planta escrita se poida
 deseñar. Cunha IA que fabrica, a mesma planta xógase igual sempre; con
 reforzos postos, a planta ten guión.
 
-### O que hai que tocar no motor, e é acoutado
+### O que hai que tocar no motor
 
-`checkVictory` (10-estructuras.js:546) hoxe é literalmente
-`if(g.hq[ET].hp<=0) vitoria; else if(g.hq[PT].hp<=0) derrota;`. **Sen HQ
-inimigo, unha operación non remata nunca.** Non é un detalle: é o único
-cambio de verdade que pide todo este deseño.
+**A condición de vitoria É o obxectivo da misión.** Non hai unha por
+defecto coa que comparar; cada operación declara a súa e o motor
+pregúntalla.
+
+Hoxe `checkVictory` (10-estructuras.js:546) é literalmente
+`if(g.hq[ET].hp<=0) vitoria; else if(g.hq[PT].hp<=0) derrota;`. Iso non é
+«a regra do xogo»: é **a regra do modo libre**, escrita no sitio onde
+tiña que haber unha pregunta.
+
+O arranxo non é engadirlle un desvío por diante. É darlle a volta:
 
 ```js
-/* en tickEnd, antes do de sempre */
-if(g.obxectivo){
-  const r = g.obxectivo.avaliar(g);       /* 'victory' | 'defeat' | null */
-  if(r){ g.over = true; g.result = r; return; }
-  return;                                  /* NON caer no do HQ */
+/* Cada modo trae a súa condición. A do HQ deixa de ser o caso xeral e
+   pasa a ser unha máis, coa mesma forma que todas as outras. */
+const CONDICIONS = {
+  BASE:        (g) => g.hq[ET].hp <= 0 ? 'victory' : null,
+  RESCATE:     (g) => g.rescatados >= g.obxectivo.n ? 'victory' : null,
+  REPARACION:  (g) => g.reparados  >= g.obxectivo.n ? 'victory' : null,
+  EXTRACCION:  (g) => g.extraidos  >= g.obxectivo.n ? 'victory' : null,
+  SABOTAXE:    (g) => g.sabotados  >= g.obxectivo.n ? 'victory' : null,
+  DEFENSA:     (g) => g.t >= g.obxectivo.ata ? 'victory' : null,
+  ESCOLTA:     (g) => g.escolta && g.escolta.chegou ? 'victory' : null,
+  OLEADAS:     (g) => g._wave > g.obxectivo.n ? 'victory' : null,
+};
+
+function tickEnd(g){
+  if(g.over) return;
+  const cond = CONDICIONS[g.obxectivo.tipo];
+  const r = cond(g) || derrotaComun(g);
+  if(r){ g.over = true; g.result = r; }
+  ...
+}
+
+/* A derrota é o único que si é común a todo, e nin sequera sempre: */
+function derrotaComun(g){
+  if(!g.units.some(u => u.team === PT && !u.dead)) return 'defeat';
+  if(g.obxectivo.perdeSe && g.obxectivo.perdeSe(g)) return 'defeat';
+  return null;
 }
 ```
 
-Con iso, e con `g.hq[ET]` posto fóra do mapa ou con `hp` infinito nas
-operacións sen base, todo o demais do motor segue igual. A IA de
-produción (`g.prod[ET]`) apágase poñéndoa a `null`, que é o que xa fai o
-Crisol.
+O modo libre pasa a declarar `{tipo:'BASE'}` e non se entera de nada. E
+`g.hq[ET]` deixa de existir nas vinte operacións, o que apaga de camiño a
+produción inimiga (`g.prod[ET] = null`, coma no Crisol) e os reforzos
+automáticos: o que chega, chega porque o pon un gatillo.
 
 ---
 
@@ -84,16 +120,16 @@ Crisol.
 
 Sete, e a columna da dereita é o que importa: cantas veces aparece.
 
-| Obxectivo | Como se gaña | Veces |
+| Obxectivo | Como se gaña | Veces na campaña |
 |---|---|---|
-| `RESCATE` | Reactivar N unidades inertes; pasan ao teu control | 4 |
-| `REPARACIÓN` | Poñer en pé material caído; loita contigo o resto da operación | 3 |
-| `EXTRACCIÓN` | Levar N unidades ou pezas ao punto de saída | 4 |
+| `RESCATE` | Reactivar N unidades inertes; pasan ao teu control | 5 |
+| `REPARACIÓN` | Poñer en pé material caído; loita contigo o resto | 3 |
+| `EXTRACCIÓN` | Levar N unidades ou pezas ao punto de saída | 5 |
 | `ESCOLTA` | Que alguén que non combate chegue vivo a un sitio | 2 |
-| `SABOTAXE` | Tirar N estruturas concretas (non unha base) | 3 |
-| `DEFENSA` | Aguantar N segundos | 3 |
-| `BASE` | Tirar o HQ inimigo | **3** |
+| `SABOTAXE` | Parar ou tirar N estruturas concretas | 3 |
+| `DEFENSA` | Aguantar N segundos | 2 |
 | `OLEADAS` | Sobrevivir 5 oleadas (Crisol) | 1 |
+| `BASE` | Tirar o HQ inimigo | **0** — é a do modo libre |
 
 **RESCATE e REPARACIÓN son a mesma peza con dúas caras**, e é a peza que
 pediches:
@@ -122,7 +158,10 @@ que diga `sempre`.
 `aoEmpezar` · `tras:N` · `unidadeEn:LUGAR` · `salaAberta:ID` ·
 `tabiqueAberto:N` · `rescatados:N` · `reparados:N` · `extraidos:N` ·
 `baixaPropia:N` · `baixaInimiga:N` · `sabotado:N` · `escoltaEn:LUGAR` ·
-`vidaDe:ID<:%` · `sectorTomado:ID` · `hqInimigo<:%`
+`vidaDe:ID<:%` · `queimado:N` *(o reloxo de VOLT)*
+
+Non hai `sectorTomado` nin `hqInimigo<`: os sectores e o HQ inimigo son
+do modo libre e non aparecen en ningunha das vinte.
 
 Accións:
 
@@ -152,11 +191,11 @@ const OPERACIONS = [{
 
 ## 3 · A táboa
 
-`†` introduce clase · `‡` acto de hangar, non operación · **B** leva base inimiga
+`†` introduce clase · `‡` acto de hangar, non operación
 
 | # | Acto | Título | Planta | Obxectivo | Clase |
 |---|---|---|---|---|---|
-| 1 | I | Primeiro día | NAVE | **B** BASE (pequena, guiada) | GRUNT † |
+| 1 | I | Primeiro día | NAVE | EXTRACCIÓN (o teu escuadrón) | GRUNT † |
 | 2 | I | Reciclaxe rutineira | NAVE | SABOTAXE (3 prensas) | |
 | 3 | I | Aprender a volver | DOCA | REPARACIÓN (2) | ENGINEER † |
 | 4 | I | Unha páxina máis | DOCA | RESCATE (3) | |
@@ -164,28 +203,27 @@ const OPERACIONS = [{
 | 5 | I | O que quedou dentro | ARQUIVO | EXTRACCIÓN (3 expedientes) | |
 | 6 | I | O taller ten un nome | NAVE | ESCOLTA (o da cantina) | |
 | 7 | II | Os que teñen nome | XERADORES | RESCATE (4) | |
-| 8 | II | VOLT | GALERIA | **B** BASE | HEAVY † |
+| 8 | II | VOLT | GALERIA | RESCATE contra reloxo | HEAVY † |
 | 9 | II | Os Grises | DOCA | DEFENSA (240 s) | |
 | 10 | II | A galería alta | GALERIA | SABOTAXE (2 postos altos) | SNIPER † |
 | 11 | II | O espectáculo | XERADORES | — *(Mundial, á parte)* | |
-| 12 | II | Superioridade industrial | NAVE | REPARACIÓN (3) | |
+| 12 | II | Superioridade industrial | NAVE | REPARACIÓN (3 inimigas) | |
 | 13 | II | Quen escribe o caderno | ARQUIVO | EXTRACCIÓN (o caderno) | |
 | 14 | II | O muro | DOCA | RESCATE tras brecha (2) | |
 | 15 | II | O que VOLT lembra | GALERIA | DEFENSA (o memorial) | |
 | 16 | III | Corte de subministro | XERADORES | SABOTAXE (4 xeradores) | |
 | 17 | III | Chegar ao Complexo | COMPLEXO | ESCOLTA + RESCATE (3) | |
-| 18 | III | A obra pública | COMPLEXO | **B** BASE + brecha | BOMBARDERO † |
+| 18 | III | A obra pública | COMPLEXO | RESCATE tras brecha (2) | BOMBARDERO † |
 | 19 | III | O Crisol | ARQUIVO | OLEADAS (5) | |
 | 20 | III | O último combate | COMPLEXO | EXTRACCIÓN (nomes) | |
 | — | — | **Montaxe final** | *montaxe* | — | |
 
-Tres bases en vinte, e cada unha xustifica a súa: a 1 ensina o que é unha
-base para que a súa ausencia despois signifique algo, a 8 é a de VOLT
-—que é o espello do xogador e por iso ten unha coma el—, e a 18 é a única
-estrutura que a campaña derruba de verdade.
+**Ningún HQ inimigo en toda a campaña**, e ningunha operación se gaña
+matando a todo o mundo. Nas vinte hai algo que sacar, alguén que erguer,
+ou algo que parar.
 
-**Sen sectores en catorce das vinte.** Círculos de captura nunha misión
-de rescate son ruído: o xogador le que hai algo que capturar e non o hai.
+**Sen sectores nas vinte.** Círculos de captura nunha misión de rescate
+son ruído: o xogador le que hai algo que capturar e non o hai.
 
 ---
 
@@ -193,6 +231,40 @@ de rescate son ruído: o xogador le que hai algo que capturar e non o hai.
 
 Só se detallan aquí as que non son evidentes desde a táboa. As demais
 seguen como na v1 en texto e diálogo; o que cambia é o obxectivo.
+
+### 1 · Primeiro día — `EXTRACCIÓN` (o teu propio escuadrón)
+
+Tres unidades entran pola doca da nave e teñen que chegar ao punto de
+reunión do outro lado. Iso é todo. Non hai que tomar nada, non hai que
+tirar nada, e o único que se atopa polo camiño son dous Grises que non
+esperaban a ninguén.
+
+**Por que así.** O peso da escena está no nome, non na arma — dío o
+narrativo. Unha primeira misión que sexa un asalto a unha base pon o peso
+exactamente no sitio equivocado, e ademais ensina unha gramática que
+despois non se volve usar en dezanove operacións.
+
+O que si ensina: mover, atravesar unha porta, e que as unidades disparan
+soas. Nada máis.
+
+**Entrada** — no taller, non na batalla:
+
+> **SUPERVISOR** · `op1.norma`
+> «Non lles poñas nomes. Fai que o traballo sexa máis difícil, para eles
+> e para ti.»
+>
+> «Non che vou dicir por que. Se cho digo agora, non o entendes. Se
+> esperas, xa non fai falla que cho diga.»
+
+| Cando | Que pasa |
+|---|---|
+| `aoEmpezar` | **HQ** `op1.inicio`: «Traslado de rutina. Punto de reunión no extremo norte. Grazas por utilizar ÓPTIMA INDUSTRIES.» |
+| `unidadeEn:ESPINA` | `aparecer:GRIS:2:NAVE` — sen aviso ningún |
+| `baixaPropia:1` | *silencio.* Ninguén di nada, e é a primeira vez |
+| `extraidos:3` | `rematar:vitoria` |
+
+**Saída.** O caderno enriba da banca. Unha páxina en branco.
+`bautizoObrigatorio()` **sen explicar para que serve**: só o cursor.
 
 ### 2 · Reciclaxe rutineira — `SABOTAXE`
 
@@ -253,6 +325,32 @@ salas distintas. Non se poden facer as catro polo mesmo camiño: hai que
 partir o escuadrón, e partir o escuadrón é a primeira decisión difícil da
 campaña.
 
+### 8 · VOLT — `RESCATE` contra reloxo
+
+VOLT non ten base. VOLT está **dentro**, e está a queimar o arquivo.
+
+Seis unidades inertes nos palcos da galería. Cada 40 segundos, VOLT
+destrúe unha —a que estea máis lonxe de ti—. Rescatas as que poidas. Non
+hai un número que gañe: gáñase cando xa non queda ningunha, e o resultado
+é cantas saíron.
+
+**Por que isto e non unha base.** O narrativo di que VOLT lembra e segue
+queimando arquivos, e que é a proba de que lembrar non fai a ninguén bo,
+só o fai responsable. Unha base derrubada non demostra iso. Un reloxo que
+lle come as unidades unha a unha mentres el cita os seus nomes, si.
+
+O HEAVY entra aquí porque a escaleira da galería é o único camiño aos
+palcos e VOLT tena batida: aguantala é a diferenza entre chegar a catro
+ou a unha.
+
+| Cando | Que pasa |
+|---|---|
+| `aoEmpezar` | **VOLT** `op8.saudo`: «Lévoos contados. Os teus e os meus. É máis eficiente.» |
+| cada 40 s | **VOLT** `op8.queima`: «{nome}. Rexistro pechado.» *(nome real da que acaba de destruír)* |
+| `rescatados:1` | **VOLT** `op8.espello`: «Ti tamén escolles cal. A diferenza é que eu levo o rexistro ao día.» |
+
+VOLT non morre aquí. Retírase cando xa non queda nada que queimar.
+
 ### 10 · A galería alta — `SABOTAXE`
 
 Dous postos elevados nos palcos que baten a escaleira enteira. Sen SNIPER
@@ -294,6 +392,26 @@ Hai que meter un ENGINEER ata o fondo das oficinas e sacar tres. O
 ENGINEER é o que activa, así que se cae, a operación segue pero xa non se
 pode rescatar a ninguén máis. **Perder unha unidade deixa de ser unha
 baixa e pasa a ser unha porta que se pecha.**
+
+### 18 · A obra pública — `RESCATE` tras brecha · BOMBARDERO
+
+Un muro de carga do Complexo con dous aliados dentro do formigón. Non é
+un tabique: é estrutura, e a estrutura non se abre a tiros de fusil. Só
+cede con potencia de fogo alta, e o BOMBARDERO ignora a cobertura — o que
+significa que abrir custa baixas propias probables.
+
+**A decisión é toda a operación**: sacar a dous que levan aí anos, a
+cambio de arriscar aos que che quedan vivos. Non hai unha resposta
+correcta e o xogo non che vai dicir cal era.
+
+A clase máis destrutiva chega ao final a propósito, cando a historia xa
+fala do prezo de todo isto.
+
+| Cando | Que pasa |
+|---|---|
+| `aoEmpezar` | **TUERCA** `op18.prezo`: «Isto ábrese. A pregunta non é se se pode.» |
+| `tabiqueAberto:1` | **HQ** `op18.optima`: «Demolición non autorizada rexistrada. Cargarase ao seu presuposto.» |
+| `rescatados:2` | `rematar:vitoria` |
 
 ### 20 · O último combate — `EXTRACCIÓN`
 
