@@ -50,6 +50,23 @@ const T = {GRASS:0, DIRT:1, WATER:2, ROAD:3, BRIDGE:4, RUBBLE:5};
 /* (v0.60) BIOMAS: tres mundos coa mesma técnica voxel. Validados no lab
    (terreo_lab/biomas.py). setBioma() cámbiaos; a campaña usa VERDE. */
 const BIOMA_PALETTES = {
+ /* (v1.00) INTERIOR — primeira proba de escenario baixo cuberta.
+    Non hai teito: un interior debúxase polas PAREDES, o chan e a
+    ausencia de ceo. GRASS deixa de ser herba e pasa a ser bloque de
+    formigón, que é o que enche todo o que non é sala nin corredor;
+    WATER é o oco negro (fosos, ocos de maquinaria) e BRIDGE é reixa
+    metálica. Mesmas teselas, outro mundo.
+
+    Isto é un banco de probas: se ao entrar parece un exterior gris,
+    sabémolo antes de construír vinte operacións enriba. */
+ INTERIOR: {
+  [T.GRASS]:  {dark:'#1e1e1c', base:'#3f3f3a', top2:'#47473f', side:'#161614', light:'#53534a', accent:'#63635a'},
+  [T.DIRT]:   {dark:'#2a251e', base:'#4e463a', top2:'#564d40', side:'#211d18', light:'#655a49', accent:'#7a6d58'},
+  [T.WATER]:  {dark:'#050608', base:'#0c0e12', top2:'#101319', side:'#030405', light:'#181c24', accent:'#242a34'},
+  [T.ROAD]:   {dark:'#26282a', base:'#43464a', top2:'#4a4d52', side:'#1c1e20', light:'#585c62', accent:'#6a6f76'},
+  [T.BRIDGE]: {dark:'#2e3034', base:'#54585e', top2:'#5d6168', side:'#232528', light:'#6e737b', accent:'#868c95'},
+  [T.RUBBLE]: {dark:'#241f1a', base:'#453d33', top2:'#4d443a', side:'#1b1712', light:'#5b5145', accent:'#6f6252'},
+ },
  VERDE: {
   [T.GRASS]:  {dark:'#233312', base:'#4d6a2a', top2:'#55742f', side:'#2c3d16', light:'#688a3a', accent:'#7da548'},
   [T.DIRT]:   {dark:'#332614', base:'#6a5236', top2:'#75603f', side:'#3d2e1c', light:'#8a6f4a', accent:'#a08558'},
@@ -96,6 +113,69 @@ const TILE_RANK = {
   [T.ROAD]:   4,
   [T.BRIDGE]: 5,
 };
+
+/* ============================================================
+   (v1.00) PLANTA DE INTERIOR — salas e corredores.
+
+   O xerador de sempre fai terreo aberto: relevo, vexetación, auga. Un
+   interior é a regra contraria — todo é bloque agás o que se escava.
+
+   Empézase co mapa cheo de formigón (GRASS coa paleta INTERIOR) e
+   ábrense salas rectangulares unidas por corredores en L. É a
+   aproximación clásica e serve para mirar: se a lectura funciona,
+   despois virán as portas, as paredes con colisión e a luz propia.
+
+   O que NON fai aínda, e hai que dicilo: os bloques non paran ás
+   unidades. Isto é aparencia, non navegación. As paredes reais do xogo
+   veñen de buildWallsFromMap(), e conectalas é o paso seguinte.
+   ============================================================ */
+function buildInteriorMap(){
+  const grid = [];
+  for(let y=0; y<ROWS; y++){
+    grid[y] = [];
+    for(let x=0; x<COLS; x++) grid[y][x] = T.GRASS;   /* todo macizo */
+  }
+  const cuarto = (x0, y0, w, h, chan) => {
+    for(let y=Math.max(1,y0); y<Math.min(ROWS-1,y0+h); y++)
+      for(let x=Math.max(1,x0); x<Math.min(COLS-1,x0+w); x++) grid[y][x] = chan;
+  };
+  /* Corredor en L entre dous centros, sempre de dúas teselas de ancho:
+     cunha soa non pasa unha unidade e o mapa vólvese un labirinto. */
+  const corredor = (ax, ay, bx, by) => {
+    for(let x=Math.min(ax,bx); x<=Math.max(ax,bx); x++) cuarto(x, ay, 1, 2, T.ROAD);
+    for(let y=Math.min(ay,by); y<=Math.max(ay,by); y++) cuarto(bx, y, 2, 1, T.ROAD);
+  };
+
+  /* Unha nave central grande e catro dependencias arredor. Non é
+     aleatorio de todo: unha planta industrial ten unha nave e anexos, e
+     un montón de salas iguais non se le como unha instalación. */
+  const cx = Math.floor(COLS/2), cy = Math.floor(ROWS/2);
+  const naveW = Math.floor(COLS*0.34), naveH = Math.floor(ROWS*0.42);
+  cuarto(cx - Math.floor(naveW/2), cy - Math.floor(naveH/2), naveW, naveH, T.ROAD);
+
+  const salas = [
+    [3, 3, 12, 8], [COLS-16, 3, 13, 8],
+    [3, ROWS-11, 12, 8], [COLS-16, ROWS-11, 13, 8],
+  ];
+  for(const [x0,y0,w,h] of salas){
+    cuarto(x0, y0, w, h, T.DIRT);
+    corredor(x0 + Math.floor(w/2), y0 + Math.floor(h/2), cx, cy);
+  }
+
+  /* Un foso na nave: rompe a explanada e dá algo que rodear. */
+  cuarto(cx - 3, cy - 2, 6, 4, T.WATER);
+  /* Pasarela metálica por riba do foso. */
+  cuarto(cx - 3, cy, 6, 1, T.BRIDGE);
+
+  /* Escombro contra as paredes da nave: unha nave impecable non parece
+     un sitio onde pasou nada. */
+  for(let i=0; i<40; i++){
+    const x = cx - Math.floor(naveW/2) + Math.floor(rnd() * naveW);
+    const y = cy - Math.floor(naveH/2) + Math.floor(rnd() * naveH);
+    if(grid[y] && grid[y][x] === T.ROAD && rnd() < 0.5) grid[y][x] = T.RUBBLE;
+  }
+  return grid;
+}
 
 /* Generar el mapa por defecto — usa as coordenadas do mapa actual (RIVER, BRIDGE) */
 function buildDefaultMap(){
@@ -701,7 +781,9 @@ function newBattle(deployed){
   applyMap(mapDef);
 
   /* Construir el mapa de celdas y cachear el dibujo estático */
-  TERRAIN_GRID  = buildDefaultMap();
+  /* A planta de interior é outro xerador, non unha variante do de fóra:
+     alí escávase, aquí énchese. */
+  TERRAIN_GRID  = (window._bioma === 'INTERIOR') ? buildInteriorMap() : buildDefaultMap();
   TERRAIN_CACHE = buildTerrainCache(TERRAIN_GRID);
 
   const g = {

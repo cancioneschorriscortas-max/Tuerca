@@ -2252,7 +2252,7 @@ $('btnLado').onclick=()=>{
    Os tres biomas xa existían (setBioma, en 07-terreo-batalla) e só os
    usaba o Mundial; a campaña vai sempre en VERDE. Aquí ábrense.
    ============================================================ */
-const CRISOL_MAPAS = ['VERDE', 'NEVE', 'DESERTO'];
+const CRISOL_MAPAS = ['VERDE', 'NEVE', 'DESERTO', 'INTERIOR'];
 function crisolEscollaMapa(){
   let sel = (DATA.marcas && DATA.marcas.crisolMapa) || 'VERDE';
   const pintar = () => {
