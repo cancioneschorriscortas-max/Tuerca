@@ -1436,21 +1436,71 @@ function draw(g){
   /* Restos */
   for(const r of g.remains){
     if(r.expired) continue;
-    /* Color según estado */
-    ctx.fillStyle = r.secured ? '#ffd24a' : '#5a3a30';
-    ctx.fillRect(r.x-7, r.y-7, 14, 14);
-    ctx.strokeStyle = r.secured ? '#ffd24a' : '#8a4a40';
-    ctx.strokeRect(r.x-7, r.y-7, 14, 14);
-    /* Cruz */
-    ctx.strokeStyle = '#000';
-    ctx.beginPath(); ctx.moveTo(r.x-5,r.y-5); ctx.lineTo(r.x+5,r.y+5);
-    ctx.moveTo(r.x+5,r.y-5); ctx.lineTo(r.x-5,r.y+5); ctx.stroke();
+    /* (v1.05) O CORPO, RENDERIZADO.
+
+       Aquí había un cadrado marrón de 14 píxeles cunha cruz negra. Nun
+       xogo que trata de recuperar corpos antes de que os reciclen, e no
+       que cada unidade son oito direccións renderizadas en Blender con
+       bisel e oclusión, o obxecto máis importante era o único que
+       quedara en marcador de posición.
+
+       A cor do bando mantense porque é información que se xoga: unha
+       operación de recuperación consiste en decidir a quen vas buscar,
+       e para iso hai que ver de lonxe de quen é o que hai no chan. */
+    let pintado = false;
+    if(typeof RESTOS3D !== 'undefined' && r.unit){
+      const eq = r.unit.team === 0 ? '0' : r.unit.team === 1 ? '1' : '2';
+      const cls = (RESTOS3D.meta[r.unit.cls] ? r.unit.cls : 'GRUNT');
+      /* A variante e a dirección saen do id do caído: o mesmo corpo cae
+         sempre igual, e dous que caen ao lado non quedan calcados. */
+      let h = 0;
+      for(const c of String(r.unit.id || 'x')) h = ((h << 5) - h + c.charCodeAt(0)) >>> 0;
+      const vs = RESTOS3D.variantes;
+      /* Os desfeitos e queimados non son os teus mortos recentes: son
+         restos vellos. Un caído de agora sae enteiro. */
+      const vi = vs[h % 2];
+      const dir = (h >> 4) % RESTOS3D.dirs;
+      const im = ASSETS['rst_' + cls + '_' + eq + '_' + vi + '_' + dir];
+      if(im){
+        const m = RESTOS3D.meta[cls][eq];
+        ctx.save();
+        ctx.globalAlpha = 0.30;
+        ctx.fillStyle = '#000';
+        ctx.beginPath(); ctx.ellipse(r.x, r.y + 4, m.w*0.42, 4, 0, 0, 7); ctx.fill();
+        ctx.restore();
+        ctx.drawImage(im, Math.round(r.x - m.w/2), Math.round(r.y - m.h/2));
+        pintado = true;
+      }
+    }
+    if(!pintado){
+      /* Reserva: se o banco non cargou, o xogo píntase igual. */
+      ctx.fillStyle = r.secured ? '#ffd24a' : '#5a3a30';
+      ctx.fillRect(r.x-7, r.y-7, 14, 14);
+      ctx.strokeStyle = r.secured ? '#ffd24a' : '#8a4a40';
+      ctx.strokeRect(r.x-7, r.y-7, 14, 14);
+      ctx.strokeStyle = '#000';
+      ctx.beginPath(); ctx.moveTo(r.x-5,r.y-5); ctx.lineTo(r.x+5,r.y+5);
+      ctx.moveTo(r.x+5,r.y-5); ctx.lineTo(r.x-5,r.y+5); ctx.stroke();
+    }
+    /* ASEGURADO: un aro dourado arredor, non unha caixa por riba. O
+       corpo ten que seguir véndose — é o que estás a mirar. */
+    if(r.secured){
+      ctx.strokeStyle = '#ffd24a'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.ellipse(r.x, r.y + 3, 13, 6, 0, 0, 7); ctx.stroke();
+    }
     /* Timer si no asegurado */
     if(!r.secured){
       const pct = r.timer/(90*60);
-      ctx.fillStyle='#000'; ctx.fillRect(r.x-8, r.y+9, 16, 3);
-      ctx.fillStyle = pct>0.5?'#7fdc7f':(pct>0.25?'#ffd24a':'#ff5340');
-      ctx.fillRect(r.x-8, r.y+9, 16*pct, 3);
+      /* (v1.05) NUNCA VERDE. Isto pintaba en verde mentres quedase máis
+         da metade do tempo — a mesma cor exacta que a barra de vida
+         dunha unidade viva. Cun corpo debuxado debaixo, o resultado era
+         un cadáver cunha barra verde chea, que le como "está ben".
+         Isto non é saúde: é o tempo que queda antes de perdelo para
+         sempre, así que vai de ámbar a vermello e nada máis. E máis
+         fina, porque compite co corpo, que é o que hai que mirar. */
+      ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.fillRect(r.x-8, r.y+10, 16, 2);
+      ctx.fillStyle = pct>0.35 ? '#c8a86a' : (pct>0.15 ? '#e08040' : '#ff5340');
+      ctx.fillRect(r.x-8, r.y+10, 16*pct, 2);
     }
     /* Etiqueta */
     ctx.fillStyle = r.secured ? '#ffd24a' : '#aa6a60';

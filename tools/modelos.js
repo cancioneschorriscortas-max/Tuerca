@@ -478,6 +478,35 @@ function pose(cls, estado, fase){
       return { torso: -k*0.30, cabeza: -k*0.22, brazo_e: k*0.25, brazo_d: k*0.20, antebrazo_d: k*0.20 };
     }
 
+    case 'CAIDO': {
+      /* UN CORPO CAÍDO NON É UN CORPO EN PÉ TOMBADO.
+
+         Probouse primeiro coa rotación ríxida soa —xirar o modelo
+         enteiro 87 graos— e o resultado era unha mancha: cunha cámara a
+         22 graos, un corpo plano vese escorzado e perde a silueta. Un
+         corpo cae DOBRÁNDOSE, e as dobras son articulacións, así que
+         van aquí, que é o sitio.
+
+         `fase` distingue variantes: preto de 0 queda recollido sobre si
+         mesmo, preto de 1 queda aberto. A inclinación do corpo enteiro
+         NON está aquí porque non hai articulación raíz — iso faino
+         tools/restos.js transformando os vértices despois de montar. */
+      const abre = fase;
+      return {
+        /* Os topes de M4 respéctanse: pasarse dun cuarto de volta fai
+           que pareza que se soltou a peza, e a 18 píxeles os tres graos
+           que gañaría non chegan á pantalla. E `arma` queda a cero
+           porque A11 nivélaa soa; unha inclinación de 31 graos nun
+           sprite deste tamaño tampouco se ve, e romper unha regra por
+           algo invisible é o peor negocio posible. */
+        torso: 0.34 - abre*0.16,
+        cabeza: -0.46 + abre*0.20,
+        perna_e: -0.88 + abre*0.30, perna_d: -0.52 - abre*0.28,
+        brazo_e: 0.85 - abre*0.30, brazo_d: -0.70 + abre*0.45,
+        antebrazo_d: 0.95 - abre*0.35, antebrazo_e: 0.40 + abre*0.25,
+      };
+    }
+
     case 'REPOUSO':
     default:
       return {};
@@ -573,7 +602,7 @@ function puntoPosado(cls, estado, fase, punto, idPropio, pai, peza){
   return q;
 }
 
-const ESTADOS = ['REPOUSO', 'ANDAR', 'DISPARAR', 'CURAR', 'IMPACTO'];
+const ESTADOS = ['REPOUSO', 'ANDAR', 'DISPARAR', 'CURAR', 'IMPACTO', 'CAIDO'];
 const CLASES = Object.keys(ESQUELETO);
 
 module.exports = { ESQUELETO, BALANCEO, POSE_BASE, OBXECTIVO_MAN, ikBrazo, fkBrazo, pose, montar, puntoPosado, ESTADOS, CLASES, DIAG };

@@ -195,9 +195,17 @@ function xerar(clase, cadros, opc = {}){
      e ten a contrapartida de que a oclusión queda cocida contra un corpo
      canónico; a alternativa, calculala en vivo, é exactamente o que se
      quixo evitar precociñando. */
+  /* opc.pezasDe(cadro) dá a xeometría xa feita en vez de montala aquí.
+     Fai falla para os RESTOS: un robot caído NON é unha pose, porque non
+     hai ningunha articulación que tombe o corpo enteiro — é o mesmo
+     modelo cunha transformación aplicada DESPOIS de montalo. Sen este
+     gancho habería que meterlle unha raíz ao esqueleto, e o criterio do
+     refactor de modelos.js é explícito: engadir un estado ten que ser
+     escribir unha rama en pose() e nada máis. */
   const traballo = cadros.map(c => ({
     nome: c.nome, yaw: c.yaw,
-    pezas: montar(clase, c.estado, c.fase, opc.cor).pezas.map(([verts, cor]) => ({ verts, cor })),
+    pezas: (opc.pezasDe ? opc.pezasDe(c)
+            : montar(clase, c.estado, c.fase, opc.cor).pezas).map(([verts, cor]) => ({ verts, cor })),
     ...(opc.oclusor ? {
       sombra: montar(opc.oclusor, c.estado, c.fase, opc.cor).pezas.map(([verts, cor]) => ({ verts, cor })),
     } : {}),
