@@ -96,6 +96,18 @@ window.addEventListener('load', function(){
          newBattle porque o terreo xérase alí e a petición consómese. */
       ${op('bioma', null) ? `window._biomaPedido = '${op('bioma','')}';` : ''}
       ${op('planta', null) ? `window._plantaPedida = '${op('planta','')}';` : ''}
+      /* --operacion: unha operación de campaña de proba, para poder
+         revisar unha misión sen base inimiga sen ter que xogala. */
+      ${op('operacion', null) ? `window._operacion = ${JSON.stringify({
+        id: 'captura', planta: op('planta', 'NAVE'),
+        obxectivo: op('operacion') === 'RESCATE' ? {tipo:'RESCATE', n:3}
+                 : op('operacion') === 'SABOTAXE' ? {tipo:'SABOTAXE', n:3, onde:'NAVE'}
+                 : {tipo:'EXTRACCION', n:2},
+        saida: 'ESPINA',
+        garnicion: [{cls:'GRUNT', n:3, onde:'DEPENDENCIAS'}, {cls:'HEAVY', n:1, onde:'NAVE'}],
+        inertes: op('operacion') === 'RESCATE' ? [{cls:'GRUNT', n:3, onde:'DEPENDENCIAS'}] : [],
+        gatillos: [],
+      })};` : ''}
       ${op('semente', null) != null ? `window._semente = ${Number(op('semente', 0)) >>> 0};` : ''}
       document.getElementById('hangar').style.display = 'none';
       document.getElementById('battle').style.display = 'block';

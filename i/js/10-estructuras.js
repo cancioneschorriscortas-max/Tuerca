@@ -494,6 +494,7 @@ function tickSectors(g){
 }
 
 function tickRadar(g){
+  if(!g.radar || g.radar.oculto) return;
   const r = g.radar;
   /* Quién hay en el radio de captura */
   let n0 = 0, n1 = 0;
@@ -543,6 +544,18 @@ function announceRecurring(g){
 function tickEnd(g){
   if(g.over) return;
   if(typeof diarioVixiarBaixa === 'function') diarioVixiarBaixa(g);   /* (v0.64) o arquiveiro observa */
+  /* (v1.04) A CONDICIÓN DE VITORIA É O OBXECTIVO DA MISIÓN.
+
+     O que había debaixo —tirar o HQ inimigo— non é "a regra do xogo":
+     é a regra do MODO LIBRE, escrita no sitio onde tiña que haber unha
+     pregunta. Unha operación de campaña declara a súa e respóndese
+     aquí; se non hai operación, todo segue igual que sempre. */
+  if(typeof opActiva === 'function' && opActiva()){
+    opTick(g);
+    const r = opResultado(g);
+    if(r){ g.over = true; g.result = r; }
+    return;
+  }
   if(g.hq[ET].hp<=0){ g.over=true; g.result='victory'; g._munKO = g.modo === 'mundial'; }
   else if(g.hq[PT].hp<=0){ g.over=true; g.result='defeat'; g._munKO = g.modo === 'mundial'; }
   /* (v0.60) MUNDIAL: reloxo de 90', GOLES por manter a maioría de sectores */
@@ -942,6 +955,10 @@ function draw(g){
   }catch(e){ console.error('[pezas]', e); }
   /* HQs */
   for(const h of g.hq){
+    /* (v1.04) Unha operación de campaña non ten bases. Existen como
+       coordenadas —medio motor pregúntalles por onde entra a xente—
+       pero non se debuxan nin se poden tocar. */
+    if(h.oculto) continue;
     const cx = h.x + h.w/2, cy = h.y + h.h/2;
     /* (v0.52) MANDIL DE BASE: formigón preparado arredor do HQ + atrezzo
        (caixas, bidóns, valla) determinista pola posición — parece base militar,
@@ -1055,6 +1072,8 @@ function draw(g){
   }
   /* Radar Central */
   const r = g.radar;
+  /* (v1.04) Nunha nave industrial non hai unha cúpula de radar no medio. */
+  if(!r || r.oculto){ /* nada que debuxar */ } else {
   /* Radio de captura */
   ctx.beginPath(); ctx.arc(r.x, r.y, r.capRadius, 0, 7);
   ctx.strokeStyle = r.owner===0?'#4f8aff':(r.owner===1?'#ff5340':'#777');
@@ -1091,6 +1110,7 @@ function draw(g){
     ctx.fillStyle = r.prog>0?'#4f8aff':'#ff5340';
     ctx.fillRect(r.x-22, r.y + r.h/2 + 24, 44*Math.abs(r.prog)/100, 5);
   }
+  }   /* fin do bloque do radar visible */
   /* (v0.23) Marcadores de subquests: diamante violeta pulsante */
   if(g.subquests){
     for(const q of g.subquests){
@@ -1189,6 +1209,10 @@ function draw(g){
   }
   /* (v0.26.2) CAMPO DE FORZA do escudo de subministro: cúpula translúcida */
   for(let hi = 0; hi < g.hq.length; hi++){
+    /* (v1.04) O escudo píntase á parte do sprite do HQ, así que ocultar
+       o edificio non abondaba: nunha operación quedaba a cúpula e o
+       rótulo flotando onde xa non hai base. */
+    if(g.hq[hi].oculto) continue;
     if(g.hq[hi].hp <= 0 || !hqEscudado(g, hi)) continue;
     const h = g.hq[hi];
     const cx2 = h.x + h.w/2, cy2 = h.y + h.h/2;
@@ -1270,6 +1294,37 @@ function draw(g){
         ctx.fillRect(ox + 1, oy + def.h - 2, def.w - 1, 3);
         ctx.drawImage(img, Math.round(ox), Math.round(oy));
       }
+    }
+  }
+
+  /* (v1.04) OS INERTES TEÑEN QUE VERSE COMO O QUE SON.
+
+     Sen isto, unha unidade inerte debúxase igual ca calquera outra e o
+     xogador non sabe se é un obxectivo, un inimigo parado ou un erro.
+     Un aro que respira e unha frecha: o mesmo idioma que xa usan os
+     marcadores de misión secundaria. */
+  if(typeof opActiva === 'function' && opActiva()){
+    const pulso = 0.55 + 0.45 * Math.sin(g.t * 0.09);
+    for(const u of g.units){
+      if(!u.inerte || u.dead) continue;
+      if(!posVisible(u.x, u.y)) continue;
+      ctx.save();
+      ctx.strokeStyle = `rgba(180,138,255,${0.35 + 0.4 * pulso})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(u.x, u.y, 15 + 3 * pulso, 0, 7); ctx.stroke();
+      /* Progreso da activación: o anel énchese mentres o ENGINEER está
+         ao lado, para que os tres segundos se vexan e non se adiviñen. */
+      if(u._act > 0){
+        ctx.strokeStyle = '#b48aff';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(u.x, u.y, 15, -Math.PI/2, -Math.PI/2 + 7 * (u._act / 180));
+        ctx.stroke();
+      }
+      ctx.fillStyle = `rgba(200,170,255,${0.5 + 0.5 * pulso})`;
+      ctx.font = 'bold 11px Courier New';
+      ctx.fillText('▲', u.x - 4, u.y - 20);
+      ctx.restore();
     }
   }
 
@@ -1830,6 +1885,11 @@ function draw(g){
   }
   /* Indicador del radar central */
   const radarInfo = $('radarinfo');
+  /* (v1.04) Sen radar no mapa, tampouco chapa no HUD: dicir "RADAR:
+     NEUTRAL" nunha operación onde non hai radar é prometer algo que
+     capturar que non existe. */
+  if(g.radar && g.radar.oculto){ radarInfo.style.display = 'none'; return; }
+  radarInfo.style.display = '';
   if(g.radar.owner === PT){
     radarInfo.style.color = '#4f8aff';
     radarInfo.style.borderColor = '#4f8aff';

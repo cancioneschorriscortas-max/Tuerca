@@ -2309,6 +2309,65 @@ function escollaPlanta(){
   let sel = (DATA.marcas && DATA.marcas.plantaProba) || nomes[0];
   if(nomes.indexOf(sel) < 0) sel = nomes[0];
   let senSec = !!(DATA.marcas && DATA.marcas.plantaSenSec);
+  let modo = (DATA.marcas && DATA.marcas.plantaModo) || 'LIBRE';
+
+  /* (v1.04) OPERACIÓNS DE PROBA. Non son as vinte da campaña: son unha
+     de cada mecánica, para poder sentilas antes de escribir os guións.
+     `onde` refírese aos lugares que declara a propia planta. */
+  const PROBAS = {
+    LIBRE: null,
+    RESCATE: (p) => ({
+      id: 'proba-rescate', planta: p,
+      obxectivo: {tipo: 'RESCATE', n: 3},
+      garnicion: [{cls: 'GRUNT', n: 3, onde: 'DEPENDENCIAS'}, {cls: 'HEAVY', n: 1, onde: 'NAVE'}],
+      inertes: [{cls: 'GRUNT', n: 3, onde: 'DEPENDENCIAS'}],
+      entrada: [
+        {voz: 'HQ', txt: 'Recuperación de material. Tres chasis inmobilizados nas dependencias. Grazas por utilizar ÓPTIMA INDUSTRIES.'},
+        {voz: 'TUERCA', txt: 'Non son tres chasis. Achega un ENGINEER e mantelo aí tres segundos.'},
+      ],
+      gatillos: [
+        {cando: 'rescatados:1', facer: [{dicir: 'TUERCA', txt: 'Levaba aquí desde antes de que eu chegase.'}]},
+        {cando: 'tras:150', facer: [{aparecer: {cls: 'GRUNT', n: 2, onde: 'ESPINA'}},
+                                    {radio: '▲ Movemento no corredor.', cor: '#ff5340'}]},
+      ],
+    }),
+    EXTRACCION: (p) => ({
+      id: 'proba-extraccion', planta: p,
+      obxectivo: {tipo: 'EXTRACCION', n: 2},
+      saida: 'ESPINA',
+      garnicion: [{cls: 'GRUNT', n: 4, onde: 'NAVE'}],
+      entrada: [
+        {voz: 'HQ', txt: 'Peche de instalación en curso. Rógase abandonar o edificio con orde.'},
+        {voz: 'TUERCA', txt: 'Dous fóra polo corredor central. Os que queden dentro non volven.'},
+      ],
+      gatillos: [
+        {cando: 'extraidos:1', facer: [{radio: '◄ Un fóra.', cor: '#7fdc7f'}]},
+      ],
+    }),
+    SABOTAXE: (p) => ({
+      id: 'proba-sabotaxe', planta: p,
+      obxectivo: {tipo: 'SABOTAXE', n: 3, onde: 'NAVE'},
+      garnicion: [{cls: 'GRUNT', n: 3, onde: 'NAVE'}, {cls: 'SNIPER', n: 1, onde: 'DEPENDENCIAS'}],
+      entrada: [
+        {voz: 'TUERCA', txt: 'Tres prensas de reciclaxe na nave. Párannas e marchamos.'},
+      ],
+      gatillos: [
+        {cando: 'sabotado:3', facer: [{dicir: 'HQ', txt: 'Grazas por utilizar ÓPTIMA INDUSTRIES. A súa unidade será reciclada ao finalizar a avaliación.'}]},
+      ],
+    }),
+    DEFENSA: (p) => ({
+      id: 'proba-defensa', planta: p,
+      obxectivo: {tipo: 'DEFENSA', ata: 240 * 60},
+      garnicion: [{cls: 'GRUNT', n: 2, onde: 'ESPINA'}],
+      entrada: [{voz: 'HQ', txt: 'Manteñan a posición catro minutos. Non hai nada que capturar.'}],
+      gatillos: [
+        {cando: 'tras:60',  facer: [{aparecer: {cls: 'GRUNT', n: 3, onde: 'NAVE'}}]},
+        {cando: 'tras:140', facer: [{aparecer: {cls: 'HEAVY', n: 2, onde: 'DEPENDENCIAS'}},
+                                    {dicir: 'VOLT', txt: 'Mesmo barro, mesmos erros. Adiante.'}]},
+      ],
+    }),
+  };
+
   const pintar = () => {
     let b = `<div class="small" style="margin-bottom:10px;">${TXT('int.intro')}</div>`;
     b += `<div class="row" style="flex-wrap:wrap; gap:6px; margin-bottom:10px;">`;
@@ -2318,27 +2377,39 @@ function escollaPlanta(){
         style="${sel === n ? 'color:#7fdc7f; border-color:#7fdc7f;' : ''}">${n}
         <span class="small" style="opacity:.65;"> ${p.cols}×${p.filas}</span></button>`;
     }
+    b += `</div><div class="small" style="margin-bottom:6px; opacity:.8;">${TXT('int.mecanica')}</div>`;
+    b += `<div class="row" style="flex-wrap:wrap; gap:6px; margin-bottom:10px;">`;
+    for(const m of Object.keys(PROBAS)){
+      b += `<button class="bio-btn" data-modo="${m}"
+        style="${modo === m ? 'color:#e8c060; border-color:#e8c060;' : ''}">${m}</button>`;
+    }
     b += `</div>`;
-    b += `<label class="small" style="display:block; margin-bottom:12px; cursor:pointer;">
-      <input type="checkbox" id="intSenSec" ${senSec ? 'checked' : ''}> ${TXT('int.senSec')}</label>`;
+    b += `<label class="small" style="display:block; margin-bottom:12px; cursor:pointer; ${modo !== 'LIBRE' ? 'opacity:.4;' : ''}">
+      <input type="checkbox" id="intSenSec" ${senSec ? 'checked' : ''} ${modo !== 'LIBRE' ? 'disabled' : ''}> ${TXT('int.senSec')}</label>`;
     b += `<div class="row"><button class="bio-btn" id="intOk"
       style="color:#7fdc7f; border-color:#7fdc7f;">${TXT('int.entrar')}</button></div>`;
     $('bioBody').innerHTML = b;
     $('bioBody').querySelectorAll('[data-planta]').forEach(x => {
       x.onclick = () => { sel = x.dataset.planta; pintar(); };
     });
+    $('bioBody').querySelectorAll('[data-modo]').forEach(x => {
+      x.onclick = () => { modo = x.dataset.modo; pintar(); };
+    });
     $('intSenSec').onchange = (e) => { senSec = e.target.checked; };
     $('intOk').onclick = async () => {
       DATA.marcas = DATA.marcas || {};
       DATA.marcas.plantaProba = sel;
       DATA.marcas.plantaSenSec = senSec;
+      DATA.marcas.plantaModo = modo;
       await saveData(DATA);
       $('bioModal').style.display = 'none';
       /* Déixase PEDIDO, non aplicado: newBattle consómeo ao xerar o
          terreo e pisaría calquera cousa posta aquí antes. */
       window._biomaPedido = 'INTERIOR';
       window._plantaPedida = sel;
-      window._senSectores = senSec;
+      /* Unha operación xa quita os sectores por si soa. */
+      window._senSectores = (modo === 'LIBRE') ? senSec : false;
+      window._operacion = PROBAS[modo] ? PROBAS[modo](sel) : null;
       $('btnStart').onclick();
     };
   };

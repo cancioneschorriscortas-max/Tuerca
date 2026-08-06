@@ -127,6 +127,7 @@ function damageWall(g, w, dmg){
        terreo: sen abrilo alí, quitábase a colisión e quedaba a parede
        debuxada. Un paso invisible é peor ca non ter paso. */
     if(w.tabique && typeof abrirTabique === 'function') abrirTabique(w);
+    if(w.sabotaxe && typeof opSabotado === 'function') opSabotado(g, w);
     dropScrap(g, w.x, w.y, 3);
     if(!g._wallMsgT || g.t - g._wallMsgT > 120){
       radio(TXT('r.muroDerribado'), '#c8a86a', {x:w.x, y:w.y});
@@ -620,6 +621,29 @@ function tickProd(g){
 /* ---------- IA enemiga ---------- */
 function tickAI(g){
   if(g.modo === 'pvp') return;   /* (v0.31) o rival é humano */
+  /* (v1.04) UNHA OPERACIÓN DE CAMPAÑA NON PRODUCE. O inimigo é unha
+     GARNICIÓN: está a que está, e cada un que cae xa non volve.
+
+     Non abondaba con baleirar `g.prod[ET]` ao arrancar, e a proba
+     colleuno: aparecían cinco inimigos que ninguén pedira. A liña de
+     máis abaixo VOLVE ENCHER A COLA cada cinco segundos, e faino antes
+     do temporizador de roles, así que hai que cortalo na cabeceira.
+
+     O que si segue correndo é a reasignación de papeis: a garnición
+     defende, persegue e flanquea coma sempre. O que non fai é
+     reproducirse. */
+  if(g.senBases){
+    if(g.prod[ET]) g.prod[ET] = null;
+    if(--g.aiTimer > 0) return;
+    g.aiTimer = 60;
+    /* Sen HQ vermello ao que agarrarse o papel é ir polo que se mova;
+       as ordes concretas —agardar nunha sala, saír por un corredor—
+       póñenas os gatillos da operación. */
+    for(const u of g.units){
+      if(u.team === ET && !u.dead && !u.inside) u.role = 'ASSAULT';
+    }
+    return;
+  }
   /* (v0.11) Producción: independente da reasignación, mantén ritmo */
   if(g.aiProdTimer === undefined) g.aiProdTimer = 0;
   if(--g.aiProdTimer <= 0){
@@ -973,6 +997,11 @@ function chooseTarget(u, g){
 function tickUnits(g){
   for(const u of g.units){
     if(u.dead) continue;
+    /* (v1.04) UNIDADE INERTE ou XA EXTRAÍDA: non se move, non dispara e
+       non a ve ninguén. A inerte agarda a que un ENGINEER a erga —é o
+       corazón de RESCATE e REPARACIÓN—; a extraída xa saíu do edificio
+       e non está. */
+    if(u.inerte || u.extraido) continue;
     /* Unidade dentro dunha torreta: non se move nin combate por si soa; a torreta xestiónaa */
     if(u.inside){
       /* Manter posición sincronizada coa torreta */

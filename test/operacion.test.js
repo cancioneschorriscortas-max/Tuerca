@@ -1,0 +1,174 @@
+/* ============================================================
+   OPERACIÓNS DE CAMPAÑA
+
+   A campaña non é unha escaramuza. Estas probas esixen exactamente iso:
+   que unha operación non teña base inimiga, non produza unidades, non
+   teña radar nin sectores, e que gañe polo que pide a misión e non por
+   derrubarlle nada a ninguén.
+
+   Escríbense porque cada unha destas cousas estaba antes cableada nun
+   sitio distinto do motor: a vitoria en `tickEnd`, a produción no
+   temporizador da IA, o radar na definición do mapa. Se algunha volve
+   filtrarse, iso ponse vermello.
+   ============================================================ */
+const { proba, afirmar } = require('./probar.js');
+const { cargarXogo, novaBatalla, avanzar, asentar } = require('./arnes.js');
+
+/* Unha operación de rescate na NAVE: tres inertes nas dependencias e
+   unha garnición pequena. */
+function opRescate(n = 2) {
+  return {
+    id: 'proba-rescate', planta: 'NAVE',
+    obxectivo: { tipo: 'RESCATE', n },
+    garnicion: [{ cls: 'GRUNT', n: 2, onde: 'DEPENDENCIAS' }],
+    inertes: [{ cls: 'GRUNT', n: 3, onde: 'DEPENDENCIAS' }],
+    gatillos: [],
+  };
+}
+
+async function arrancar(S, operacion, roster) {
+  S.window._biomaPedido = 'INTERIOR';
+  S.window._plantaPedida = operacion.planta;
+  S.window._operacion = operacion;
+  return novaBatalla(S, { op: 3, semente: 99, roster });
+}
+
+proba('unha operación non ten base inimiga, nin produción, nin radar', async () => {
+  const S = cargarXogo();
+  await asentar();
+  const g = await arrancar(S, opRescate());
+
+  afirmar(g.senBases, 'unha operación ten que marcarse como sen bases');
+  afirmar(g.hq.every(h => h.oculto), 'as bases teñen que quedar ocultas');
+  afirmar(g.prod[0] === null && g.prod[1] === null, 'non pode haber cola de produción');
+  afirmar(g.aiTimer > 1e8, 'o temporizador de oleadas da IA ten que estar apagado');
+  afirmar(g.radar && g.radar.oculto, 'nunha nave non hai unha cúpula de radar no medio');
+  afirmar(g.sectors.length === 0, 'unha operación de rescate non leva sectores');
+  afirmar(g.turrets.length === 0 && g.vehicles.length === 0,
+    'nin torretas nin vehículos nunha operación de interior');
+});
+
+proba('a garnición non se reforza soa', async () => {
+  /* Nunha escaramuza o inimigo produce e a presión sobe. Aquí é ao
+     revés a propósito: o que hai é o que se escribiu, e cada un que cae
+     xa non volve. */
+  const S = cargarXogo();
+  await asentar();
+  const g = await arrancar(S, opRescate());
+  const inimigosAoEmpezar = g.units.filter(u => u.team === 1).length;
+  afirmar(inimigosAoEmpezar === 2, `esperábanse 2 da garnición, hai ${inimigosAoEmpezar}`);
+  avanzar(S, g, 4000);
+  const inimigosDespois = g.units.filter(u => u.team === 1).length;
+  afirmar(inimigosDespois === inimigosAoEmpezar,
+    `apareceron ${inimigosDespois - inimigosAoEmpezar} inimigos que ninguén pediu`);
+});
+
+proba('unha unidade inerte non se move nin dispara ata que a ergues', async () => {
+  const S = cargarXogo();
+  await asentar();
+  const g = await arrancar(S, opRescate());
+  const inertes = g.units.filter(u => u.inerte);
+  afirmar(inertes.length === 3, `esperábanse 3 inertes, hai ${inertes.length}`);
+  const pos = inertes.map(u => ({ x: u.x, y: u.y }));
+  avanzar(S, g, 600);
+  inertes.forEach((u, i) => {
+    if (u.dead) return;
+    afirmar(Math.hypot(u.x - pos[i].x, u.y - pos[i].y) < 2,
+      `${u.id} moveuse estando inerte`);
+  });
+});
+
+proba('un ENGINEER ergue un inerte e pasa a ser teu', async () => {
+  /* É a mecánica enteira de RESCATE: sen isto non hai operación de
+     rescate, hai unha visita a unha sala. */
+  const S = cargarXogo();
+  await asentar();
+  const roster = require('./arnes.js').crearRoster(S, 2, ['ENGINEER', 'ENGINEER']);
+  const g = await arrancar(S, opRescate(1), roster);
+
+  const eng = g.units.find(u => u.team === 0 && u.cls === 'ENGINEER');
+  const inerte = g.units.find(u => u.inerte);
+  afirmar(eng && inerte, 'fai falla un ENGINEER e un inerte');
+
+  /* Pégase o enxeñeiro ao inerte e mantense aí. */
+  const simStep = S.aval('simStep');
+  for (let i = 0; i < 260 && !g.over; i++) {
+    eng.x = inerte.x + 10; eng.y = inerte.y;
+    eng.tx = eng.x; eng.ty = eng.y; eng.waypoints = [];
+    eng.hp = eng.max;
+    simStep(g);
+  }
+  afirmar(!inerte.inerte, 'o inerte tiña que quedar erguido');
+  afirmar(inerte.team === 0, 'ao erguelo pasa a ser do xogador');
+  afirmar(g.rescatados >= 1, `o contador de rescatados quedou en ${g.rescatados}`);
+});
+
+proba('a operación gáñase polo obxectivo, non por tirar nada', async () => {
+  const S = cargarXogo();
+  await asentar();
+  const roster = require('./arnes.js').crearRoster(S, 2, ['ENGINEER', 'ENGINEER']);
+  const g = await arrancar(S, opRescate(1), roster);
+  const eng = g.units.find(u => u.team === 0 && u.cls === 'ENGINEER');
+  const inerte = g.units.find(u => u.inerte);
+  const simStep = S.aval('simStep');
+  for (let i = 0; i < 400 && !g.over; i++) {
+    if (inerte.inerte) { eng.x = inerte.x + 10; eng.y = inerte.y; eng.tx = eng.x; eng.ty = eng.y; }
+    eng.hp = eng.max;
+    simStep(g);
+  }
+  afirmar(g.over, 'a operación tiña que rematar ao cumprir o obxectivo');
+  afirmar(g.result === 'victory', `resultado ${g.result}, esperábase victory`);
+  afirmar(g.hq[1].hp > 0, 'e sen tocarlle unha base a ninguén');
+});
+
+proba('quedar sen ninguén é a derrota, e o único que a é', async () => {
+  const S = cargarXogo();
+  await asentar();
+  const g = await arrancar(S, opRescate(3));
+  for (const u of g.units) if (u.team === 0) u.dead = true;
+  avanzar(S, g, 4);
+  afirmar(g.over && g.result === 'defeat',
+    `sen ninguén vivo tiña que ser derrota; foi over=${g.over} result=${g.result}`);
+});
+
+proba('unha operación de extracción cóntaas ao saír, e o que sae non morre', async () => {
+  const S = cargarXogo();
+  await asentar();
+  const g = await arrancar(S, {
+    id: 'proba-extraccion', planta: 'NAVE',
+    obxectivo: { tipo: 'EXTRACCION', n: 2 },
+    saida: 'ESPINA', garnicion: [], inertes: [], gatillos: [],
+  });
+  const meus = g.units.filter(u => u.team === 0 && !u.dead);
+  afirmar(meus.length >= 2, 'fai falla escuadrón para extraer');
+  const saida = S.aval('PLACES').find(p => p.id === 'ESPINA');
+  afirmar(saida, 'a planta ten que declarar o lugar de saída');
+
+  const simStep = S.aval('simStep');
+  for (let i = 0; i < 300 && !g.over; i++) {
+    meus[0].x = saida.x; meus[0].y = saida.y;
+    if (g.extraidos >= 1) { meus[1].x = saida.x; meus[1].y = saida.y; }
+    simStep(g);
+  }
+  afirmar(g.extraidos >= 2, `extraídos ${g.extraidos}, esperábanse 2`);
+  afirmar(meus[0].extraido && !meus[0].dead,
+    'quen sae do edificio non morre: sae, que é o contrario');
+  afirmar(g.result === 'victory', `resultado ${g.result}`);
+});
+
+proba('un diálogo de operación para a simulación', async () => {
+  /* Se unha liña importa non pode pasar por riba dun tiroteo. O bucle
+     de xogo consulta esta bandeira; aquí compróbase que se pon e que se
+     quita, que é o que evita deixar o xogo conxelado no hangar. */
+  const S = cargarXogo();
+  await asentar();
+  await arrancar(S, {
+    id: 'proba-dialogo', planta: 'NAVE',
+    obxectivo: { tipo: 'DEFENSA', ata: 600 },
+    garnicion: [], inertes: [], gatillos: [],
+    entrada: [{ voz: 'HQ', txt: 'Operación de rutina.' }],
+  });
+  afirmar(S.window._opPausa === true, 'un diálogo de entrada ten que parar a imaxe');
+  S.aval('opLimpar')();
+  afirmar(!S.window._opPausa, 'e ao limpar a operación ten que soltala');
+});

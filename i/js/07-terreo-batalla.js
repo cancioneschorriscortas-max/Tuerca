@@ -304,7 +304,6 @@ function mapaDaPlanta(nome){
   if(hq[1]) lugares.push({id:'HQ_ROJO',     x: hq[1].x + 37, y: hq[1].y + 42, r: 90, label:'el HQ Rojo'});
 
   const W2 = p.cols * S, H2 = p.filas * S;
-  /* O radar vai no centro da espiña, que é o sitio máis transitado. */
   const esp = lugares.find(l => l.id === 'ESPINA') || {x: W2/2, y: H2/2};
   return {
     NAME: nome,
@@ -312,7 +311,12 @@ function mapaDaPlanta(nome){
     RIVER: {x1: -2, x2: -1},                      /* intervalo baleiro: inWater sempre falso */
     BRIDGE: {y1: -2, y2: -1},
     BRIDGE_CENTER: {x: Math.round(esp.x), y: Math.round(esp.y)},
-    RADAR_DOME: {x: Math.round(esp.x) - 24, y: Math.round(esp.y) - 18, w: 48, h: 36, capRadius: 42},
+    /* (v1.04) O RADAR VAI FÓRA DO MAPA. Unha cúpula de radar no medio
+       dunha nave industrial non ten sentido ningún, e ademais o radar é
+       o que destapa as misións secundarias e o material en campo
+       inimigo: nunha operación de campaña iso xa non se descobre por
+       unha estrutura que hai que capturar, decídeo o guión. */
+    RADAR_DOME: {x: -400, y: -400, w: 48, h: 36, capRadius: 42},
     PLACES: lugares,
     SECTORS: sectores,
     HQ: hq,
@@ -1634,6 +1638,12 @@ function newBattle(deployed){
   g.rngEstado = game.rngEstado;
   game = g;
   if(typeof efxLimpar === 'function') efxLimpar();   /* (v0.83) sen restos da batalla anterior */
+  /* (v1.04) UNHA OPERACIÓN DE CAMPAÑA. Vai aquí, xusto despois de que
+     `game` xa sexa `g` e antes de despregar a ninguén: apaga a
+     produción, oculta as bases e o radar, e planta a garnición e os
+     inertes. Se non hai operación pedida, non fai nada e todo segue
+     exactamente coma antes. */
+  const _op = (typeof opIniciar === 'function') ? opIniciar(g) : null;
   deployed.forEach((vu,i)=>{
     const _sp = nudgeSpawn(g, PT, PT===0 ? HQ[0].x + HQ[0].w + 30 : HQ[1].x - 30, HQ[PT].y - 28 + i*40);
     const u = mkUnit(PT, vu.cls, _sp.x, _sp.y, vu);
@@ -1641,7 +1651,9 @@ function newBattle(deployed){
     radio(TXT('r.desplegado', {id:vu.id, n:vu.name, op:vu.ops+1}), '#7fdc7f');
   });
   const _pdx = PT===0 ? (d)=>HQ[0].x + HQ[0].w + d : (d)=>HQ[1].x - d;
-  if(!window._mundialArranque){   /* (v0.60) o Mundial xoga co XI puro, sen extras */
+  /* (v1.04) Nunha operación de campaña vas co que escolliches e nada
+     máis: os dous de regalo son unha convención de escaramuza. */
+  if(!window._mundialArranque && !_op){   /* (v0.60) o Mundial xoga co XI puro, sen extras */
   { const _g = nudgeSpawn(g, PT, _pdx(30), HQ[PT].y + HQ[PT].h + 20); g.units.push(mkUnit(PT,'GRUNT', _g.x, _g.y, null)); }
   { const _e = nudgeSpawn(g, PT, _pdx(40), HQ[PT].y + HQ[PT].h + 60); g.units.push(mkUnit(PT,'ENGINEER', _e.x, _e.y, null)); }
   }
@@ -1652,7 +1664,11 @@ function newBattle(deployed){
      iniciales) y despliega 1 veterano enemigo por cada veterano aliado.
      Los veteranos enemigos llevan nombres propios del pool ENEMY_VETERAN_NAMES
      para que el jugador pueda identificarlos y "recordar" sus enfrentamientos. */
-  if(window._pvpArranque){
+  if(_op){
+    /* (v1.04) O inimigo dunha operación é a GARNICIÓN que xa plantou
+       opIniciar. Nada de despregamento escalado nin de veteranos
+       recorrentes: o que hai é o que se escribiu. */
+  } else if(window._pvpArranque){
     /* (v0.31) PvP: os rivais chegan do roster do outro xogador (pvpSpawnRivais no host;
        no convidado veñen nas instantáneas) — aquí non se xera IA ningunha */
     g.modo = 'pvp';

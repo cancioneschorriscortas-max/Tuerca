@@ -755,7 +755,13 @@ function loop(now){
   if(frameTime > 250) frameTime = 250;     /* clamp: un pico de lag non "acelera" o xogo */
   _simAccum += frameTime;
   let steps = 0;
-  while(_simAccum >= SIM_DT && steps < SIM_MAX_STEPS){
+  /* (v1.04) UN DIÁLOGO DE OPERACIÓN PARA A IMAXE. Séguese debuxando
+     —a escena ten que verse mentres alguén fala— pero non se simula. E
+     tírase o tempo acumulado, porque se non ao pechar a caixa
+     executaríanse de golpe todos os pasos que quedaron agardando e a
+     batalla daría un salto. */
+  if(window._opPausa) _simAccum = 0;
+  while(!window._opPausa && _simAccum >= SIM_DT && steps < SIM_MAX_STEPS){
     simStep(g);
     _simAccum -= SIM_DT;
     steps++;
