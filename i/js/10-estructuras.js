@@ -1225,6 +1225,20 @@ function draw(g){
   }
   /* (v0.13) Muros */
   if(g.walls){
+    /* (v1.00) MUROS QUE SE UNEN. Cada bloque pintaba liña escura nos dous
+       lados, así que dous muros pegados deixaban unha xuntura cada 16
+       píxeles: nun campo aberto con catro muros non se nota, nunha planta
+       de interior con catrocentos o edificio parece feito de caixas.
+
+       Agora cada bloque pregunta polos veciños e só pinta o bordo, a
+       sombra e a liña de luz nas caras que dan ao baleiro. O índice
+       constrúese unha vez e cáchase: os muros non se moven. */
+    if(!g._wallIx || g._wallIxN !== g.walls.length){
+      g._wallIx = new Set();
+      for(const w of g.walls) if(!w.destroyed) g._wallIx.add(w.x + ',' + w.y);
+      g._wallIxN = g.walls.length;
+    }
+    const veciño = (w, dx, dy) => g._wallIx.has((w.x + dx*16) + ',' + (w.y + dy*16));
     for(const w of g.walls){
       if(w.destroyed){
         ctx.fillStyle = '#3a352c';
@@ -1232,20 +1246,34 @@ function draw(g){
         continue;
       }
       const dmg = 1 - w.hp / w.max;
+      const vN = veciño(w,0,-1), vS = veciño(w,0,1), vE = veciño(w,1,0), vO = veciño(w,-1,0);
       /* (v0.55) MURO BRANCO con altura de bloque (pedido de Agarfal) */
-      ctx.fillStyle = 'rgba(0,0,0,0.28)';
-      ctx.fillRect(w.x-8, w.y+8, 17, 3);
+      /* A sombra só cae onde remata o muro: se hai outro debaixo, aí non
+         hai chan que sombrear. */
+      if(!vS){
+        ctx.fillStyle = 'rgba(0,0,0,0.28)';
+        ctx.fillRect(w.x-8, w.y+8, 17, 3);
+      }
       ctx.fillStyle = '#8a887c';
       ctx.fillRect(w.x-8, w.y-2, 16, 10);
       ctx.fillStyle = '#d8d5c8';
       ctx.fillRect(w.x-8, w.y-9, 16, 8);
-      ctx.fillStyle = '#f0eee4';
-      ctx.fillRect(w.x-8, w.y-9, 16, 1);
+      /* A liña de luz é o CANTO SUPERIOR. Con outro muro enriba non hai
+         canto: é parede continua. */
+      if(!vN){
+        ctx.fillStyle = '#f0eee4';
+        ctx.fillRect(w.x-8, w.y-9, 16, 1);
+      }
+      /* Os regos interiores danlle textura e non marcan xunturas: quedan
+         sempre, e son o que impide que un muro longo sexa unha mancha. */
       ctx.fillStyle = '#6a685e';
       ctx.fillRect(w.x-3, w.y-9, 1, 17);
       ctx.fillRect(w.x+3, w.y-9, 1, 17);
+      /* E o bordo escuro SÓ nas caras que dan ao baleiro. Isto é todo o
+         arranxo: era a liña que costuraba o edificio en caixas. */
       ctx.fillStyle = '#10160a';
-      ctx.fillRect(w.x-8, w.y-9, 1, 17); ctx.fillRect(w.x+7, w.y-9, 1, 17);
+      if(!vO) ctx.fillRect(w.x-8, w.y-9, 1, 17);
+      if(!vE) ctx.fillRect(w.x+7, w.y-9, 1, 17);
       if(dmg > 0.3){ ctx.fillStyle = '#5a584e'; ctx.fillRect(w.x-4, w.y-7, 2, 12); ctx.fillRect(w.x-5, w.y-3, 4, 2); }
       if(dmg > 0.6){ ctx.fillStyle = '#3a382e'; ctx.fillRect(w.x+1, w.y-8, 3, 14); ctx.fillRect(w.x-1, w.y+1, 6, 2); }
     }
