@@ -177,6 +177,76 @@ function buildInteriorMap(){
   return grid;
 }
 
+/* ============================================================
+   (v1.00) PLANTAS ESCRITAS — o interior da campaña non se xera.
+
+   O xerador de plantas (buildInteriorMap) vale para o Crisol, onde o
+   que se quere é variedade. A campaña quere o contrario: unha
+   instalación recoñecible, coa mesma nave e a mesma doca cada vez que
+   se volve a ela. Iso é autoría, e escríbese.
+
+     #  bloque macizo      .  chan transitable      +  porta
+
+   As medidas non se escriben a man: xéranse (docs/Campaña) e
+   compróbase que toda planta é de 60x34 antes de entrar. Unha fila
+   dunha cela de máis desprazaría todos os muros verticais desa fila.
+   ============================================================ */
+const PLANTAS = {
+  NAVE: [
+    '############################################################',
+    '############################################################',
+    '##..........##..........##..........##........##..........##',
+    '##..........##..........##..........##........##..........##',
+    '##..........##..........##..........##........##..........##',
+    '##..........##..........##..........##........##..........##',
+    '##..........##..........##..........##........##..........##',
+    '##..........##..........##..........##........##..........##',
+    '##..........##..........##..........##........#+..........##',
+    '##..........##..........##..........##........##..........##',
+    '######.###########.###########.##########.######..........##',
+    '######+###########+###########+##########+######..........##',
+    '##............................................##..........##',
+    '##............................................##..........##',
+    '##............................................##..........##',
+    '##............................................##..........##',
+    '##............................................#+..........##',
+    '##............................................##..........##',
+    '##............................................##..........##',
+    '##............................................##..........##',
+    '##............................................##..........##',
+    '##............................................##..........##',
+    '##.............................................+..........##',
+    '#######.############........#########.########.#..........##',
+    '#######+############........#########+#########+..........##',
+    '##............##............##................##..........##',
+    '##............##............##................##..........##',
+    '##............##............##................##..........##',
+    '##............##............##................##..........##',
+    '##............##...........+##................##..........##',
+    '##............##..............................##..........##',
+    '##............##..............................##..........##',
+    '#########################......#############################',
+    '############################################################',
+  ],
+};
+
+function plantaAGrid(nome){
+  const p = PLANTAS[nome];
+  if(!p) return null;
+  const grid = [];
+  for(let y = 0; y < ROWS; y++){
+    grid[y] = [];
+    const fila = p[y] || '';
+    for(let x = 0; x < COLS; x++){
+      const c = fila[x];
+      /* A porta píntase como reixa metálica: un oco sen marcar non se le
+         como paso, lese como que faltou un muro. */
+      grid[y][x] = c === '.' ? T.ROAD : c === '+' ? T.BRIDGE : T.GRASS;
+    }
+  }
+  return grid;
+}
+
 /* Generar el mapa por defecto — usa as coordenadas do mapa actual (RIVER, BRIDGE) */
 function buildDefaultMap(){
   const grid = [];
@@ -783,11 +853,16 @@ function newBattle(deployed){
   /* Construir el mapa de celdas y cachear el dibujo estático */
   /* A planta de interior é outro xerador, non unha variante do de fóra:
      alí escávase, aquí énchese. */
-  TERRAIN_GRID  = (window._bioma === 'INTERIOR') ? buildInteriorMap() : buildDefaultMap();
+  /* Tres vías: planta escrita (campaña), planta xerada (Crisol) ou
+     terreo aberto (todo o demais). */
+  TERRAIN_GRID  = (window._plantaPedida && plantaAGrid(window._plantaPedida))
+    || ((window._bioma === 'INTERIOR') ? buildInteriorMap() : buildDefaultMap());
+  window._plantaPedida = null;
   TERRAIN_CACHE = buildTerrainCache(TERRAIN_GRID);
 
   const g = {
-    units:[], tracers:[], remains:[], scrap:[], walls: buildWallsFromMap(), craters:[], clima: pickClima(), chatarraGanada:0, turretPending:0, t:0, over:false, result:null, finished:false,
+    units:[], tracers:[], remains:[], scrap:[], walls: (window._bioma === 'INTERIOR' && typeof buildInteriorWalls === 'function')
+      ? buildInteriorWalls(TERRAIN_GRID) : buildWallsFromMap(), craters:[], clima: pickClima(), chatarraGanada:0, turretPending:0, t:0, over:false, result:null, finished:false,
     sectors: SECTORS.map(s=>({...s, owner:-1, prog:0})),
     hq:[{...HQ[0], hp:600, max:600},{...HQ[1], hp:600, max:600}],
     prod:[null,null],
