@@ -371,6 +371,46 @@ proba('o interludio de arranque deixa escoller idioma', () => {
     'o selector de idioma ten que saír SÓ no arranque, non nos quince interludios');
 });
 
+proba('nun interior as estruturas van onde caben', async () => {
+  const S = cargarXogo();
+  await asentar();
+  const T = S.aval('T');
+  S.window._biomaPedido = 'INTERIOR'; S.window._plantaPedida = 'NAVE';
+  const g = novaBatalla(S);
+  const gr = S.window._terrainGrid;
+  const chan = (x, y) => {
+    const t = gr[Math.floor(y/16)] && gr[Math.floor(y/16)][Math.floor(x/16)];
+    return t === T.ROAD || t === T.BRIDGE || t === T.DIRT || t === T.RUBBLE;
+  };
+  /* Un sector dentro dun muro non se pode capturar, e un HQ tampouco se
+     defende. Vinan coas coordenadas do mapa exterior e caian onde callase. */
+  afirmar(chan(g.hq[0].x, g.hq[0].y), 'o HQ propio ten que caer en chan libre');
+  afirmar(chan(g.hq[1].x, g.hq[1].y), 'o HQ inimigo tamén');
+  for(const sec of g.sectors) afirmar(chan(sec.x, sec.y), 'sector fóra de chan');
+});
+
+proba('unha operación pode non levar sectores, e non corrompe o mapa', async () => {
+  /* AS DÚAS METADES DESTA PROBA IMPORTAN. applyMap fai SECTORS = m.SECTORS
+     por REFERENCIA: baleirar esa lista non cambiaría só esta batalla,
+     cambiaría MAP1 para o resto da sesión e a operación seguinte no
+     exterior quedaría sen sectores. */
+  const S = cargarXogo();
+  await asentar();
+  const M1 = S.aval('MAP1');
+  const antes = JSON.stringify(M1.SECTORS) + JSON.stringify(M1.HQ);
+
+  S.window._biomaPedido = 'INTERIOR'; S.window._plantaPedida = 'NAVE';
+  S.window._senSectores = true;
+  const g = novaBatalla(S);
+  afirmar(g.sectors.length === 0, 'unha misión sen sectores non pode ter ningún');
+  afirmar(JSON.stringify(M1.SECTORS) + JSON.stringify(M1.HQ) === antes,
+    'a definición do mapa non se pode tocar');
+
+  S.window._senSectores = false;
+  const g2 = novaBatalla(S);
+  afirmar(g2.sectors.length > 0, 'a operación seguinte ten que recuperar os seus sectores');
+});
+
 proba('toda planta escrita mide 60x34', async () => {
   /* UNHA FILA DUNHA CELA DE MÁIS DESPRAZA todos os muros verticais desa
      fila, e a planta deixa de aliñar. Pasou co primeiro plano que se

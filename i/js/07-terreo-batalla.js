@@ -247,6 +247,83 @@ function plantaAGrid(nome){
   return grid;
 }
 
+/* ============================================================
+   (v1.00) AS ESTRUTURAS VAN ONDE CABEN.
+
+   O HQ e os sectores de captura veñen coas coordenadas do mapa exterior,
+   e nunha planta de interior iso deixábaos onde callase: dentro do
+   formigón, medio metidos nun muro, ou nun corredor de dúas celas onde
+   non collen. Non é un detalle estético — un sector dentro dun muro non
+   se pode capturar.
+
+   A regra é simple e non intenta ser lista: unha estrutura só pode ir
+   nun sitio con CHAN LIBRE ARREDOR. Búscanse eses sitios, os dous HQ van
+   aos extremos opostos —para que haxa travesía— e os sectores repártense
+   polos que queden máis lonxe entre si.
+
+   E se a operación non leva sectores, non se poñen. Que unha misión de
+   extracción teña círculos de captura tirados polo mapa é ruído: o
+   xogador le que hai que capturalos e non hai que capturar nada.
+   ============================================================ */
+function axustarEstruturasAPlanta(grid){
+  if(!grid) return;
+  const libre = (x, y) => {
+    const t = grid[y] && grid[y][x];
+    return t === T.ROAD || t === T.BRIDGE || t === T.DIRT || t === T.RUBBLE;
+  };
+  /* Con marxe de dúas celas: unha estrutura ocupa máis ca unha tesela e
+     pegada a un muro non se pode rodear. */
+  const cabe = (x, y) => {
+    for(let dy = -2; dy <= 2; dy++)
+      for(let dx = -2; dx <= 2; dx++) if(!libre(x+dx, y+dy)) return false;
+    return true;
+  };
+  const ocos = [];
+  for(let y = 2; y < ROWS-2; y++)
+    for(let x = 2; x < COLS-2; x++) if(cabe(x, y)) ocos.push({x, y});
+  if(ocos.length < 3) return;   /* planta sen sitio: mellor non tocar nada */
+
+  /* COPIAR ANTES DE TOCAR. applyMap fai `SECTORS = m.SECTORS` e
+     `HQ = m.HQ`: por REFERENCIA. Mover eses obxectos ou baleirar a lista
+     non cambiaría esta batalla, cambiaría MAP1 e MAP2 para o resto da
+     sesión, e a seguinte operación no exterior aparecería cos sectores
+     dun interior ou sen ningún. */
+  if(typeof HQ !== 'undefined' && HQ) HQ = HQ.map(h => ({...h}));
+  if(typeof SECTORS !== 'undefined' && SECTORS) SECTORS = SECTORS.map(s => ({...s}));
+
+  const px = (o) => o.x * TILE_SIZE + TILE_SIZE/2;
+  const py = (o) => o.y * TILE_SIZE + TILE_SIZE/2;
+  const lonxe = (a, b) => Math.hypot(a.x-b.x, a.y-b.y);
+
+  /* Os HQ, aos dous extremos: o par de ocos máis separado que haxa. */
+  if(typeof HQ !== 'undefined' && HQ && HQ.length >= 2){
+    let mellor = [ocos[0], ocos[ocos.length-1]], d = lonxe(mellor[0], mellor[1]);
+    for(const a of ocos) for(const b of ocos){
+      const dd = lonxe(a, b);
+      if(dd > d){ d = dd; mellor = [a, b]; }
+    }
+    HQ[0].x = px(mellor[0]); HQ[0].y = py(mellor[0]);
+    HQ[1].x = px(mellor[1]); HQ[1].y = py(mellor[1]);
+  }
+
+  if(typeof SECTORS === 'undefined' || !SECTORS) return;
+  if(window._senSectores){ SECTORS = []; return; }
+  /* Repártense collendo cada vez o oco máis lonxe de todo o xa colocado
+     (dispersión de Mitchell). Sen isto amoreábanse na primeira sala. */
+  const postos = (typeof HQ !== 'undefined' && HQ) ? HQ.map(h => ({x: h.x/TILE_SIZE, y: h.y/TILE_SIZE})) : [];
+  for(const sec of SECTORS){
+    let mellor = null, d = -1;
+    for(const o of ocos){
+      let min = Infinity;
+      for(const p of postos) min = Math.min(min, lonxe(o, p));
+      if(min > d){ d = min; mellor = o; }
+    }
+    if(!mellor) break;
+    sec.x = px(mellor); sec.y = py(mellor);
+    postos.push(mellor);
+  }
+}
+
 /* Generar el mapa por defecto — usa as coordenadas do mapa actual (RIVER, BRIDGE) */
 function buildDefaultMap(){
   const grid = [];
@@ -863,6 +940,8 @@ function newBattle(deployed){
   TERRAIN_GRID  = (window._plantaPedida && plantaAGrid(window._plantaPedida))
     || ((window._bioma === 'INTERIOR') ? buildInteriorMap() : buildDefaultMap());
   window._plantaPedida = null;
+  /* Só nos interiores: fóra, as coordenadas do mapa son as boas. */
+  if(window._bioma === 'INTERIOR') axustarEstruturasAPlanta(TERRAIN_GRID);
   TERRAIN_CACHE = buildTerrainCache(TERRAIN_GRID);
 
   const g = {
