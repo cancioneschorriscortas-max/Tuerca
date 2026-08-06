@@ -536,6 +536,48 @@ const TABIQUE_INTERIOR = MACIZO_CLARO
    As paredes do edificio son masas longas e non entran nunca.
    ============================================================ */
 let _machons = null;   /* Set de índices de cela que forman machóns */
+let _zona = null;      /* Int8Array: a que lugar con nome pertence cada cela */
+
+/* ============================================================
+   (v1.03) O CHAN DI EN QUE SALA ESTÁS.
+
+   Nas capturas o chan do interior era o mesmo de punta a punta e con
+   moito ruído por píxel: unha explanada gris na que non se distinguía a
+   nave da doca. E iso importa máis do que parece, porque `placeAt()` xa
+   nomea esas zonas e o Diario escribe con eses nomes — «caeu na Doca de
+   Carga»— sobre un mapa no que a doca non se vía por ningures.
+
+   As láminas de pezas traen sete pisos con nome (formigón, formigón
+   rachado, metálico liso, metálico reixa, chapa antiescorregadiza,
+   ranurado, panel técnico). A 16 px unha textura reducida cinco veces é
+   ruído, así que non se copian: cóllense TRES materiais e fanse coa
+   xeometría que xa hai, que ademais segue a luz da escena.
+
+   A zona sae do lugar con nome máis próximo. Non fai falla declarar
+   nada na planta: `lugares` xa existe e xa ten as coordenadas.
+   ============================================================ */
+function calcularZonas(grid){
+  _zona = null;
+  if(!grid || !grid.length) return;
+  if(typeof PLACES === 'undefined' || !PLACES || !PLACES.length) return;
+  /* Só os lugares grandes: os sectores e os HQ teñen raio pequeno e
+     partirían o chan en manchas do tamaño dun círculo de captura. */
+  const zonas = PLACES.filter(p => p.r >= 80);
+  if(!zonas.length) return;
+  const filas = grid.length, cols = grid[0].length;
+  _zona = new Int8Array(filas * cols).fill(-1);
+  for(let y = 0; y < filas; y++){
+    for(let x = 0; x < cols; x++){
+      const cx = x*TILE_SIZE + 8, cy = y*TILE_SIZE + 8;
+      let mellor = -1, dd = Infinity;
+      for(let i = 0; i < zonas.length; i++){
+        const d = (cx - zonas[i].x)**2 + (cy - zonas[i].y)**2;
+        if(d < dd){ dd = d; mellor = i; }
+      }
+      _zona[y*cols + x] = mellor % 3;      /* tres materiais, non trinta */
+    }
+  }
+}
 
 function calcularMachons(grid){
   _machons = new Set();
@@ -575,6 +617,45 @@ function calcularMachons(grid){
         for(const k of rexion) _machons.add(k);
     }
   }
+}
+
+/* ============================================================
+   (v1.03) O NOME DA ZONA, PINTADO NO CHAN.
+
+   É a peza máis rendible de todas as láminas e non precisa cortar nin
+   un píxel. Os carteis que traen —SECTOR B-7, TALLER, ALMACÉN 03,
+   GENERADORES, DOCA 1— son exactamente as etiquetas que a planta xa
+   declara en `lugares` e que `placeAt()` xa usa para que o Diario poida
+   escribir «caeu na Doca de Carga».
+
+   Ata agora ese nome existía só no texto. O xogador lía no informe que
+   alguén caeu na doca sen ter visto nunca onde estaba a doca. Píntase
+   grande no chan, en estarcido, coma nun chan industrial de verdade.
+
+   Vai na CACHÉ, non por fotograma: non se move nin cambia.
+   ============================================================ */
+function rotularZonas(ctx, grid){
+  if(typeof PLACES === 'undefined' || !PLACES) return;
+  const zonas = PLACES.filter(p => p.r >= 80 && p.label);
+  ctx.save();
+  for(const z of zonas){
+    const cx = Math.floor(z.x / TILE_SIZE), cy = Math.floor(z.y / TILE_SIZE);
+    const fila = grid[cy];
+    if(!fila || fila[cx] === undefined || fila[cx] === T.GRASS) continue;
+    /* En maiúsculas e sen artigo: no chan dunha nave non pon "a Doca de
+       Carga", pon DOCA DE CARGA. */
+    const txt = String(z.label).replace(/^(a|o|as|os|el|la|los|las)\s+/i, '').toUpperCase();
+    ctx.font = 'bold 22px Courier New';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    /* Moi apagado: é unha marca no chan, non un rótulo de interface. Se
+       compite coas unidades, estorba. */
+    ctx.fillStyle = 'rgba(0,0,0,0.30)';
+    ctx.fillText(txt, z.x, z.y + 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.13)';
+    ctx.fillText(txt, z.x, z.y);
+  }
+  ctx.restore();
 }
 
 /* A segunda pasada: os bloques de parede, que saen da súa propia cela. */
@@ -713,6 +794,55 @@ function drawTile(ctx, grid, x, y){
      autotiling debuxáballe cara lateral e sombra: nunha captura víase
      como un bloque marrón que había que rodear, e é chan transitable.
      Aquí píntase plano, sucio e sen relevo. */
+  /* (v1.03) CHAN DE INTERIOR, POR MATERIAL.
+     Vai á parte do autotiling porque un chan baixo cuberta non ten
+     transicións suaves con nada: ten xuntas, e as xuntas son rectas. */
+  if(here === T.ROAD && (window._bioma || 'VERDE') === 'INTERIOR'){
+    /* A RECEITA É SUPERFICIE CLARA CON LIÑA INTERNA ESCURA, e non ao
+       revés. A primeira versión disto pintaba os tres materiais sobre
+       `base` e a reixa case enteira sobre `dark`: medido con
+       tools/contraste.js, o contraste local baixou de 13,4 a 13,2, o
+       rango intercuartil de 37 a 34 e os píxeles moi escuros subiron do
+       67,9% ao 69,8%. Aplanara o mapa e achegara o chan ao valor da
+       parede. Agora a base é `light` e o que se debuxa enriba son as
+       xuntas. */
+    const z = _zona ? _zona[y * grid[0].length + x] : 0;
+    R(px, py, TILE_SIZE, TILE_SIZE, p.light);
+    if(z === 1){
+      /* CHAPA RANURADA — o taller. Regos direccionais: liña escura e
+         brillo xusto por riba, que é o que lle dá o relevo. */
+      for(let i = 1; i < TILE_SIZE; i += 3){
+        R(px, py + i, TILE_SIZE, 1, p.dark);
+        R(px, py + i + 1, TILE_SIZE, 1, p.accent);
+      }
+      if(x % 4 === 0) R(px, py, 1, TILE_SIZE, p.side);
+    } else if(z === 2){
+      /* REIXA METÁLICA — a doca. O metal é o claro e o OCO é o escuro,
+         que é como se ve unha reixa desde arriba. */
+      for(let a = 0; a < TILE_SIZE; a += 5){
+        for(let b = 0; b < TILE_SIZE; b += 5) R(px + a + 1, py + b + 1, 3, 3, p.dark);
+      }
+      R(px, py, TILE_SIZE, 1, p.accent);
+      if(y % 4 === 0) R(px, py, TILE_SIZE, 2, p.side);
+    } else {
+      /* FORMIGÓN — a nave. Lousas grandes, xunta cada catro celas, e
+         nada máis: é o que máis superficie ocupa e ten que descansar. */
+      R(px + 1, py + 1, TILE_SIZE - 1, TILE_SIZE - 1, p.base);
+      if(x % 4 === 0) R(px, py, 1, TILE_SIZE, p.dark);
+      if(y % 4 === 0) R(px, py, TILE_SIZE, 1, p.dark);
+      if(x % 4 === 3) R(px + TILE_SIZE - 1, py, 1, TILE_SIZE, p.top2);
+      if(y % 4 === 3) R(px, py + TILE_SIZE - 1, TILE_SIZE, 1, p.top2);
+      /* Desgaste e mancha de aceite, CONTADOS e non por píxel: o ruído
+         a un píxel non é textura, é sal e pementa. */
+      if(rnd2(150) > 0.93){
+        const mx = px + Math.floor(rnd2(151)*9), my = py + Math.floor(rnd2(152)*10)+2;
+        R(mx, my, 4 + Math.floor(rnd2(153)*4), 2, p.dark);
+      }
+      if(rnd2(155) > 0.975) R(px + 3, py + 5, 9, 5, p.dark);
+    }
+    return;
+  }
+
   if(here === T.RUBBLE && (window._bioma || 'VERDE') === 'INTERIOR'){
     const chan = TILE_PALETTES[T.ROAD];
     R(px, py, TILE_SIZE, TILE_SIZE, chan.base);
@@ -1028,6 +1158,9 @@ function buildTerrainCache(grid){
   canvas.width = COLS * TILE_SIZE;
   canvas.height = ROWS * TILE_SIZE;
   const ctx = canvas.getContext('2d');
+  /* As zonas decídense antes de pintar nada: o chan de cada sala pinta
+     co material da súa. */
+  if((window._bioma || 'VERDE') === 'INTERIOR' && typeof calcularZonas === 'function') calcularZonas(grid);
   for(let y=0; y<ROWS; y++){
     for(let x=0; x<COLS; x++){
       drawTile(ctx, grid, x, y);
@@ -1042,6 +1175,7 @@ function buildTerrainCache(grid){
     if(typeof calcularMachons === 'function') calcularMachons(grid);
     for(let y=0; y<ROWS; y++)
       for(let x=0; x<COLS; x++) debuxarMacizoInterior(ctx, grid, x, y);
+    if(typeof rotularZonas === 'function') rotularZonas(ctx, grid);
   }
   /* (v0.53) sistema de CAMIÑOS TRILLADOS: novo mapa = desgaste a cero */
   _wear = new Float32Array(COLS * ROWS);

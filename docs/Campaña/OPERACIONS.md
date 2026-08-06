@@ -452,11 +452,41 @@ nunha planta concreta, con ou sen sectores, sen agardar á campaña.
 Da lámina de pezas de interior (muros, portas, escaleiras, compuertas,
 ventilacións, elevadores, pisos, barandas, tuberías, detalles).
 
-**Primeiro a conta que decide todo o demais.** O xogo debuxa a 16 px por
-cela. Na lámina unha porta mide uns 130 px e unha baldosa uns 110: son
-reducións de 4× a 7×. O rebaixado de chapa, as fisuras e as cabezas de
-parafuso non chegan. **O valor da lámina non son os píxeles: é o
-vocabulario.** O alfabeto actual ten cinco símbolos e queda curto.
+**Primeiro a conta que decide todo o demais.** As dúas láminas están en
+`art/tiles_interior.png` e `art/tiles_interior0.png`, 1536×1024 as dúas.
+Medidas coas propias ferramentas do proxecto —`tools/recortar.js`, que xa
+detecta pezas sobre croma verde— saen 58 pezas con estes tamaños:
+
+| Peza | Na lámina | A 16 px | Redución |
+|---|---|---|---|
+| Tramo de muro | 45×60 | 16×16 | 3× |
+| Baldosa de piso | 85×70 | 16×16 | **5×** |
+| Caixa · bidón | 43×49 · 33×60 | 16×16 | 3× |
+
+A 3× un prop conserva a silueta. **A 5× unha textura de piso convértese
+en ruído**, e ese número é o que decide o reparto de abaixo.
+
+**O valor das láminas non son os píxeles: é o vocabulario.** O alfabeto
+actual ten cinco símbolos e queda curto.
+
+### Xa implementado a partir delas
+
+- **Columnas** — as masas macizas pequenas van con chapitel e base.
+- **Chan por zona** — tres materiais (formigón, chapa ranurada, reixa)
+  asignados polo lugar con nome máis próximo. Non fixo falla declarar
+  nada: `lugares` xa tiña as coordenadas.
+- **Carteis no chan** — o nome da zona en estarcido, grande e apagado.
+  É a peza máis rendible das dúas láminas e non precisou cortar un só
+  píxel: os seus carteis (`DOCA 1`, `TALLER`, `GENERADORES`) son
+  literalmente as etiquetas que `placeAt()` xa usa. O Diario levaba
+  escribindo «caeu na Doca de Carga» sobre un mapa no que a doca non se
+  vía por ningures.
+
+Medido con `tools/contraste.js` sobre a mesma planta: 13,4 antes, **14,6**
+despois. A primeira versión do chan por zona baixara a 13,2 —pintaba
+sobre a base e a reixa case enteira en escuro— e a corrección foi
+inverter a receita: **superficie clara con liña interna escura**, que é o
+que a propia ferramenta di que funciona.
 
 | Da lámina | Serve? | Como entra |
 |---|---|---|
