@@ -39,6 +39,9 @@ const OP1 = {
     desc: 'Achégate e non te movas. Os que teñan cascallos enriba, quítallos'},
   /* UN GRUNT E NADA MÁIS. É literalmente o que di a orde de saída. */
   escuadron: {cls: 'GRUNT', n: 1},
+  /* Aquí non hai ENGINEER ningún: érguese chegando e quedando
+     quieto ao lado. O ENGINEER preséntase na operación 3. */
+  erguen: 'calquera',
   /* CERO GARNICIÓN. Non é un descoido. */
   garnicion: [],
   inertes: [

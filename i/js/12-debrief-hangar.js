@@ -588,6 +588,37 @@ async function endBattle(g){
   $('dbTitle').textContent = g.result==='victory'
     ? TXT('deb.vitoria')
     : TXT('deb.derrota');
+
+  /* ============================================================
+     (v1.06) O PECHE DUNHA OPERACIÓN DE CAMPAÑA.
+
+     O informe do modo libre conta baixas inimigas, chatarra gañada e
+     botín. Nunha operación de rescate iso é ruído —non houbo inimigos,
+     non hai chatarra— e ademais rouba o único que importa.
+
+     ÓPTIMA non escribe informes: escribe inventario. Tres liñas, na
+     mesma voz neutra para as dúas cifras, e a segunda é a que doe:
+     RECICLABLES son os que non chegaches a alcanzar, e para a empresa
+     é exactamente igual de bo número ca o primeiro. Ninguén llo vai
+     dicir ao xogador.
+     ============================================================ */
+  if(g.operacion){
+    const rec = g.rescatados || g.reparados || g.extraidos || g.sabotados || 0;
+    const perd = g.reciclables || 0;
+    $('dbTitle').textContent = TXT('op.deb.titulo');
+    $('dbBody').innerHTML =
+      `<pre style="color:#e8c060; font-size:15px; line-height:2.1; letter-spacing:2px; margin:10px 0 0;">` +
+      `${TXT('op.deb.recuperadas')}: ${rec}
+` +
+      `${TXT('op.deb.reciclables')}: ${perd}
+
+` +
+      `${g.result === 'victory' ? TXT('op.deb.completada') : TXT('op.deb.fallida')}</pre>`;
+    $('battle').style.display='none';
+    window._ultimaOp = { result: g.result, modo: g.modo };
+    $('debrief').style.display='block';
+    return;
+  }
   /* (v0.79) o resultado xa o di vozMando(op.vitoria/op.derrota) ao entrar en endBattle */
   $('dbBody').innerHTML =
     `<p>${TXT('deb.stats', {op: DATA.opCount, be: g.kills[PT], bp: lostRemains.length, r: recovered.length})}<span style="color:#c8a86a;">${TXT('deb.chatarra', {g: g.chatarraGanada||0, t: DATA.chatarra||0})}</span>${g._pvpBotinInfo || ''}${(g.lootGanado&&g.lootGanado.length)?` · <span style="color:#ffd700;">${TXT('deb.botin', {l: g.lootGanado.map(l=>eqLabel(l)).join(', ')})}</span>`:''}</p><br>`+

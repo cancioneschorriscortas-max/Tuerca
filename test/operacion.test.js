@@ -290,14 +290,150 @@ proba('un atrapado non se ergue mentres teña os cascallos enriba', async () => 
   afirmar(atr && meu, 'fai falla un atrapado');
   /* Ponse un cascallo xusto enriba del e mantense o rescatador ao lado
      todo o tempo que faría falla para erguelo. */
-  g.walls.push({ x: atr.x, y: atr.y, hp: 150, max: 150, destroyed: false, tabique: true });
+  const cascallo = { x: atr.x, y: atr.y, hp: 150, max: 150, destroyed: false, tabique: true };
+  g.walls.push(cascallo);
   const simStep = S.aval('simStep');
-  const rescatados0 = g.rescatados || 0;
   for (let i = 0; i < 260; i++) {
     meu.x = atr.x + 10; meu.y = atr.y; meu.tx = meu.x; meu.ty = meu.y;
     meu.hp = meu.max;
+    /* O CASCALLO MANTENSE EN PÉ A PROPÓSITO. A primeira versión desta
+       proba deixábao caer: como o rescatador tamén lle dispara, ao cabo
+       de douscentos fotogramas rompíao e erguía ao sepultado — que é o
+       comportamento correcto, pero non é o que se quere medir aquí. O
+       que se mide é que MENTRES haxa cascallos non se poida erguer. */
+    cascallo.hp = cascallo.max; cascallo.destroyed = false;
     simStep(g);
   }
-  afirmar((g.rescatados || 0) === rescatados0,
-    'cos cascallos enriba non se pode erguer a ninguén: primeiro hai que quitalos');
+  /* A aserción vai sobre ESE, non sobre o contador. Ao poñer o
+     rescatador ao lado do sepultado tamén se alcanza ao que estaba
+     intentando liberalo —está a 22 px del a propósito—, así que o
+     contador global si sobe. Iso é a escena funcionando, non un fallo. */
+  afirmar(atr.inerte === true,
+    'cos cascallos enriba non se pode erguer: primeiro hai que quitalos');
+  afirmar(!atr.recuperado, 'e non pode pasar ao teu bando aínda');
+});
+
+proba('o que axudaba está AO LADO do que intentaba liberar', async () => {
+  /* A escena enteira depende disto. Se cae nun oco calquera é un
+     desconectado máis; a dous pasos dun sepultado, véselle desde lonxe
+     o que levaba facendo desde a explosión. */
+  const S = cargarXogo();
+  await asentar();
+  const op = S.aval('campanaOperacion')(1);
+  S.window._biomaPedido = 'INTERIOR';
+  S.window._plantaPedida = op.planta;
+  S.window._operacion = op;
+  const g = novaBatalla(S, { op: 0, semente: 11 });
+
+  const axuda = g.units.find((u) => u.inerte && u.senArma);
+  const atrapados = g.units.filter((u) => u.inerte && u.estadoInerte === 'ATRAPADA');
+  afirmar(axuda && atrapados.length, 'faltan as pezas da escena');
+  const d = Math.min(...atrapados.map((a) => Math.hypot(a.x - axuda.x, a.y - axuda.y)));
+  afirmar(d < 48, `queda a ${Math.round(d)} px do máis próximo: desde lonxe non se le como que o estaba axudando`);
+});
+
+proba('RECICLABLES conta os que non alcanzaches', async () => {
+  /* É o campo que máis traballa do informe. ÓPTIMA dá as dúas cifras na
+     mesma voz neutra e non distingue: para ela son inventario. O
+     xogador é o único que ve a diferenza. */
+  const S = cargarXogo();
+  await asentar();
+  const op = S.aval('campanaOperacion')(1);
+  S.window._biomaPedido = 'INTERIOR';
+  S.window._plantaPedida = op.planta;
+  S.window._operacion = op;
+  const g = novaBatalla(S, { op: 0, semente: 11 });
+
+  const inertes = g.units.filter((u) => u.inerte);
+  afirmar(inertes.length === 5, 'esperábanse cinco');
+  /* Érguense dous a man e mátase o rescatador: quedan tres sen alcanzar. */
+  inertes[0].inerte = false; inertes[0].team = 0; g.rescatados = 1;
+  inertes[1].inerte = false; inertes[1].team = 0; g.rescatados = 2;
+  for (const u of g.units) if (u.team === 0 && !u.recuperado && !u.inerte) u.dead = true;
+  inertes[0].dead = true; inertes[1].dead = true;
+  avanzar(S, g, 4);
+  afirmar(g.over && g.result === 'defeat', `esperábase derrota, foi ${g.result}`);
+  afirmar(g.reciclables === 3, `RECICLABLES quedou en ${g.reciclables}, esperábanse 3`);
+});
+
+proba('rescatando os cinco gáñase e non queda ningún reciclable', async () => {
+  const S = cargarXogo();
+  await asentar();
+  const op = S.aval('campanaOperacion')(1);
+  S.window._biomaPedido = 'INTERIOR';
+  S.window._plantaPedida = op.planta;
+  S.window._operacion = op;
+  const g = novaBatalla(S, { op: 0, semente: 11 });
+
+  const inertes = g.units.filter((u) => u.inerte);
+  for (const u of inertes) { u.inerte = false; u.team = 0; u.recuperado = true; }
+  g.rescatados = 5;
+  avanzar(S, g, 4);
+  afirmar(g.over && g.result === 'victory', `esperábase vitoria, foi ${g.result}`);
+  afirmar(g.reciclables === 0, `RECICLABLES quedou en ${g.reciclables}`);
+});
+
+proba('na operación 1 non fala ninguén que non deba', async () => {
+  /* Colléronse os dous nunha captura: VOLT burlándose do expediente
+     —un personaxe do acto II, dezasete operacións antes de tempo, e
+     nunha misión sen un só inimigo— e o HQ avisando de que sen radar
+     non se detectan misións secundarias, nun mapa que non ten radar.
+     As dúas rompen a primeira escena do xogo. */
+  const S = cargarXogo();
+  await asentar();
+  const op = S.aval('campanaOperacion')(1);
+  S.window._biomaPedido = 'INTERIOR';
+  S.window._plantaPedida = op.planta;
+  S.window._operacion = op;
+  const g = novaBatalla(S, { op: 3, semente: 7 });
+
+  const ditas = [];
+  S.aval('(function(f){ radio = f; })')((t) => ditas.push(String(t || '')));
+  S.aval('(function(f){ hqSay = f; })')((t) => ditas.push(String(t || '')));
+  avanzar(S, g, 3000);
+
+  const volt = ditas.filter((t) => /VOLT/i.test(t));
+  afirmar(!volt.length, `VOLT non pode falar aquí: ${volt[0]}`);
+  const radar = ditas.filter((t) => /RADAR|radar/.test(t));
+  afirmar(!radar.length, `nin avisos de radar nun mapa sen radar: ${radar[0]}`);
+});
+
+proba('a operación 1 xógase enteira e remata en vitoria', async () => {
+  /* A proba que faltaba, e a que colleu dous fallos que ningunha das
+     outras vía: que o GRUNT que mandas a rescatar LLES DISPARABA ao
+     achegarse —os inertes van en team 2, que é hostil para todos— e que
+     a regra de quen pode erguer se deducía soa e deixaba fóra ao único
+     que había no campo.
+
+     Xogar unha misión enteira é a única proba que atopa iso. */
+  const S = cargarXogo();
+  await asentar();
+  const op = S.aval('campanaOperacion')(1);
+  S.window._biomaPedido = 'INTERIOR';
+  S.window._plantaPedida = op.planta;
+  S.window._operacion = op;
+  const g = novaBatalla(S, { op: 0, semente: 11 });
+
+  const meu = g.units.find((u) => u.team === 0 && !u.dead);
+  const simStep = S.aval('simStep'), inWall = S.aval('inWall'), damageWall = S.aval('damageWall');
+  for (let k = 0; k < 6 && !g.over; k++) {
+    const obx = g.units.find((u) => u.inerte && !u.dead);
+    if (!obx) break;
+    const w = inWall(g, obx.x, obx.y);
+    if (w) damageWall(g, w, 999);           /* os cascallos rómpense a tiros */
+    for (let i = 0; i < 240 && obx.inerte && !g.over; i++) {
+      meu.x = obx.x + 10; meu.y = obx.y;
+      meu.tx = meu.x; meu.ty = meu.y; meu.waypoints = [];
+      meu.hp = meu.max;
+      simStep(g);
+    }
+  }
+  afirmar(g.rescatados === 5, `rescatados ${g.rescatados}, esperábanse 5`);
+  afirmar(g.reciclables === 0, `RECICLABLES quedou en ${g.reciclables}`);
+  afirmar(g.over && g.result === 'victory', `resultado ${g.result}`);
+  afirmar(!g.units.some((u) => u.recuperado && u.dead),
+    'ningún dos que salvaches pode acabar morto por fogo propio');
+  const mal = g.units.filter((u) => u.recuperado && /^K-/.test(u.id));
+  afirmar(!mal.length,
+    `un recuperado non pode levar designación de inimigo: ${mal.map((u) => u.id).join(' ')}`);
 });

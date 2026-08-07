@@ -284,7 +284,16 @@ const VOLT_LINES_ML = {
                "Collect what I leave you. If I leave you anything."],
   },
 };
+/* (v1.06) VOLT PRESÉNTASE NO ACTO II, non antes.
+   Na operación 1 non hai un só inimigo e a primeira voz que se oe
+   ten que ser a de ÓPTIMA. Que apareza aquí o comandante rival
+   burlándose do teu expediente destrúe a escena e ademais
+   presenta un personaxe dezasete operacións antes de tempo.
+   Unha operación de campaña declara quen fala; se non o declara,
+   cala. */
 function voltSay(pool, ctx = {}){
+  if(typeof game !== 'undefined' && game && game.senBases
+     && !(game.operacion && game.operacion.volt)) return;
   const VL = VOLT_LINES_ML[I18N.lang] || VOLT_LINES_ML.es;
   const arr = VL[pool];
   let t = arr[Math.floor(rnd() * arr.length)];

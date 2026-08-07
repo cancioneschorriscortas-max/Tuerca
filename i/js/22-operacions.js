@@ -199,13 +199,36 @@ function opColocarInertes(g){
       const o = ocos[i] || ocos[0];
       if(!o) break;
       const u = mkUnit(2, d.cls || 'GRUNT', o.x, o.y, null);
+      /* DESIGNACIÓN DE RECUPERADO, non de inimigo. mkUnit nomea todo o
+         que non é do xogador como K-nn, que é a serie do rival: un
+         desconectado que salvas non pode chamarse coma quen che
+         dispara. E ademais é o número que acaba na páxina do caderno,
+         así que ten que ser o da casa. */
+      g._recN = (g._recN || 8) + 1;
+      u.id = 'R-' + String(g._recN).padStart(2, '0');
+      u.name = u.id;
       u.inerte = true;
       u.tipoInerte = repar ? 'REPARACION' : 'RESCATE';
       /* PERDIDA | ASUSTADA | ATRAPADA. Se non se di nada, quietas. */
       u.estadoInerte = (d.estados && d.estados[i]) || d.estado || 'PERDIDA';
       /* A que estaba intentando liberar a outra non ten arma: por iso
-         non podía, e por iso levaba alí desde a explosión. */
-      if(u.estadoInerte === 'AXUDANDO'){ u.senArma = true; u.estadoInerte = 'PERDIDA'; }
+         non podía, e por iso levaba alí desde a explosión.
+
+         E PÓÑESE AO LADO dun atrapado, non nun oco calquera. A escena
+         enteira depende diso: se cadra lonxe, é un desconectado máis;
+         a dous pasos dun sepultado, véselle o que levaba facendo desde
+         a explosión sen que ninguén o conte. */
+      if(u.estadoInerte === 'AXUDANDO'){
+        u.senArma = true;
+        u.estadoInerte = 'PERDIDA';
+        const veciño = g.units.find(v => v.inerte && v.estadoInerte === 'ATRAPADA');
+        if(veciño){
+          const s2 = (typeof saírDoMacizo === 'function')
+            ? saírDoMacizo(veciño.x + 22, veciño.y + 6) : {x: veciño.x + 22, y: veciño.y + 6};
+          u.x = s2.x; u.y = s2.y;
+        }
+      }
+      u.tx = u.x; u.ty = u.y;
       u.name = (d.nomes && d.nomes[i]) || u.name;
       if(repar){ u.hp = Math.max(1, Math.round(u.max * 0.30)); }
       u.tx = u.x; u.ty = u.y; u.waypoints = [];
@@ -274,9 +297,20 @@ function opTickMedo(g){
 const OP_ACTIVAR_TICKS = 180;
 function opTickInertes(g){
   if(!OP) return;
+  /* QUEN ERGUE DECLÁRAO A OPERACIÓN, e non se deduce.
+
+     Estaba deducido: "se hai un ENGINEER no campo, só erguen os
+     ENGINEER; se non, calquera". Xogando a operación 1 no arnés
+     —que desprega GRUNT, HEAVY e ENGINEER— o GRUNT quedaba pegado a un
+     desconectado douscentos fotogramas sen que pasase nada, porque a
+     regra acababa de decidir soa que só valía o enxeñeiro, que estaba
+     no outro lado do mapa.
+
+     E ademais era unha regra mala: levar un enxeñeiro non pode
+     inhabilitar aos demais. Agora `erguen` dío a operación. */
+  const quen = (OP.erguen || 'ENGINEER');
   const vivos = g.units.filter(u => u.team === PT && !u.dead && !u.extraido);
-  const conEng = vivos.some(u => u.cls === 'ENGINEER');
-  const engs = conEng ? vivos.filter(u => u.cls === 'ENGINEER') : vivos;
+  const engs = quen === 'calquera' ? vivos : vivos.filter(u => u.cls === quen);
   for(const u of g.units){
     if(!u.inerte || u.dead) continue;
     /* Atrapada: mentres teña cascallos enriba non se pode erguer, por
@@ -482,6 +516,10 @@ function opTick(g){
 /* Devolve 'victory' | 'defeat' | null. Chámase desde tickEnd. */
 function opResultado(g){
   if(!OP) return null;
+  /* RECICLABLES: os que non chegaches a alcanzar. Cóntanse sempre, non
+     só ao rematar, porque a cifra ten que estar lista no intre en que
+     remate a operación —gañando ou perdendo—. */
+  g.reciclables = g.units.filter(u => u.inerte && !u.dead).length;
   const cond = OP_CONDICIONS[g.obxectivo.tipo];
   if(cond && cond(g, g.obxectivo)) return 'victory';
   /* A derrota é quedar sen ninguén. Nunha operación de extracción, quen

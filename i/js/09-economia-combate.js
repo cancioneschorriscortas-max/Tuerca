@@ -911,6 +911,16 @@ function chooseTarget(u, g){
   let defaultFoe = null, defaultD = 1e9;
   for(const v of g.units){
     if(v.dead || v.team === u.team) continue;
+    /* (v1.06) UN DESCONECTADO NON É UN BRANCO.
+
+       Os inertes van en `team 2`, que en TUERCA é o bando dos Grises e
+       polo tanto hostil para todos. Nunha partida de verdade da
+       operación 1 iso significaba que o GRUNT que mandas a rescatalos
+       LLES DISPARABA ao achegarse: no rexistro saía «BULON eliminou a
+       K-02». Ías buscalos e matábalos ti.
+
+       Tampouco é branco quen xa saíu do edificio. */
+    if(v.inerte || v.extraido) continue;
     if(v.inside) continue;  /* (v0.8) protexido pola torreta — non é foe directo */
     if(!_fogOK(v)) continue;   /* (v0.20) invisible = non existe para o xogador */
     const d = dist(u, v);
@@ -1664,7 +1674,10 @@ function tickUnits(g){
   /* (v0.23) Subquests: condicións + panel */
   if(g.t % 15 === 0 && g.modo !== 'pvp'){ tickSubquests(g); renderSqPanel(g); }
   /* (v0.26.1) Aviso didáctico: o radar é o detector de misións */
-  if(!g._radarHint && g.modo !== 'pvp' && g.t > 1500 && DATA.opCount >= 1 && g.radar && g.radar.owner !== PT){
+  /* (v1.06) …e non nunha operación de campaña, que non ten radar: o
+     aviso didáctico prometía misións secundarias detrás dunha
+     estrutura que nin sequera está no mapa. */
+  if(!g._radarHint && g.modo !== 'pvp' && !g.senBases && g.t > 1500 && DATA.opCount >= 1 && g.radar && !g.radar.oculto && g.radar.owner !== PT){
     g._radarHint = true;
     hqSay(TXT('hq.radarHint'), 0, 'hq.radarHint');
   }
