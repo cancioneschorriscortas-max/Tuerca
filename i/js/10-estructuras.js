@@ -1806,6 +1806,7 @@ function draw(g){
         if(!_pintado) _pintado = spr3dDebuxar(ctx, u.cls, u.team, u.x, u.y, _est, u._dir3d, _f3);
       }
       if(!_pintado) drawRobot(ctx, u.x, u.y, u.cls, u.team, _fr, _fc);
+      if(typeof debuxarDano === 'function') debuxarDano(ctx, u, g);
       /* (v0.54) MUESCAS DE KILLS no torso (carreira completa): unha raia
          branca por baixa (máx 4) e unha DOURADA por cada 5 (máx 3) — como
          as marcas de vitoria nos avións. Recoñeces o veterano sen abrir a

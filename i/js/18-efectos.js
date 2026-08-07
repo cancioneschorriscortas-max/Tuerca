@@ -660,3 +660,92 @@ function efxPortada(activa){
     if(P.ctx) P.ctx.clearRect(0, 0, P.cv.width, P.cv.height);
   }
 }
+
+/* ============================================================
+   (v1.05) DANOS — o estado dunha unidade, na propia unidade.
+
+   POR QUE UNHA CAPA E NON MÁIS SPRITES. O banco son 3 cores × 5 estados
+   × 8 direccións × 4 fases por clase; meterlle dous niveis de dano
+   triplicaríao, e habería que renderizar todo outra vez cada vez que se
+   toque unha pose. Isto debúxase por riba do sprite que xa hai, así que
+   vale para as cinco clases, os cinco estados e as oito direccións sen
+   renderizar un só cadro máis — e funciona igual co debuxo procedural
+   de reserva.
+
+   POR QUE FAI FALLA. A vida dunha unidade só se ve na barriña de
+   debaixo, que mide dezaseis píxeles e está a carón doutras dez iguais.
+   Nunha refrega non hai tempo de lelas. Un robot que fuma vese sen
+   ler nada, que é o que ten que pasar cando alguén está a piques de
+   caer.
+
+   DETERMINISTA. As marcas de queimadura saen do id da unidade, non do
+   azar: se cambiasen cada fotograma serían un fervedoiro. O que si se
+   move é o fume e as faíscas, que é o que ten que moverse.
+
+     > 0.55 de vida    nada
+     0.55 a 0.30       tisnadura e algunha faísca
+     < 0.30            fume constante, máis tisnadura, faíscas a miúdo
+   ============================================================ */
+const DANO = { activo: true, limiarLeve: 0.55, limiarGrave: 0.30 };
+
+function debuxarDano(ctx, u, g){
+  if(!DANO.activo || u.dead || u.inerte || u.extraido || u.inside) return;
+  const pct = u.hp / u.max;
+  if(pct > DANO.limiarLeve) return;
+  const grave = pct < DANO.limiarGrave;
+  const t = (g && g.t) || 0;
+
+  /* Semente estable por unidade: as mesmas marcas sempre no mesmo sitio. */
+  let h = 0;
+  for(const c of String(u.id || 'x')) h = ((h << 5) - h + c.charCodeAt(0)) >>> 0;
+  const rr = (n) => { const s = Math.sin(h * 0.0001 + n * 12.9898) * 43758.5453; return s - Math.floor(s); };
+
+  ctx.save();
+  /* --- Tisnadura: manchas fixas sobre o corpo --- */
+  const n = grave ? 5 : 3;
+  for(let i = 0; i < n; i++){
+    const dx = Math.round((rr(i) - 0.5) * 11);
+    const dy = Math.round((rr(i + 20) - 0.5) * 13) - 3;
+    ctx.fillStyle = i % 2 ? 'rgba(18,14,12,0.62)' : 'rgba(40,30,24,0.50)';
+    ctx.fillRect(u.x + dx, u.y + dy, 2 + Math.round(rr(i + 40) * 2), 2);
+  }
+
+  /* --- Faíscas: curtas, e SÓ ás veces. Unha faísca constante lese como
+         un adorno; unha que salta de cando en vez lese como avaría. --- */
+  const cadencia = grave ? 11 : 27;
+  if((t + (h % cadencia)) % cadencia < (grave ? 3 : 2)){
+    const sx = u.x + Math.round((rr(t % 7 + 60) - 0.5) * 9);
+    const sy = u.y + Math.round((rr(t % 5 + 70) - 0.5) * 9) - 2;
+    ctx.fillStyle = '#ffd24a';
+    ctx.fillRect(sx, sy, 2, 1);
+    ctx.fillStyle = 'rgba(255,160,60,0.75)';
+    ctx.fillRect(sx - 1, sy + 1, 1, 1);
+    ctx.fillRect(sx + 2, sy - 1, 1, 1);
+  }
+
+  /* --- Fume: só en estado grave, e sobe. É o único que se ve de lonxe,
+         e é o que fai que mires a esa unidade sen que ninguén cho diga. --- */
+  if(grave){
+    for(let i = 0; i < 3; i++){
+      /* Cada bocanada leva o seu desfase para que non suban en bloque. */
+      const fase = ((t * 0.9 + i * 26 + (h % 40)) % 78) / 78;
+      const sube = fase * 15;
+      const a = 0.42 * (1 - fase);
+      if(a <= 0.02) continue;
+      const r = 1.8 + fase * 3.4;
+      const ox = Math.sin(fase * 3.1 + i) * 2.4;
+      const cx2 = u.x + ox + (rr(i + 90) - 0.5) * 3, cy2 = u.y - 8 - sube;
+      /* CLARO, non escuro. A primeira versión pintaba o fume en gris
+         escuro (58,54,50), e nun interior —chan escuro e luz baixa— non
+         se vía absolutamente nada: era gris sobre gris. Un penacho ten
+         que destacar do chan, e o chan deste xogo é escuro case sempre.
+         Leva un anel escuro por fóra para que tampouco desapareza nun
+         mapa claro coma o deserto ou a neve. */
+      ctx.fillStyle = `rgba(18,16,14,${a * 0.5})`;
+      ctx.beginPath(); ctx.arc(cx2, cy2, r + 1, 0, 7); ctx.fill();
+      ctx.fillStyle = `rgba(172,164,152,${a})`;
+      ctx.beginPath(); ctx.arc(cx2, cy2, r, 0, 7); ctx.fill();
+    }
+  }
+  ctx.restore();
+}

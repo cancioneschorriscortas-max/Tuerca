@@ -131,6 +131,22 @@ window.addEventListener('load', function(){
           game.units.push(u);
         });
       })();` : ''}
+      ${ten('danados') ? `
+      /* --danados: unha fila coas tres franxas de dano á vista. Sen
+         isto habería que agardar a que unha refrega deixase unidades
+         xusto nas vidas que se queren mirar, e iso non se pode pedir. */
+      (function(){
+        var base = game.units.filter(function(u){ return !u.dead && u.team === 0; })[0];
+        if(!base) return;
+        game.units = game.units.filter(function(u){ return u.team !== 0; });
+        var pcts = [1.0, 0.50, 0.40, 0.25, 0.10];
+        pcts.forEach(function(p, i){
+          var u = mkUnit(0, 'GRUNT', base.x + i*44, base.y, null);
+          u.tx = u.x; u.ty = u.y;
+          u.hp = Math.max(1, Math.round(u.max * p));
+          game.units.push(u);
+        });
+      })();` : ''}
       ${ten('sprites-vellos') ? 'SPR3D_ACTIVO = false;' : ''}
       ${ten('pezas') ? 'MON3D_ACTIVO = true;' : ''}
       ${ten('reensamblado') ? `
