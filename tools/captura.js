@@ -98,7 +98,8 @@ window.addEventListener('load', function(){
       ${op('planta', null) ? `window._plantaPedida = '${op('planta','')}';` : ''}
       /* --operacion: unha operación de campaña de proba, para poder
          revisar unha misión sen base inimiga sen ter que xogala. */
-      ${op('operacion', null) ? `window._operacion = ${JSON.stringify({
+      ${op('operacion', null) === 'OP1' ? `window._operacion = campanaOperacion(1);`
+        : op('operacion', null) ? `window._operacion = ${JSON.stringify({
         id: 'captura', planta: op('planta', 'NAVE'),
         obxectivo: op('operacion') === 'RESCATE' ? {tipo:'RESCATE', n:3}
                  : op('operacion') === 'SABOTAXE' ? {tipo:'SABOTAXE', n:3, onde:'NAVE'}
@@ -225,7 +226,8 @@ const PANTALLA = op('pantalla', null);
 const DATOS = op('datos', null);
 const INTERLUDIO = op('interludio', null);
 const ORDE = op('orde', null);
-const semente = (modo === 'hangar' && (ten('sementar') || FICHA || MONTAXE || CONSELLO || PANTALLA || INTERLUDIO || ORDE)) ? `
+const CADERNO = ten('caderno');
+const semente = (modo === 'hangar' && (ten('sementar') || FICHA || MONTAXE || CONSELLO || PANTALLA || INTERLUDIO || ORDE || CADERNO)) ? `
 <script>
 var MONTAXE = ${MONTAXE};
 var CONSELLO = ${CONSELLO};
@@ -233,6 +235,7 @@ var PANTALLA = ${PANTALLA ? JSON.stringify(PANTALLA) : 'null'};
 var DATOS = ${DATOS ? JSON.stringify(DATOS) : 'null'};
 var INTERLUDIO = ${INTERLUDIO ? JSON.stringify(INTERLUDIO) : 'null'};
 var ORDE = ${ORDE ? JSON.stringify(ORDE) : 'null'};
+var CADERNO = ${ten('caderno') ? 'true' : 'false'};
 var FICHA = ${FICHA ? JSON.stringify(FICHA) : 'null'};
 window.addEventListener('load', function(){
   setTimeout(function(){
@@ -260,6 +263,14 @@ window.addEventListener('load', function(){
       /* --orde TIPO: a orde de traballo de antes de entrar. É unha
          pantalla á que non se chega sen xogar, así que sen isto non hai
          maneira de revisar como quedou o ton. */
+      /* --caderno: a páxina do bautizo. É a pantalla máis importante
+         da primeira misión e non se chega a ela sen xogala enteira. */
+      if(typeof CADERNO !== 'undefined' && CADERNO){
+        setTimeout(function(){
+          pedirNomeCaderno({id:'R-09'}, {data: dataDoXogo(),
+            texto: TXT('op1.eng')});
+        }, 260);
+      }
       if(typeof ORDE !== 'undefined' && ORDE){
         setTimeout(function(){
           opOrdeDeTraballo({id: 'captura-' + ORDE, planta: 'NAVE',

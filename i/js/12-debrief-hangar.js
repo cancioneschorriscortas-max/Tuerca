@@ -1597,11 +1597,93 @@ function showMontaxe(){
    Insiste ata que haxa algo. Non se acepta baleiro nin o número de
    fábrica, porque non poñer nome É a resposta de ÓPTIMA.
    ============================================================ */
-async function bautizoObrigatorio(rec){
+/* ============================================================
+   (v1.06) A PÁXINA DO CADERNO.
+
+   Isto era un `prompt()` do navegador. Unha caixa gris de Chrome no
+   medio da escena máis importante do xogo — a única na que o xogador
+   fai algo que ÓPTIMA non contempla — rompe todo o que se construíu
+   arredor dela. Non é un formulario: é o primeiro acto de rebeldía, e
+   un acto non se pide nun diálogo do sistema.
+
+   A DISPOSICIÓN NON SE INVENTA. O interludio `primernombre` que xa está
+   no xogo é literalmente unha man escribindo «R-09 → CROMO» no caderno
+   do arquiveiro. Aquí reprodúcese: a designación impresa, a frecha, e o
+   oco. O xogador escribe do outro lado da frecha.
+
+   Devolve unha promesa co que se escribise, ou '' se se pecha sen nada.
+   Se non hai DOM —o arnés de probas— devolve null e quen chama volve ao
+   prompt de sempre, que alí non estorba a ninguén.
+   ============================================================ */
+let _cadernoCx = null;
+function pedirNomeCaderno(rec, opc = {}){
+  if(typeof document === 'undefined' || !document.createElement) return Promise.resolve(null);
+  if(!_cadernoCx){
+    _cadernoCx = document.createElement('div');
+    _cadernoCx.id = 'cadernoNome';
+    _cadernoCx.style.cssText = 'position:fixed; inset:0; z-index:80; display:none;' +
+      'background:rgba(3,4,5,0.96); align-items:center; justify-content:center; font-family:Courier New;';
+    document.body.appendChild(_cadernoCx);
+  }
+  const cx = _cadernoCx;
+  /* Papel vello: liñas horizontais moi apagadas e unha marxe vermella,
+     coma un caderno de contabilidade. É o que fai que non pareza unha
+     pantalla do xogo senón un obxecto que hai enriba dunha mesa. */
+  cx.innerHTML = `
+   <div style="width:min(560px,86%); background:#d8d0bc; color:#2a2620; padding:0;
+        box-shadow:0 18px 60px rgba(0,0,0,0.7); position:relative;
+        background-image:repeating-linear-gradient(to bottom, rgba(40,60,90,0.09) 0 1px, transparent 1px 22px);">
+     <div style="position:absolute; left:46px; top:0; bottom:0; width:1px; background:rgba(150,50,40,0.35);"></div>
+     <div style="padding:26px 30px 26px 62px;">
+       <div style="font-size:11px; color:#6a6254; letter-spacing:1px;">${opc.data || ''}</div>
+       <div style="font-size:13px; color:#4a4438; margin:14px 0 22px; line-height:1.6;">${opc.texto || ''}</div>
+       <div style="display:flex; align-items:center; gap:14px; font-size:26px;">
+         <span style="color:#4a4438;">${rec.id}</span>
+         <span style="color:#8a5a2a;">→</span>
+         <input id="cadernoInput" maxlength="14" autocomplete="off" spellcheck="false"
+           style="flex:1; background:transparent; border:none; border-bottom:2px solid rgba(60,52,40,0.35);
+                  outline:none; font-family:Courier New; font-size:26px; color:#1e2a4a;
+                  letter-spacing:3px; text-transform:uppercase; padding:2px 4px;">
+       </div>
+       <div id="cadernoAviso" style="font-size:11px; color:#8a4a3a; height:14px; margin-top:8px;"></div>
+     </div>
+   </div>`;
+  cx.style.display = 'flex';
+  const inp = cx.querySelector('#cadernoInput');
+  const aviso = cx.querySelector('#cadernoAviso');
+  try{ inp.focus(); }catch(e){}
+
+  return new Promise((resolve) => {
+    const rematar = (v) => {
+      cx.style.display = 'none';
+      document.removeEventListener('keydown', tecla, true);
+      resolve(v);
+    };
+    const tenta = () => {
+      const limpo = (inp.value || '').trim().toUpperCase().slice(0, 14);
+      /* Non se acepta baleiro nin a propia designación: non poñer nome
+         É a resposta de ÓPTIMA, e o xogo non a asina por ti. */
+      if(!limpo || limpo === rec.id){
+        aviso.textContent = TXT('bau.aviso') || '';
+        try{ inp.focus(); }catch(e){}
+        return;
+      }
+      rematar(limpo);
+    };
+    const tecla = (e) => {
+      if(e.key === 'Enter'){ e.preventDefault(); e.stopPropagation(); tenta(); }
+    };
+    document.addEventListener('keydown', tecla, true);
+  });
+}
+
+async function bautizoObrigatorio(rec, opc){
   const orixinal = rec.name;
   for(let intento = 0; intento < 20; intento++){
     let posto = null;
-    try{ posto = prompt(TXT('bau.pide', {id: rec.id}), ''); }catch(e){ break; }
+    posto = await pedirNomeCaderno(rec, opc || {});
+    /* null = non hai DOM (arnés). Aí vale o prompt de sempre. */
+    if(posto === null){ try{ posto = prompt(TXT('bau.pide', {id: rec.id}), ''); }catch(e){ break; } }
     const limpo = (posto || '').trim().toUpperCase().slice(0, 14);
     if(limpo && limpo !== rec.id && limpo !== orixinal){
       rec.name = limpo;
@@ -2316,6 +2398,9 @@ function escollaPlanta(){
      `onde` refírese aos lugares que declara a propia planta. */
   const PROBAS = {
     LIBRE: null,
+    /* A primeira da campaña de verdade, non unha proba de mecánica.
+       Trae a súa planta, así que ignora a que escollas arriba. */
+    'OP 1': () => (typeof campanaOperacion === 'function' ? campanaOperacion(1) : null),
     RESCATE: (p) => ({
       id: 'proba-rescate', planta: p,
       obxectivo: {tipo: 'RESCATE', n: 3},
@@ -2408,6 +2493,9 @@ function escollaPlanta(){
       /* Unha operación xa quita os sectores por si soa. */
       window._senSectores = (modo === 'LIBRE') ? senSec : false;
       window._operacion = PROBAS[modo] ? PROBAS[modo](sel) : null;
+      /* Unha operación da campaña trae a súa propia planta: o selector
+         de arriba é para as probas de mecánica, non para ela. */
+      if(window._operacion && window._operacion.planta) window._plantaPedida = window._operacion.planta;
       $('btnStart').onclick();
     };
   };
@@ -2437,6 +2525,15 @@ $('btnStart').onclick=()=>{
       random._hqAssigned = true;
       deployed.push(random);
     }
+  }
+  /* (v1.06) Unha operación pode esixir un despregamento EXACTO. A
+     primeira da campaña vai cun GRUNT e nada máis —"a unidade máis
+     barata, por se hai algo perigoso"— e o regalo de dous novatos que
+     leva o modo libre contradiríao na mesma frase. */
+  if(window._operacion && window._operacion.escuadron){
+    const e = window._operacion.escuadron;
+    const bos = DATA.units.filter(r => !(r.folga && r.folga.ops > 0) && (!e.cls || r.cls === e.cls));
+    deployed = bos.slice(0, e.n || 1);
   }
   DATA.pendingUpgraded = [];  /* consumido nesta op */
   /* (v1.04) A ORDE DE TRABALLO vai por DIANTE do briefing do escuadrón,
@@ -2485,10 +2582,23 @@ document.addEventListener('keydown', e => {
    interludioQuizais chama a showHangar sen máis, así que este botón
    segue facendo o de sempre. */
 $('btnBack').onclick = () => {
-  if(typeof interludioQuizais === 'function'){
-    $('debrief').style.display = 'none';
-    interludioQuizais(showHangar);
-  } else showHangar();
+  $('debrief').style.display = 'none';
+  /* (v1.06) A ESCENA DO TALLER vai AQUÍ, e por diante do interludio.
+
+     O debrief de ÓPTIMA pecha, e o que queda é o taller: o enxeñeiro,
+     o caderno gastado, a data e o cursor. Ten que ir antes do
+     interludio porque o interludio é a voz do arquiveiro comentando o
+     que xa pasou, e isto aínda está a pasar.
+
+     Se non hai escena de campaña que amosar, campanaPeche chama ao
+     remate sen máis e todo segue exactamente coma sempre. */
+  const seguir = () => {
+    if(typeof interludioQuizais === 'function') interludioQuizais(showHangar);
+    else showHangar();
+  };
+  if(typeof campanaPeche === 'function' && typeof game !== 'undefined' && game){
+    campanaPeche(game, seguir);
+  } else seguir();
 };
 $('btnBioClose').onclick=()=>{
   /* O mesmo motivo có ◂ volver: no primeiro día o taller non se pecha.

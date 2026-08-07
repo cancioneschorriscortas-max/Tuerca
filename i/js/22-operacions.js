@@ -86,6 +86,7 @@ function opIniciar(g){
   opColocarInertes(g);
   opColocarGarnicion(g);
   opColocarSabotaxes(g);
+  opColocarEscenario(g);
 
   /* Estado dos gatillos: cada un dispara UNHA vez. */
   g._gatillos = (OP.gatillos || []).map(t => ({...t, feito: false}));
@@ -104,6 +105,11 @@ function opIniciar(g){
       SABOTAXE:   ['◈ ' + (TXT('op.obx.sabotaxe')   || 'Parar a instalación'),     TXT('op.obx.sabotaxeD')   || 'Tira as estruturas marcadas'],
       DEFENSA:    ['◈ ' + (TXT('op.obx.defensa')    || 'Aguantar'),                TXT('op.obx.defensaD')    || 'Non hai nada que capturar'],
     }[o.tipo] || ['◈ Operación', ''];
+    /* Unha operación pode dicilo á súa maneira. Fai falla: o texto por
+       defecto do RESCATE fala de achegar un ENGINEER, e na primeira
+       misión da campaña non hai ENGINEER ningún — vas cun GRUNT só. */
+    if(o.titulo) t[0] = o.titulo;
+    if(o.desc !== undefined) t[1] = o.desc;
     g._sqOp = addSubquest(g, {
       tipo: 'OPERACION', x: cen.x, y: cen.y,
       titulo: t[0], desc: t[1],
@@ -111,8 +117,39 @@ function opIniciar(g){
     });
   }
 
+  /* (v1.06) SEN BARRA DE PRODUCIÓN.
+
+     Isto era a queixa de fondo: a primeira pantalla da campaña ofrecía
+     GRUNT, HEAVY, ENGINEER, SNIPER, TANQUE, BOMBARDERO e TORRETA. Nunha
+     campaña iso contradí a idea mesma de campaña —as clases preséntanse
+     unha por misión— e ademais aquí nin sequera fan nada, porque
+     `g.prod` está a null. Sete botóns que non responden é peor ca non
+     telos.
+
+     Escóndese a barra enteira, non se desactivan os botóns: un botón
+     apagado segue dicindo "isto existe e non podes", e o que hai que
+     dicir é que non existe aínda. */
+  try{
+    const bar = document.getElementById('prodbar');
+    if(bar){
+      bar.dataset.gardado = bar.style.display || '';
+      bar.style.display = 'none';
+    }
+  }catch(e){}
+
   if(OP.entrada && OP.entrada.length) opDialogo(OP.entrada);
   return OP;
+}
+
+/* Devólvea ao saír: o modo libre non se toca. */
+function opRestaurarHUD(){
+  try{
+    const bar = document.getElementById('prodbar');
+    if(bar && bar.dataset.gardado !== undefined){
+      bar.style.display = bar.dataset.gardado || 'flex';
+      delete bar.dataset.gardado;
+    }
+  }catch(e){}
 }
 
 /* ---------- Onde cae a xente ----------
@@ -164,6 +201,11 @@ function opColocarInertes(g){
       const u = mkUnit(2, d.cls || 'GRUNT', o.x, o.y, null);
       u.inerte = true;
       u.tipoInerte = repar ? 'REPARACION' : 'RESCATE';
+      /* PERDIDA | ASUSTADA | ATRAPADA. Se non se di nada, quietas. */
+      u.estadoInerte = (d.estados && d.estados[i]) || d.estado || 'PERDIDA';
+      /* A que estaba intentando liberar a outra non ten arma: por iso
+         non podía, e por iso levaba alí desde a explosión. */
+      if(u.estadoInerte === 'AXUDANDO'){ u.senArma = true; u.estadoInerte = 'PERDIDA'; }
       u.name = (d.nomes && d.nomes[i]) || u.name;
       if(repar){ u.hp = Math.max(1, Math.round(u.max * 0.30)); }
       u.tx = u.x; u.ty = u.y; u.waypoints = [];
@@ -172,15 +214,76 @@ function opColocarInertes(g){
   }
 }
 
+/* ============================================================
+   OS TRES ESTADOS DUN DESCONECTADO.
+
+   Un inerte que só agarda é unha caixa. Tres estados fan que pareza
+   alguén, e cada un pide unha cousa distinta ao xogador:
+
+     PERDIDA    quieta, mirando ao baleiro. Chegas e xa está.
+     ASUSTADA   aléxase cando te achegas. NON SABE QUEN ES: leva sen
+                conexión desde a explosión e todo o que ve é un
+                descoñecido. Non abonda con atopala, hai que
+                interceptala.
+     ATRAPADA   non se move porque non pode. Hai que quitar o que ten
+                enriba.
+
+   E a regra que fai que a misión sexa unha bóla de neve: unha asustada
+   DEIXA DE FUXIR se quen se achega é alguén que xa recuperaches. Ese
+   xa é azul e móvese con intención. Os recuperados son os que
+   recuperan, e iso é o tema do xogo dito só con movemento.
+   ============================================================ */
+const OP_MEDO_RADIO = 74;      /* a que distancia empeza a afastarse */
+const OP_MEDO_PASO = 0.55;     /* devagar: fuxir non pode ser imposible */
+
+function opTickMedo(g){
+  if(!OP) return;
+  const meus = g.units.filter(u => u.team === PT && !u.dead && !u.extraido);
+  if(!meus.length) return;
+  for(const u of g.units){
+    if(!u.inerte || u.dead || u.estadoInerte !== 'ASUSTADA') continue;
+    /* Quen se achega máis, e se é un recuperado non conta como ameaza. */
+    let ameaza = null, dd = Infinity;
+    for(const m of meus){
+      if(m.recuperado) continue;               /* un dos seus: non asusta */
+      const d = Math.hypot(m.x - u.x, m.y - u.y);
+      if(d < dd){ dd = d; ameaza = m; }
+    }
+    if(!ameaza || dd > OP_MEDO_RADIO){ u._fuxindo = false; continue; }
+    u._fuxindo = true;
+    const dx = u.x - ameaza.x, dy = u.y - ameaza.y, d = Math.hypot(dx, dy) || 1;
+    const nx = u.x + (dx/d) * OP_MEDO_PASO, ny = u.y + (dy/d) * OP_MEDO_PASO;
+    /* Contra a parede non se atravesa nada: se non pode recuar, queda
+       acurralada, que é exactamente como se colle. */
+    if(typeof macizoEn === 'function' && macizoEn(nx, ny)){
+      if(!macizoEn(nx, u.y)) u.x = nx;
+      else if(!macizoEn(u.x, ny)) u.y = ny;
+    } else { u.x = nx; u.y = ny; }
+    u.x = clamp(u.x, 8, W-8); u.y = clamp(u.y, 8, H-8);
+    u.tx = u.x; u.ty = u.y;
+  }
+}
+
 /* Chámase desde o tick de unidades: un ENGINEER pegado a un inerte
    durante tres segundos érgueo. Tres segundos e non un instante porque
-   ten que ser unha decisión que custe algo nun tiroteo. */
+   ten que ser unha decisión que custe algo nun tiroteo.
+
+   (v1.06) Nunha operación cunha soa unidade —a primeira da campaña— non
+   hai ENGINEER, así que vale calquera: o que fai falla é chegar. Se hai
+   enxeñeiros no campo, son eles e só eles. */
 const OP_ACTIVAR_TICKS = 180;
 function opTickInertes(g){
   if(!OP) return;
-  const engs = g.units.filter(u => u.team === PT && !u.dead && u.cls === 'ENGINEER');
+  const vivos = g.units.filter(u => u.team === PT && !u.dead && !u.extraido);
+  const conEng = vivos.some(u => u.cls === 'ENGINEER');
+  const engs = conEng ? vivos.filter(u => u.cls === 'ENGINEER') : vivos;
   for(const u of g.units){
     if(!u.inerte || u.dead) continue;
+    /* Atrapada: mentres teña cascallos enriba non se pode erguer, por
+       moito que esteas ao lado. Primeiro quítase o de riba. */
+    if(u.estadoInerte === 'ATRAPADA' && typeof inWall === 'function' && inWall(g, u.x, u.y)){
+      u._act = 0; continue;
+    }
     const cerca = engs.some(e => Math.hypot(e.x - u.x, e.y - u.y) < 22);
     if(!cerca){ u._act = 0; continue; }
     u._act = (u._act || 0) + 1;
@@ -237,6 +340,35 @@ function opColocarSabotaxes(g){
     if(!p) break;
     g.walls.push({x: p.x, y: p.y, hp: 320, max: 320, destroyed: false,
                   tabique: true, sabotaxe: true, etiqueta: (o.etiquetas && o.etiquetas[i]) || null});
+  }
+}
+
+/* ============================================================
+   ESCENARIO — restos que xa estaban aí.
+
+   Un campo de restos non é un obxectivo: é unha resposta a unha
+   pregunta que o xogador aínda non fixo. Non teñen reloxo, non teñen
+   nome e non se recuperan. O único que fan é estar.
+
+   Van na lista de `remains`, que xa sabe debuxar corpos renderizados,
+   coa bandeira `escenario` para que non entren no reconto nin na conta
+   atrás. Reutilizar iso é o que fai que non custe nada.
+   ============================================================ */
+function opColocarEscenario(g){
+  const e = OP.escenario;
+  if(!e || !e.restos) return;
+  const ocos = opOcosDe(g, e.onde, e.restos);
+  for(let i = 0; i < e.restos; i++){
+    const p = ocos[i];
+    if(!p) break;
+    /* Sen unidade de verdade detrás: só o que fai falla para debuxalo.
+       O equipo é o gris dos desconectados, non o teu nin o do rival —
+       o xogador non sabe de quen eran, e ese é o punto. */
+    g.remains.push({
+      x: p.x + (i % 3) * 5 - 5, y: p.y + (i % 2) * 6 - 3,
+      unit: {id: 'X-' + i, name: '', cls: (i % 3 === 0) ? 'HEAVY' : 'GRUNT', team: 2},
+      timer: 1e9, secured: false, escenario: true, place: e.onde,
+    });
   }
 }
 
@@ -324,6 +456,7 @@ function opDisparar(g, _que){ /* o tick xa revisa todos os gatillos */ }
 
 function opTick(g){
   if(!OP) return;
+  opTickMedo(g);
   opTickInertes(g);
   opTickExtraccion(g);
   /* Progreso no panel: sen isto o obxectivo amósase pero non se move,
@@ -560,6 +693,7 @@ function opOrdeDeTraballo(op, remate){
 function opLimpar(){
   OP = null;
   window._opPausa = false;
+  opRestaurarHUD();
   if(_opCaixa) _opCaixa.style.display = 'none';
   if(_opOrde) _opOrde.style.display = 'none';
 }

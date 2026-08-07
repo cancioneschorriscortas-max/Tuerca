@@ -1489,7 +1489,7 @@ function draw(g){
       ctx.beginPath(); ctx.ellipse(r.x, r.y + 3, 13, 6, 0, 0, 7); ctx.stroke();
     }
     /* Timer si no asegurado */
-    if(!r.secured){
+    if(!r.secured && !r.escenario){
       const pct = r.timer/(90*60);
       /* (v1.05) NUNCA VERDE. Isto pintaba en verde mentres quedase máis
          da metade do tempo — a mesma cor exacta que a barra de vida
@@ -1502,10 +1502,13 @@ function draw(g){
       ctx.fillStyle = pct>0.35 ? '#c8a86a' : (pct>0.15 ? '#e08040' : '#ff5340');
       ctx.fillRect(r.x-8, r.y+10, 16*pct, 2);
     }
-    /* Etiqueta */
-    ctx.fillStyle = r.secured ? '#ffd24a' : '#aa6a60';
-    ctx.font='9px Courier New';
-    ctx.fillText(r.unit.name, r.x - r.unit.name.length*2.5, r.y-12);
+    /* Etiqueta — os de escenario non a levan: non son ninguén que
+       coñezas, e poñerlles nome converteríaos en obxectivos. */
+    if(!r.escenario){
+      ctx.fillStyle = r.secured ? '#ffd24a' : '#aa6a60';
+      ctx.font='9px Courier New';
+      ctx.fillText(r.unit.name, r.x - r.unit.name.length*2.5, r.y-12);
+    }
   }
   /* Torretas (v0.8) — pequenas, rotan cara o obxectivo */
   for(const tu of g.turrets){

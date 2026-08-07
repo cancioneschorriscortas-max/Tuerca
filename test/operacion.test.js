@@ -207,3 +207,97 @@ proba('un diálogo de operación para a simulación', async () => {
   S.aval('opLimpar')();
   afirmar(!S.window._opPausa, 'e ao limpar a operación ten que soltala');
 });
+
+proba('a operación 1 non ten un só hostil', async () => {
+  /* Non é un descoido, é a regra: as unidades de TUERCA disparan soas a
+     calquera hostil en rango, así que "o xogador aínda non matou a
+     ninguén" só é certo con CERO inimigos. Poucos non abonda. */
+  const S = cargarXogo();
+  await asentar();
+  const op = S.aval('campanaOperacion')(1);
+  S.window._biomaPedido = 'INTERIOR';
+  S.window._plantaPedida = op.planta;
+  S.window._operacion = op;
+  const g = novaBatalla(S, { op: 0, semente: 11 });
+
+  afirmar(g.units.filter((u) => u.team === 1).length === 0,
+    'a primeira misión non pode ter ningún inimigo');
+  afirmar(g.sectors.length === 0, 'nin sectores');
+  afirmar(g.radar.oculto, 'nin radar');
+  afirmar(g.hq.every((h) => h.oculto), 'nin bases');
+
+  const inertes = g.units.filter((u) => u.inerte);
+  afirmar(inertes.length === 5, `esperábanse 5 desconectados, hai ${inertes.length}`);
+  const estados = new Set(inertes.map((u) => u.estadoInerte));
+  afirmar(estados.has('PERDIDA') && estados.has('ASUSTADA') && estados.has('ATRAPADA'),
+    `faltan estados: ${[...estados].join(',')}`);
+  afirmar(inertes.filter((u) => u.senArma).length === 1,
+    'o que estaba intentando liberar a outro non pode ter arma: por iso non podía');
+  afirmar(g.remains.filter((r) => r.escenario).length > 0,
+    'faltan os restos vellos do camiño de volta');
+});
+
+proba('un desconectado asustado afástase, e deixa de facelo cos xa recuperados', async () => {
+  /* É o único comportamento novo da misión, e o que fai que atopar non
+     abonde: hai que interceptar. E a regra que o pecha —dos recuperados
+     non foxen— é o tema do xogo dito só con movemento. */
+  const S = cargarXogo();
+  await asentar();
+  const op = S.aval('campanaOperacion')(1);
+  S.window._biomaPedido = 'INTERIOR';
+  S.window._plantaPedida = op.planta;
+  S.window._operacion = op;
+  const g = novaBatalla(S, { op: 0, semente: 11 });
+
+  const asu = g.units.find((u) => u.inerte && u.estadoInerte === 'ASUSTADA');
+  const meu = g.units.find((u) => u.team === 0 && !u.dead);
+  afirmar(asu && meu, 'fai falla un asustado e unha unidade propia');
+
+  const simStep = S.aval('simStep');
+  /* Achégase un descoñecido: ten que afastarse. */
+  const antes = { x: asu.x, y: asu.y };
+  for (let i = 0; i < 90; i++) {
+    meu.x = asu.x - 30; meu.y = asu.y;
+    meu.tx = meu.x; meu.ty = meu.y; meu.waypoints = [];
+    simStep(g);
+  }
+  const fuxiu = Math.hypot(asu.x - antes.x, asu.y - antes.y);
+  afirmar(fuxiu > 4, `non fuxiu: moveuse ${fuxiu.toFixed(1)} px`);
+
+  /* Agora o mesmo, pero quen se achega xa é un recuperado. */
+  meu.recuperado = true;
+  const antes2 = { x: asu.x, y: asu.y };
+  for (let i = 0; i < 90; i++) {
+    meu.x = asu.x - 30; meu.y = asu.y;
+    meu.tx = meu.x; meu.ty = meu.y; meu.waypoints = [];
+    simStep(g);
+  }
+  const quieto = Math.hypot(asu.x - antes2.x, asu.y - antes2.y);
+  afirmar(quieto < 2, `dun dos seus non pode fuxir; moveuse ${quieto.toFixed(1)} px`);
+});
+
+proba('un atrapado non se ergue mentres teña os cascallos enriba', async () => {
+  const S = cargarXogo();
+  await asentar();
+  const op = S.aval('campanaOperacion')(1);
+  S.window._biomaPedido = 'INTERIOR';
+  S.window._plantaPedida = op.planta;
+  S.window._operacion = op;
+  const g = novaBatalla(S, { op: 0, semente: 11 });
+
+  const atr = g.units.find((u) => u.inerte && u.estadoInerte === 'ATRAPADA');
+  const meu = g.units.find((u) => u.team === 0 && !u.dead);
+  afirmar(atr && meu, 'fai falla un atrapado');
+  /* Ponse un cascallo xusto enriba del e mantense o rescatador ao lado
+     todo o tempo que faría falla para erguelo. */
+  g.walls.push({ x: atr.x, y: atr.y, hp: 150, max: 150, destroyed: false, tabique: true });
+  const simStep = S.aval('simStep');
+  const rescatados0 = g.rescatados || 0;
+  for (let i = 0; i < 260; i++) {
+    meu.x = atr.x + 10; meu.y = atr.y; meu.tx = meu.x; meu.ty = meu.y;
+    meu.hp = meu.max;
+    simStep(g);
+  }
+  afirmar((g.rescatados || 0) === rescatados0,
+    'cos cascallos enriba non se pode erguer a ninguén: primeiro hai que quitalos');
+});

@@ -1639,6 +1639,11 @@ function tickUnits(g){
   for(const r of g.remains){
     if(r.expired) continue;
     if(!r.secured){
+      /* (v1.06) Os restos de ESCENARIO non levan reloxo: xa levan aí
+         desde antes de que chegases. Non caducan, non se poden
+         asegurar e non teñen nome — están para que preguntes que
+         pasou aquí, non para que os recollas. */
+      if(r.escenario) continue;
       r.timer--;
       if(r.timer<=0){ r.expired = true; }
     }
