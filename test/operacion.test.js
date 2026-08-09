@@ -437,3 +437,69 @@ proba('a operación 1 xógase enteira e remata en vitoria', async () => {
   afirmar(!mal.length,
     `un recuperado non pode levar designación de inimigo: ${mal.map((u) => u.id).join(' ')}`);
 });
+
+proba('dous diálogos solapados non deixan o xogo pausado sen caixa', async () => {
+  /* O FALLO MÁIS GRAVE que apareceu xogando: "ao final dos diálogos as
+     unidades quedan paradas e non hai forma de movelas".
+
+     Cada chamada a opDialogo creaba a súa propia fila e o seu propio
+     escoitador de teclado sobre a MESMA caixa. Con dous solapados —dous
+     gatillos no mesmo intre, ou un gatillo mentres fala a entrada— un
+     remataba e quitaba a pausa mentres o outro seguía pendente, ou ao
+     revés: a caixa agochábase e a pausa quedaba posta. Desde fóra iso é
+     o xogo conxelado sen ningunha mensaxe. */
+  const S = cargarXogo();
+  await asentar();
+  await arrancar(S, {
+    id: 'proba-dialogos', planta: 'NAVE',
+    obxectivo: { tipo: 'DEFENSA', ata: 600 },
+    garnicion: [], inertes: [], gatillos: [],
+  });
+
+  let remates = 0;
+  S.aval('opDialogo')([{ voz: 'HQ', txt: 'un' }, { voz: 'HQ', txt: 'dous' }], () => remates++);
+  S.aval('opDialogo')([{ voz: 'TUERCA', txt: 'tres' }], () => remates++);
+  afirmar(S.window._opPausa === true, 'con diálogo aberto a imaxe ten que estar detida');
+
+  /* Tres liñas + o peche: catro avances. */
+  for (let i = 0; i < 4; i++) S.aval('opDialogoSeguinte')();
+  afirmar(!S.window._opPausa,
+    'ao rematar as dúas filas ten que soltar a pausa; se non, o xogo queda morto');
+  afirmar(remates === 2, `executáronse ${remates} remates dos 2 pendentes`);
+});
+
+proba('a válvula solta a pausa se algunha vez queda posta soa', async () => {
+  /* Non debería pasar nunca —para iso está a fila única— pero o custo de
+     que pase é o xogador co xogo conxelado, sen mensaxe e sen saber que
+     fixo mal. Iso non se deixa a que non pase. */
+  const S = cargarXogo();
+  await asentar();
+  S.window._opPausa = true;
+  S.aval('opVixiarPausa')();
+  afirmar(!S.window._opPausa, 'a válvula ten que soltar unha pausa orfa');
+});
+
+proba('os desconectados non se amorean', async () => {
+  /* Repartíanse collendo "un de cada N" da lista de celas libres, e esa
+     lista vai en orde de filas: espallaba ao longo dunha fila e deixaba
+     varios na mesma banda. Xogando víanse todos xuntos nun recuncho. */
+  const S = cargarXogo();
+  await asentar();
+  const op = S.aval('campanaOperacion')(1);
+  S.window._biomaPedido = 'INTERIOR';
+  S.window._plantaPedida = op.planta;
+  S.window._operacion = op;
+  const g = novaBatalla(S, { op: 0, semente: 11 });
+
+  const ins = g.units.filter((u) => u.inerte);
+  afirmar(ins.length === 5, 'esperábanse cinco');
+  /* Todas as distancias menos a do par que se estaba axudando, que vai
+     pegado a propósito e é a escena da misión. */
+  const ds = [];
+  for (let i = 0; i < ins.length; i++)
+    for (let j = i + 1; j < ins.length; j++)
+      ds.push(Math.hypot(ins[i].x - ins[j].x, ins[i].y - ins[j].y));
+  ds.sort((a, b) => a - b);
+  afirmar(ds[1] > 80,
+    `dous desconectados a ${Math.round(ds[1])} px: iso é un montón, non un mapa`);
+});

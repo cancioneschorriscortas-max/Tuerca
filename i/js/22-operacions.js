@@ -172,10 +172,30 @@ function opOcosDe(g, onde, cantos){
     }
   }
   if(!libres.length) return out;
-  /* Repartidos, non amoreados: colle un de cada N. */
-  const paso = Math.max(1, Math.floor(libres.length / cantos));
-  for(let i = 0; i < cantos; i++) out.push(libres[(i * paso + (i * 7)) % libres.length]);
-  return out;
+  /* REPÁRTENSE POR DISTANCIA, non por índice.
+
+     Antes collíase "un de cada N" da lista, e a lista vai en orde de
+     filas: iso espalla ao longo dunha fila pero deixa varios na mesma
+     banda, e xogando víanse os desconectados amoreados nun recuncho.
+     Aquí cada novo vai ao oco MÁIS LONXE de todos os xa colocados —a
+     mesma dispersión de Mitchell que usa o xerador de plantas para os
+     sectores, e polo mesmo motivo. */
+  const lonxe = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+  const postos = [];
+  /* O primeiro, ao chou pero estable: sen isto todos os grupos dunha
+     operación empezarían no mesmo sitio. */
+  postos.push(libres[(cantos * 7919) % libres.length]);
+  while(postos.length < cantos){
+    let mellor = null, d = -1;
+    for(const o of libres){
+      let min = Infinity;
+      for(const p of postos) min = Math.min(min, lonxe(o, p));
+      if(min > d){ d = min; mellor = o; }
+    }
+    if(!mellor) break;
+    postos.push(mellor);
+  }
+  return postos;
 }
 
 /* ============================================================
@@ -542,17 +562,42 @@ function opResultado(g){
    tocar o markup nin a folla de estilos para engadir unha operación.
    ============================================================ */
 let _opCaixa = null;
+/* UNHA soa fila e UN só dono. Antes cada chamada a opDialogo creaba
+   a súa fila e o seu escoitador de teclado sobre a MESMA caixa: dous
+   diálogos solapados pisábanse, un remataba e quitaba a pausa mentres
+   o outro seguía pendente, e o xogo quedaba PAUSADO SEN CAIXA Á VISTA.
+   Desde fóra iso é 'as unidades quedan paradas e non hai forma de
+   movelas'. */
+const _opFila = [];
+const _opRemates = [];
+let _opAberto = false;
 function opCaixaDialogo(){
   if(_opCaixa) return _opCaixa;
   _opCaixa = document.createElement('div');
   _opCaixa.id = 'opDialogo';
-  _opCaixa.style.cssText = 'position:fixed; left:0; right:0; bottom:0; z-index:60; display:none;' +
-    'background:linear-gradient(to top, rgba(6,8,10,0.97), rgba(6,8,10,0.90));' +
-    'border-top:2px solid #6a5a2a; padding:16px 22px; font-family:Courier New;';
+  /* (v1.07) INSET 0, non "pegado abaixo".
+
+     A caixa estaba en `bottom:0`, que nesta interface queda POR BAIXO do
+     rexistro de radio e practicamente fóra da pantalla: o xogo paraba, o
+     xogador non vía nada e o único síntoma era que a partida quedaba
+     conxelada. E como o clic só valía sobre a propia caixa, premer no
+     mapa —que é onde está o rato— non facía nada.
+
+     Agora ocupa a pantalla enteira cun veo lixeiro: a escena séguese
+     vendo por detrás, queda claro que está detida, e o clic vale en
+     calquera sitio. */
+  _opCaixa.style.cssText = 'position:fixed; inset:0; z-index:60; display:none;' +
+    'align-items:flex-end; justify-content:center; cursor:pointer;' +
+    'background:rgba(4,6,8,0.42); font-family:Courier New;';
   _opCaixa.innerHTML =
-    '<div id="opVoz" style="color:#e8c060; font-size:12px; letter-spacing:2px; margin-bottom:6px;"></div>' +
-    '<div id="opTxt" style="color:#d8d5c8; font-size:15px; line-height:1.5; max-width:900px;"></div>' +
-    '<div style="color:#6a6a60; font-size:11px; margin-top:10px;">— espazo ou clic para seguir —</div>';
+    '<div style="width:min(880px,94%); margin:0 0 6vh; padding:18px 24px;' +
+         'background:rgba(6,8,10,0.97); border:1px solid #6a5a2a;' +
+         'box-shadow:0 12px 40px rgba(0,0,0,0.75);">' +
+      '<div id="opVoz" style="color:#e8c060; font-size:12px; letter-spacing:2px; margin-bottom:6px;"></div>' +
+      '<div id="opTxt" style="color:#d8d5c8; font-size:16px; line-height:1.55;"></div>' +
+      '<div style="color:#8a8478; font-size:11px; margin-top:12px; letter-spacing:1px;">' +
+        '▮ OPERACIÓN DETIDA — espazo ou clic para seguir</div>' +
+    '</div>';
   document.body.appendChild(_opCaixa);
   return _opCaixa;
 }
@@ -569,30 +614,66 @@ const OP_VOCES = {
 
 function opDialogo(liñas, remate){
   const cx = opCaixaDialogo();
-  const fila = (liñas || []).slice();
-  if(!fila.length){ if(remate) remate(); return; }
+  const novas = (liñas || []).slice();
+  if(!novas.length){ if(remate) remate(); return; }
+  /* Enfílanse, non se pisan. */
+  if(remate) novas[novas.length - 1]._remate = remate;
+  for(const l of novas) _opFila.push(l);
+  if(!_opAberto) opDialogoAbrir();
+}
+
+function opDialogoAbrir(){
+  const cx = opCaixaDialogo();
+  _opAberto = true;
   window._opPausa = true;
-  const seguinte = () => {
-    const l = fila.shift();
-    if(!l){
-      cx.style.display = 'none';
-      window._opPausa = false;
-      document.removeEventListener('keydown', tecla);
-      cx.onclick = null;
-      if(remate) remate();
-      return;
-    }
-    const v = OP_VOCES[l.voz] || {nome: l.voz || '', cor: '#d8d5c8'};
-    const dv = cx.querySelector('#opVoz'), dt = cx.querySelector('#opTxt');
-    dv.textContent = v.nome; dv.style.color = v.cor;
-    dt.textContent = l.txt || '';
-    cx.style.display = 'block';
-    try{ if(typeof sfxT === 'function') sfxT('voice_blip', 120, l.voz); }catch(e){}
-  };
-  const tecla = (e) => { if(e.key === ' ' || e.key === 'Enter' || e.key === 'Escape'){ e.preventDefault(); seguinte(); } };
-  document.addEventListener('keydown', tecla);
-  cx.onclick = seguinte;
-  seguinte();
+  document.addEventListener('keydown', _opTecla, true);
+  cx.onclick = opDialogoSeguinte;
+  opDialogoSeguinte();
+}
+
+function opDialogoSeguinte(){
+  const cx = opCaixaDialogo();
+  const l = _opFila.shift();
+  if(!l){
+    cx.style.display = 'none';
+    _opAberto = false;
+    window._opPausa = false;
+    document.removeEventListener('keydown', _opTecla, true);
+    cx.onclick = null;
+    const rs = _opRemates.slice(); _opRemates.length = 0;
+    for(const r of rs){ try{ r(); }catch(e){ console.error('[dialogo]', e); } }
+    return;
+  }
+  const v = OP_VOCES[l.voz] || {nome: l.voz || '', cor: '#d8d5c8'};
+  const dv = cx.querySelector('#opVoz'), dt = cx.querySelector('#opTxt');
+  dv.textContent = v.nome; dv.style.color = v.cor;
+  dt.textContent = l.txt || '';
+  cx.style.display = 'flex';
+  if(l._remate) _opRemates.push(l._remate);
+  try{ if(typeof sfxT === 'function') sfxT('voice_blip', 120, l.voz); }catch(e){}
+}
+
+function _opTecla(e){
+  if(e.key === ' ' || e.key === 'Enter' || e.key === 'Escape'){
+    e.preventDefault(); e.stopPropagation();
+    opDialogoSeguinte();
+  }
+}
+
+/* ============================================================
+   VÁLVULA DE SEGURIDADE.
+
+   Chámaa o bucle de xogo en cada fotograma. Se algunha vez a pausa
+   queda posta sen caixa á vista, quítaa. Non debería pasar nunca —para
+   iso está a fila— pero o custo de que pase é que o xogador queda co
+   xogo conxelado, sen mensaxe e sen saber que fixo mal, e iso non se
+   pode deixar a que non pase.
+   ============================================================ */
+function opVixiarPausa(){
+  if(!window._opPausa) return;
+  if(_opAberto && _opCaixa && _opCaixa.style.display !== 'none') return;
+  window._opPausa = false;
+  _opAberto = false;
 }
 
 /* ============================================================

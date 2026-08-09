@@ -760,6 +760,9 @@ function loop(now){
      tírase o tempo acumulado, porque se non ao pechar a caixa
      executaríanse de golpe todos os pasos que quedaron agardando e a
      batalla daría un salto. */
+  /* (v1.07) Válvula: se a pausa quedase posta sen caixa á vista, o
+     xogador tería o xogo conxelado sen saber por que. */
+  if(typeof opVixiarPausa === 'function') opVixiarPausa();
   if(window._opPausa) _simAccum = 0;
   while(!window._opPausa && _simAccum >= SIM_DT && steps < SIM_MAX_STEPS){
     simStep(g);
